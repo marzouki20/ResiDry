@@ -51,11 +51,18 @@ lib/
 │   └── orders/
 │
 ├── core/
+├── database/
+├── models/
+├── services/
 ├── shared/
 └── main.dart
 ```
 
 Each module is developed independently and integrated into the main application through Git.
+
+Shared database setup belongs in `database/`, reusable data models in `models/`,
+cross-feature business and integration logic in `services/`, and reusable UI or
+utilities in `shared/`.
 
 ---
 

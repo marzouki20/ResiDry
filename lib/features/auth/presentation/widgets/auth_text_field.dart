@@ -12,6 +12,7 @@ class AuthTextField extends StatelessWidget {
     this.obscureText = false,
     this.suffix,
     this.textCapitalization = TextCapitalization.none,
+    this.controller,
   });
 
   final String label;
@@ -21,6 +22,7 @@ class AuthTextField extends StatelessWidget {
   final bool obscureText;
   final Widget? suffix;
   final TextCapitalization textCapitalization;
+  final TextEditingController? controller;
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +39,7 @@ class AuthTextField extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         TextField(
+          controller: controller,
           keyboardType: keyboardType,
           obscureText: obscureText,
           textCapitalization: textCapitalization,

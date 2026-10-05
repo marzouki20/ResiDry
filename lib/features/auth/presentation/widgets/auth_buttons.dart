@@ -3,16 +3,21 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class PrimaryAuthButton extends StatelessWidget {
-  const PrimaryAuthButton({super.key, required this.label});
+  const PrimaryAuthButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+  });
 
   final String label;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 54,
       child: FilledButton(
-        onPressed: () {},
+        onPressed: onPressed,
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.purple,
           foregroundColor: Colors.white,

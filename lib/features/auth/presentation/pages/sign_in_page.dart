@@ -11,11 +11,19 @@ class SignInPage extends StatelessWidget {
     required this.passwordVisible,
     required this.onTogglePassword,
     required this.onForgotPassword,
+    required this.emailController,
+    required this.passwordController,
+    required this.onSignIn,
+    required this.isSubmitting,
   });
 
   final bool passwordVisible;
   final VoidCallback onTogglePassword;
   final VoidCallback onForgotPassword;
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final VoidCallback onSignIn;
+  final bool isSubmitting;
 
   @override
   Widget build(BuildContext context) {
@@ -27,11 +35,12 @@ class SignInPage extends StatelessWidget {
           subtitle: 'Good to see you again. Let’s get you signed in.',
         ),
         const SizedBox(height: 27),
-        const AuthTextField(
+        AuthTextField(
           label: 'Email address',
           hint: 'you@example.com',
           icon: Icons.mail_outline_rounded,
           keyboardType: TextInputType.emailAddress,
+          controller: emailController,
         ),
         const SizedBox(height: 17),
         AuthTextField(
@@ -39,6 +48,7 @@ class SignInPage extends StatelessWidget {
           hint: 'Enter your password',
           icon: Icons.lock_outline_rounded,
           obscureText: !passwordVisible,
+          controller: passwordController,
           suffix: IconButton(
             tooltip: passwordVisible ? 'Hide password' : 'Show password',
             onPressed: onTogglePassword,
@@ -64,7 +74,10 @@ class SignInPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 9),
-        const PrimaryAuthButton(label: 'Sign in'),
+        PrimaryAuthButton(
+          label: isSubmitting ? 'Signing in...' : 'Sign in',
+          onPressed: isSubmitting ? null : onSignIn,
+        ),
         const SizedBox(height: 22),
         const AuthDivider(),
         const SizedBox(height: 20),
