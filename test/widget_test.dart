@@ -15,14 +15,18 @@ void main() {
     expect(find.text('Forgot password?'), findsOneWidget);
     expect(find.text('Send reset link'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('Back to sign in'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Back to sign in'));
     await tester.pumpAndSettle();
     expect(find.text('Welcome back'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('Create account'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Create account'));
     await tester.pumpAndSettle();
     expect(find.text('Create your account'), findsOneWidget);
     expect(find.text('Full name'), findsOneWidget);
-    expect(find.text('Terms of Service'), findsOneWidget);
+    expect(find.textContaining('Terms of Service'), findsOneWidget);
   });
 }

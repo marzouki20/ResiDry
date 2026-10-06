@@ -14,28 +14,26 @@ class BrandMark extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(vertical: 4),
-          child: Row(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppColors.purple,
-                  borderRadius: BorderRadius.all(Radius.circular(10)),
-                ),
-                child: SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: Icon(Icons.blur_on_rounded, color: Colors.white),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Image.asset(
+                  'assets/logo.png',
+                  width: 120,
+                  height: 120,
+                  fit: BoxFit.contain,
                 ),
               ),
-              SizedBox(width: 10),
-              Text(
-                'orbit',
+              const SizedBox(height: 10),
+              const Text(
+                'ResiDry',
                 style: TextStyle(
                   color: AppColors.ink,
-                  fontSize: 22,
+                  fontSize: 26,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.8,
                 ),

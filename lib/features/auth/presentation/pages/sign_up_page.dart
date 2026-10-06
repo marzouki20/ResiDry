@@ -41,7 +41,7 @@ class SignUpPage extends StatelessWidget {
       children: [
         const AuthHeading(
           title: 'Create your account',
-          subtitle: 'Start your journey with Orbit today.',
+          subtitle: 'Start your journey with ResiDry today.',
         ),
         const SizedBox(height: 27),
         AuthTextField(
@@ -121,8 +121,8 @@ class SignUpPage extends StatelessWidget {
               child: Checkbox(
                 value: acceptedTerms,
                 onChanged: onToggleTerms,
-                activeColor: AppColors.purple,
-                side: const BorderSide(color: Color(0xFFD3D1DE)),
+                activeColor: AppColors.cyan,
+                side: const BorderSide(color: AppColors.line),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(5),
                 ),

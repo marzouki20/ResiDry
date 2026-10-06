@@ -8,56 +8,38 @@ class AuthIllustration extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 126,
+      height: 200,
       child: Stack(
         alignment: Alignment.center,
         children: [
           Container(
-            width: 126,
-            height: 126,
+            width: 190,
+            height: 190,
             decoration: BoxDecoration(
-              color: const Color(0xFFEDE8FF),
-              borderRadius: BorderRadius.circular(40),
+              color: AppColors.cream,
+              borderRadius: BorderRadius.circular(52),
             ),
           ),
-          Container(
-            width: 91,
-            height: 91,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF9A82FA), AppColors.purple],
-              ),
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.purple.withValues(alpha: 0.25),
-                  blurRadius: 24,
-                  offset: const Offset(0, 12),
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.waving_hand_rounded,
-              color: Colors.white,
-              size: 42,
-            ),
+          Image.asset(
+            'assets/logo.png',
+            width: 180,
+            height: 180,
+            fit: BoxFit.contain,
           ),
           const Positioned(
-            top: 13,
-            right: 91,
-            child: Icon(Icons.auto_awesome, size: 20, color: AppColors.purple),
+            top: 12,
+            right: 105,
+            child: Icon(Icons.auto_awesome, size: 20, color: AppColors.cyan),
           ),
           const Positioned(
-            bottom: 16,
-            left: 91,
-            child: Icon(Icons.circle, size: 10, color: Color(0xFFF5B77C)),
+            bottom: 20,
+            left: 105,
+            child: Icon(Icons.circle, size: 10, color: AppColors.coral),
           ),
           const Positioned(
-            top: 30,
-            right: 65,
-            child: Icon(Icons.circle, size: 7, color: Color(0xFFB8A8FF)),
+            top: 38,
+            right: 70,
+            child: Icon(Icons.circle, size: 7, color: AppColors.navy),
           ),
         ],
       ),

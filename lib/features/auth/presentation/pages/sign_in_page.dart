@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_theme.dart';
 import '../widgets/auth_buttons.dart';
 import '../widgets/auth_divider.dart';
 import '../widgets/auth_heading.dart';
@@ -57,7 +58,7 @@ class SignInPage extends StatelessWidget {
                   ? Icons.visibility_off_outlined
                   : Icons.visibility_outlined,
               size: 20,
-              color: const Color(0xFF858493),
+              color: AppColors.muted,
             ),
           ),
         ),
@@ -66,7 +67,7 @@ class SignInPage extends StatelessWidget {
           child: TextButton(
             onPressed: onForgotPassword,
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF7457E8),
+              foregroundColor: AppColors.navy,
               padding: const EdgeInsets.symmetric(vertical: 12),
               textStyle: const TextStyle(fontWeight: FontWeight.w700),
             ),

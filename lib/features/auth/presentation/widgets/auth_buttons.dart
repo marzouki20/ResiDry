@@ -19,7 +19,7 @@ class PrimaryAuthButton extends StatelessWidget {
       child: FilledButton(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.purple,
+          backgroundColor: AppColors.navy,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -56,13 +56,16 @@ class GoogleAuthButton extends StatelessWidget {
             Text(
               'G',
               style: TextStyle(
-                color: Color(0xFF4285F4),
+                color: AppColors.navy,
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
               ),
             ),
             SizedBox(width: 10),
-            Text('Continue with Google'),
+            Text(
+              'Continue with Google',
+              style: TextStyle(color: AppColors.navy),
+            ),
           ],
         ),
       ),

@@ -3,6 +3,8 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../../database/database.dart';
 import '../../../models/user.dart';
+import '../../casiers/presentation/admin/admin_interface.dart';
+import '../../casiers/presentation/resident/resident_interface.dart';
 import '../../lockers/presentation/home_page.dart';
 import '../../orders/presentation/home_page.dart';
 import 'auth_page.dart';
@@ -11,7 +13,6 @@ import 'pages/sign_in_page.dart';
 import 'pages/sign_up_page.dart';
 import 'widgets/auth_footer.dart';
 import 'widgets/auth_illustration.dart';
-import 'widgets/brand_mark.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -63,10 +64,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 20),
-                        BrandMark(onTap: () => _showPage(AuthPage.signIn)),
-                        const SizedBox(height: 42),
                         const AuthIllustration(),
-                        const SizedBox(height: 34),
+                        const SizedBox(height: 30),
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 220),
                           child: _buildPage(),
@@ -220,6 +219,10 @@ class _AuthScreenState extends State<AuthScreen> {
   void _openHome(String name, String role) {
     final homePage = role == 'Livreur'
         ? OrdersHomePage(userName: name)
+        : role == 'Administrateur'
+        ? AdminInterface(userName: name)
+        : role == 'Résident'
+        ? ResidentInterface(userName: name)
         : HomePage(userName: name, userRole: role);
 
     Navigator.of(context).pushReplacement(

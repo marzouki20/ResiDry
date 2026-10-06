@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_theme.dart';
 import '../widgets/auth_buttons.dart';
 import '../widgets/auth_heading.dart';
 import '../widgets/auth_text_field.dart';
@@ -34,7 +35,7 @@ class ForgotPasswordPage extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_rounded, size: 18),
           label: const Text('Back to sign in'),
           style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFF7457E8),
+            foregroundColor: AppColors.navy,
             textStyle: const TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
