@@ -4,9 +4,9 @@ import 'package:sqflite/sqflite.dart';
 import '../../../database/database.dart';
 import '../../../models/user.dart';
 import '../../casiers/presentation/admin/admin_interface.dart';
-import '../../casiers/presentation/resident/resident_interface.dart';
 import '../../lockers/presentation/home_page.dart';
 import '../../orders/presentation/home_page.dart';
+import '../../residents/presentation/residents_home_page.dart';
 import 'auth_page.dart';
 import 'pages/forgot_password_page.dart';
 import 'pages/sign_in_page.dart';
@@ -222,12 +222,11 @@ class _AuthScreenState extends State<AuthScreen> {
         : role == 'Administrateur'
         ? AdminInterface(userName: name)
         : role == 'Résident'
-        ? ResidentInterface(userName: name)
+        ? ResidentsHomePage(userName: name)
         : HomePage(userName: name, userRole: role);
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => homePage),
-    );
+    Navigator.of(context)
+        .pushReplacement(MaterialPageRoute<void>(builder: (_) => homePage));
   }
 
   void _showMessage(String message) {
