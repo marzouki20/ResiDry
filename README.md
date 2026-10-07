@@ -74,6 +74,8 @@ prototype.
 │   ├── database/
 │   │   └── database.dart
 │   ├── models/
+│   │   ├── delivery_driver.dart
+│   │   ├── delivery_order.dart
 │   │   └── user.dart
 │   └── features/
 │       ├── auth/
@@ -103,6 +105,14 @@ prototype.
 │       │       │   └── resident_interface.dart
 │       │       └── widgets/
 │       │           └── casier_components.dart
+│       ├── delivery_drivers/
+│       │   └── presentation/
+│       │       ├── admin_driver_management.dart
+│       │       ├── driver_interface.dart
+│       │       ├── navigation/
+│       │       │   └── driver_navigation_bar.dart
+│       │       └── widgets/
+│       │           └── driver_components.dart
 │       ├── lockers/
 │       │   └── presentation/
 │       │       └── home_page.dart
@@ -159,16 +169,24 @@ This feature contains separate user experiences:
 The side menu opens from the menu button in the app bar. Selecting a destination
 switches to that role's corresponding page and closes the drawer.
 
+### Delivery drivers — `lib/features/delivery_drivers/`
+
+| Folder/file | Responsibility |
+| --- | --- |
+| `presentation/driver_interface.dart` | Delivery driver dashboard, active/past missions list, IoT locker unlocking, notifications, and driver profile screens. |
+| `presentation/admin_driver_management.dart` | Administrator view for monitoring delivery driver fleet and assigning orders to drivers. |
+| `presentation/navigation/driver_navigation_bar.dart` | Collapsible delivery driver side drawer and page destinations. |
+| `presentation/widgets/driver_components.dart` | Reusable delivery order cards, status pills, and driver metrics widgets. |
+
 ### Other feature placeholders
 
 | Folder/file | Current responsibility |
 | --- | --- |
 | `lib/features/lockers/presentation/home_page.dart` | Generic locker landing-page placeholder for roles without a dedicated screen. |
-| `lib/features/orders/presentation/home_page.dart` | Delivery/order landing page used for the `Livreur` role. |
+| `lib/features/orders/presentation/home_page.dart` | Legacy delivery/order landing page placeholder. |
 
-Other modules listed in the team plan (laundry, laundry companies, delivery
-drivers, and residents) have not yet been added to the current `lib/features/`
-tree.
+Other modules listed in the team plan (laundry, laundry companies, and residents)
+have not yet been added to the current `lib/features/` tree.
 
 ---
 

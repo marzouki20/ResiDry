@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../delivery_drivers/presentation/admin_driver_management.dart';
 import '../navigation/admin_navigation_bar.dart';
 import '../widgets/casier_components.dart';
 
@@ -25,6 +26,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
     final titles = [
       'Tableau de bord',
       'Gestion des casiers',
+      'Gestion des livreurs',
       'Anomalies',
       'Maintenance',
       'Profil',
@@ -68,6 +70,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
         children: [
           _dashboard(),
           _lockersPage(),
+          const AdminDriverManagementView(),
           _anomaliesPage(),
           _maintenancePage(),
           _profilePage(),
@@ -796,7 +799,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
                       },
                     ),
                     DropdownButtonFormField<String>(
-                      initialValue: type,
+                      value: type,
                       decoration: const InputDecoration(labelText: 'Type'),
                       items: const [
                         DropdownMenuItem(

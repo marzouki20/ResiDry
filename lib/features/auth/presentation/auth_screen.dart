@@ -5,8 +5,9 @@ import '../../../database/database.dart';
 import '../../../models/user.dart';
 import '../../casiers/presentation/admin/admin_interface.dart';
 import '../../casiers/presentation/resident/resident_interface.dart';
+import '../../delivery_drivers/presentation/driver_interface.dart';
+import '../../delivery_drivers/presentation/driver_onboarding_page.dart';
 import '../../lockers/presentation/home_page.dart';
-import '../../orders/presentation/home_page.dart';
 import 'auth_page.dart';
 import 'pages/forgot_password_page.dart';
 import 'pages/sign_in_page.dart';
@@ -166,7 +167,15 @@ class _AuthScreenState extends State<AuthScreen> {
       );
       await database.createUser(user.toMap());
       if (mounted) {
-        _openHome(name, _selectedRole);
+        if (_selectedRole == 'Livreur') {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute<void>(
+              builder: (_) => DriverOnboardingPage(userName: name),
+            ),
+          );
+        } else {
+          _openHome(name, _selectedRole);
+        }
       }
     } on DatabaseException {
       if (mounted) {
@@ -218,7 +227,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _openHome(String name, String role) {
     final homePage = role == 'Livreur'
-        ? OrdersHomePage(userName: name)
+        ? DriverInterface(userName: name)
         : role == 'Administrateur'
         ? AdminInterface(userName: name)
         : role == 'Résident'
