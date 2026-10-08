@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
-import 'presentation/laundry_list_screen.dart';
+import 'presentation/laundry_page.dart';
 
-// A private entry point to test ONLY the laundry module,
-// without touching the team's main.dart or app.dart.
+// Private entry point used only to test the laundry module.
+// This file does NOT replace the team's main.dart.
 void main() {
   runApp(const LaundryDevApp());
 }
@@ -18,7 +18,7 @@ class LaundryDevApp extends StatelessWidget {
       title: 'ResiDry - Linge',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const LaundryListScreen(),
+      home: const LaundryPage(),
     );
   }
 }
