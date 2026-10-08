@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../database/database.dart';
 import '../mock/residents_mock_data.dart';
 import 'pages/edit_profile_page.dart';
 import 'pages/laundry_request_details_page.dart';
@@ -24,6 +25,7 @@ class ResidentsHomePage extends StatefulWidget {
 
 class _ResidentsHomePageState extends State<ResidentsHomePage> {
   int _selectedIndex = 0;
+  bool _isLoading = true;
   ResidentProfile _resident = demoResidentProfile;
   final List<LaundryRequest> _laundryRequests = List<LaundryRequest>.from(
     demoLaundryRequests,
@@ -31,6 +33,24 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
   List<NotificationItem> _notifications = List<NotificationItem>.from(
     demoNotifications,
   );
+
+  @override
+  void initState() {
+    super.initState();
+    _loadResident();
+  }
+
+  Future<void> _loadResident() async {
+    final residents = await AppDatabase.instance.listResidents();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _resident = residents.isNotEmpty ? residents.first : demoResidentProfile;
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +82,11 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
           ),
         ),
         actions: [
+          IconButton(
+            tooltip: 'Ajouter un résident',
+            onPressed: _openCreateResident,
+            icon: const Icon(Icons.person_add_alt_1_rounded),
+          ),
           IconButton(
             tooltip: 'Notifications',
             onPressed: () => setState(() => _selectedIndex = 4),
@@ -169,26 +194,29 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
           ),
         ),
       ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          _dashboardPage(),
-          ResidentProfilePage(
-            resident: _resident,
-            onEditProfile: _openEditProfile,
-          ),
-          ResidencePage(resident: _resident),
-          LaundryRequestsPage(
-            requests: _laundryRequests,
-            onRequestSelected: _openRequestDetails,
-          ),
-          NotificationsPage(
-            notifications: _notifications,
-            onMarkAllAsRead: _markAllAsRead,
-          ),
-          LockerAssignmentPage(assignment: demoLockerAssignment),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : IndexedStack(
+              index: _selectedIndex,
+              children: [
+                _dashboardPage(),
+                ResidentProfilePage(
+                  resident: _resident,
+                  onEditProfile: _openEditProfile,
+                  onDeleteProfile: _deleteResident,
+                ),
+                ResidencePage(resident: _resident),
+                LaundryRequestsPage(
+                  requests: _laundryRequests,
+                  onRequestSelected: _openRequestDetails,
+                ),
+                NotificationsPage(
+                  notifications: _notifications,
+                  onMarkAllAsRead: _markAllAsRead,
+                ),
+                LockerAssignmentPage(assignment: demoLockerAssignment),
+              ],
+            ),
     );
   }
 
@@ -322,6 +350,11 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
               icon: Icons.lock_outline_rounded,
               label: 'Locker',
               onTap: () => setState(() => _selectedIndex = 5),
+            ),
+            QuickActionCard(
+              icon: Icons.person_add_alt_1_rounded,
+              label: 'New resident',
+              onTap: _openCreateResident,
             ),
           ],
         ),
@@ -473,15 +506,97 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
   Future<void> _openEditProfile() async {
     final updatedResident = await Navigator.of(context).push<ResidentProfile>(
       MaterialPageRoute<ResidentProfile>(
-        builder: (context) => EditProfilePage(
-          resident: _resident,
-          onSave: (profile) => setState(() => _resident = profile),
-        ),
+        builder: (context) =>
+            EditProfilePage(resident: _resident, onSave: (_) {}),
       ),
     );
 
     if (updatedResident != null) {
-      setState(() => _resident = updatedResident);
+      final updatedRows = await AppDatabase.instance.updateResident(
+        updatedResident,
+      );
+      if (updatedRows > 0) {
+        setState(() => _resident = updatedResident);
+      }
+    }
+  }
+
+  Future<void> _openCreateResident() async {
+    final blankResident = ResidentProfile(
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      residenceName: _resident.residenceName,
+      residenceAddress: _resident.residenceAddress,
+      city: _resident.city,
+      postalCode: _resident.postalCode,
+      apartmentNumber: '',
+      floor: '',
+      status: 'Active',
+    );
+
+    final createdResident = await Navigator.of(context).push<ResidentProfile>(
+      MaterialPageRoute<ResidentProfile>(
+        builder: (context) =>
+            EditProfilePage(resident: blankResident, onSave: (_) {}),
+      ),
+    );
+
+    if (createdResident != null) {
+      final id = await AppDatabase.instance.createResident(createdResident);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _resident = createdResident.copyWith(id: id);
+        _selectedIndex = 1;
+      });
+    }
+  }
+
+  Future<void> _deleteResident() async {
+    if (_resident.id == null) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete resident?'),
+        content: Text(
+          'Do you want to delete ${_resident.fullName}? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    final deletedRows = await AppDatabase.instance.deleteResident(
+      _resident.id!,
+    );
+    if (deletedRows > 0) {
+      final remainingResidents = await AppDatabase.instance.listResidents();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _resident = remainingResidents.isNotEmpty
+            ? remainingResidents.first
+            : demoResidentProfile;
+      });
     }
   }
 

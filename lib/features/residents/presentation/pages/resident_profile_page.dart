@@ -9,10 +9,12 @@ class ResidentProfilePage extends StatelessWidget {
     super.key,
     required this.resident,
     required this.onEditProfile,
+    required this.onDeleteProfile,
   });
 
   final ResidentProfile resident;
   final VoidCallback onEditProfile;
+  final VoidCallback onDeleteProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +73,23 @@ class ResidentProfilePage extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: onDeleteProfile,
+            icon: const Icon(Icons.delete_outline_rounded),
+            label: const Text('Delete profile'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFE45858),
+              side: const BorderSide(color: Color(0xFFE45858)),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
         ),
         const SizedBox(height: 20),
         GridView.count(
