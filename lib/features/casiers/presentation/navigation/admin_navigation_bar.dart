@@ -87,16 +87,42 @@ class AdminNavigationBar extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
-                _destination(0, Icons.dashboard_outlined, Icons.dashboard_rounded, 'Tableau de bord'),
+                _destination(
+                  0,
+                  Icons.dashboard_outlined,
+                  Icons.dashboard_rounded,
+                  'Tableau de bord',
+                ),
                 _destination(
                   1,
                   Icons.door_front_door_outlined,
                   Icons.door_front_door_rounded,
                   'Gestion des casiers',
                 ),
-                _destination(2, Icons.warning_amber_outlined, Icons.warning_rounded, 'Anomalies'),
-                _destination(3, Icons.handyman_outlined, Icons.handyman_rounded, 'Maintenance'),
-                _destination(4, Icons.person_outline_rounded, Icons.person_rounded, 'Profil'),
+                _destination(
+                  2,
+                  Icons.local_laundry_service_outlined,
+                  Icons.local_laundry_service_rounded,
+                  'Gestion du linge',
+                ),
+                _destination(
+                  3,
+                  Icons.warning_amber_outlined,
+                  Icons.warning_rounded,
+                  'Anomalies',
+                ),
+                _destination(
+                  4,
+                  Icons.handyman_outlined,
+                  Icons.handyman_rounded,
+                  'Maintenance',
+                ),
+                _destination(
+                  5,
+                  Icons.person_outline_rounded,
+                  Icons.person_rounded,
+                  'Profil',
+                ),
               ],
             ),
           ),

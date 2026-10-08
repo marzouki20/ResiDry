@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../laundry/presentation/laundry_page.dart';
 import '../navigation/admin_navigation_bar.dart';
 import '../widgets/casier_components.dart';
+
 
 class AdminInterface extends StatefulWidget {
   const AdminInterface({super.key, this.userName});
@@ -25,6 +27,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
     final titles = [
       'Tableau de bord',
       'Gestion des casiers',
+      'Gestion du linge',
       'Anomalies',
       'Maintenance',
       'Profil',
@@ -50,7 +53,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
         actions: [
           IconButton(
             tooltip: 'Notifications',
-            onPressed: () => setState(() => _selectedIndex = 2),
+            onPressed: () => setState(() => _selectedIndex = 3),
             icon: const Icon(Icons.notifications_none_rounded),
           ),
           const SizedBox(width: 8),
@@ -68,6 +71,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
         children: [
           _dashboard(),
           _lockersPage(),
+          const LaundryPage(),
           _anomaliesPage(),
           _maintenancePage(),
           _profilePage(),
