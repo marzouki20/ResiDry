@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../laundry_companies/presentation/societes_lavage_page.dart';
 import '../navigation/admin_navigation_bar.dart';
 import '../widgets/casier_components.dart';
 
@@ -28,6 +29,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
       'Anomalies',
       'Maintenance',
       'Profil',
+      'Sociétés de lavage',
     ];
     return Scaffold(
       appBar: AppBar(
@@ -71,6 +73,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
           _anomaliesPage(),
           _maintenancePage(),
           _profilePage(),
+          SocietesLavagePage(userName: widget.userName),
         ],
       ),
       floatingActionButton: _selectedIndex == 1

@@ -94,6 +94,12 @@ class AdminNavigationBar extends StatelessWidget {
                   Icons.door_front_door_rounded,
                   'Gestion des casiers',
                 ),
+                _destination(
+                  5,
+                  Icons.store_outlined,
+                  Icons.store_rounded,
+                  'Sociétés de lavage',
+                ),
                 _destination(2, Icons.warning_amber_outlined, Icons.warning_rounded, 'Anomalies'),
                 _destination(3, Icons.handyman_outlined, Icons.handyman_rounded, 'Maintenance'),
                 _destination(4, Icons.person_outline_rounded, Icons.person_rounded, 'Profil'),
