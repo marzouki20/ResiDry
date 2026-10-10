@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
-
+import '../data/models/laundry_role.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../casiers/presentation/widgets/casier_components.dart';
 import '../data/models/laundry_item.dart';
 import '../data/repositories/laundry_repository.dart';
 
 class LaundryPage extends StatefulWidget {
-  const LaundryPage({super.key});
+  final LaundryRole role;
+  final String userName;
+
+  const LaundryPage({
+    super.key,
+    this.role = LaundryRole.admin,
+    this.userName = '',
+  });
 
   @override
   State<LaundryPage> createState() => _LaundryPageState();

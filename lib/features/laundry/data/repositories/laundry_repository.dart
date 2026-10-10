@@ -28,6 +28,13 @@ class LaundryRepository {
   List<LaundryItem> getAll() {
     return List.unmodifiable(_items);
   }
+  List<LaundryItem> getByResidentId(int residentId) {
+    return List.unmodifiable(
+      _items.where(
+            (item) => item.residentId == residentId,
+      ),
+    );
+  }
 
   void add(LaundryItem item) {
     _items.add(item);

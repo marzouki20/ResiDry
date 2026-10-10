@@ -7,6 +7,7 @@ enum LaundryStatus {
 
 class LaundryItem {
   final String id;
+  final int? residentId;
   final String residentName;
   final String serviceType;
   final LaundryStatus status;
@@ -14,6 +15,7 @@ class LaundryItem {
 
   LaundryItem({
     required this.id,
+    this.residentId,
     required this.residentName,
     required this.serviceType,
     required this.status,
@@ -22,6 +24,7 @@ class LaundryItem {
 
   LaundryItem copyWith({
     String? id,
+    int? residentId,
     String? residentName,
     String? serviceType,
     LaundryStatus? status,
@@ -29,6 +32,7 @@ class LaundryItem {
   }) {
     return LaundryItem(
       id: id ?? this.id,
+      residentId: residentId ?? this.residentId,
       residentName: residentName ?? this.residentName,
       serviceType: serviceType ?? this.serviceType,
       status: status ?? this.status,
