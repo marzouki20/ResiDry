@@ -13,6 +13,11 @@ live IoT devices, a remote service, and persistent locker management are not
 connected yet. The delivery driver flow now includes onboarding and the driver
 workspace for assigned delivery tasks.
 
+ResiDry is designed to make laundry and drying services more convenient for
+residents, especially for bulky items that are difficult to dry at home. The
+intended service uses smart lockers to collect laundry, coordinate processing
+with partner laundry companies, and return completed orders to the residence.
+
 ---
 
 ## Project Information
