@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../laundry/data/repositories/laundry_repository.dart';
 import '../../../laundry/presentation/laundry_page.dart';
 import '../../../laundry_companies/presentation/societes_lavage_page.dart';
 import '../../../orders/presentation/orders_admin_module.dart';
@@ -9,9 +10,10 @@ import '../navigation/admin_navigation_bar.dart';
 import '../widgets/casier_components.dart';
 
 class AdminInterface extends StatefulWidget {
-  const AdminInterface({super.key, this.userName});
+  const AdminInterface({super.key, this.userName, this.laundryRepository});
 
   final String? userName;
+  final LaundryRepository? laundryRepository;
 
   @override
   State<AdminInterface> createState() => _AdminInterfaceState();
@@ -96,7 +98,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
             onNavigate: (index) => setState(() => _selectedIndex = index + 5),
           ),
           const SocietesLavagePage(),
-          const LaundryPage(showAppBar: false),
+          LaundryPage(showAppBar: false, repository: widget.laundryRepository),
           const ResidentManagementPage(),
         ],
       ),

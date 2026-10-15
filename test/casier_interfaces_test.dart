@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttttttteee/features/casiers/presentation/admin/admin_interface.dart';
 import 'package:ttttttteee/features/casiers/presentation/resident/resident_interface.dart';
+import 'package:ttttttteee/features/laundry/data/models/laundry_item.dart';
+import 'package:ttttttteee/features/laundry/data/repositories/laundry_repository.dart';
+
+import 'laundry/support/memory_database.dart';
 
 Future<void> _selectDrawerDestination(
   WidgetTester tester,
@@ -88,33 +92,56 @@ void main() {
   testWidgets('administrator can manage laundry items', (
     WidgetTester tester,
   ) async {
+    final database = MemoryDatabase();
+    final repository = LaundryRepository(
+      databaseProvider: () async => database,
+    );
+    await repository.add(
+      LaundryItem(
+        id: 'LD-TEST',
+        residentId: 1,
+        residentName: 'Ahmed',
+        serviceType: 'Lavage',
+        status: LaundryStatus.deposited,
+        price: 15,
+        priceConfirmed: true,
+      ),
+    );
     await tester.pumpWidget(
-      const MaterialApp(home: AdminInterface(userName: 'Admin')),
+      MaterialApp(
+        home: AdminInterface(userName: 'Admin', laundryRepository: repository),
+      ),
     );
 
     await _selectDrawerDestination(tester, 'Gestion du linge');
 
-    expect(find.text('Gestion du linge'), findsOneWidget);
-    expect(find.text('#LD001'), findsOneWidget);
+    expect(find.text('Gestion du linge'), findsWidgets);
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(find.text('#LD-TEST'), findsOneWidget);
     expect(find.text('Ahmed'), findsOneWidget);
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.text('Ajouter'));
     await tester.pumpAndSettle();
     expect(find.text('Ajouter une commande'), findsOneWidget);
     await tester.tap(find.text('Annuler'));
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Modifier').first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Modifier').first);
     await tester.pumpAndSettle();
     expect(find.text('Modifier la commande'), findsOneWidget);
     await tester.tap(find.text('Annuler'));
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Supprimer').first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Supprimer').first);
     await tester.pumpAndSettle();
     expect(find.text('Supprimer la commande'), findsOneWidget);
     await tester.tap(find.text('Supprimer').last);
     await tester.pumpAndSettle();
-    expect(find.text('#LD001'), findsNothing);
+    expect(find.text('#LD-TEST'), findsNothing);
+    expect(await repository.getById('LD-TEST'), isNull);
   });
 
   testWidgets('locker form validates required and duplicate identifiers', (
