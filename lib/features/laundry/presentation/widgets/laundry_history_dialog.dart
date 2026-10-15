@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../data/models/laundry_item.dart';
-import '../data/models/laundry_status_change.dart';
-import '../data/repositories/laundry_repository.dart';
+import '../../../../models/laundry_item.dart';
+import '../../../../models/laundry_status_change.dart';
+import '../../data/repositories/laundry_repository.dart';
 import 'laundry_insights.dart';
 
 Future<void> showLaundryHistory(

@@ -1,16 +1,14 @@
-import 'laundry_async_state.dart';
-import 'laundry_admin_dialog.dart';
-import 'laundry_history_dialog.dart';
-import 'laundry_insights.dart';
-
 import 'package:flutter/material.dart';
 
-import '../data/models/laundry_role.dart';
-
-import '../data/repositories/laundry_repository.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../models/laundry_item.dart';
+import '../../../models/laundry_role.dart';
 import '../../casiers/presentation/widgets/casier_components.dart';
-import '../data/models/laundry_item.dart';
+import '../data/repositories/laundry_repository.dart';
+import 'widgets/laundry_admin_dialog.dart';
+import 'widgets/laundry_async_state.dart';
+import 'widgets/laundry_history_dialog.dart';
+import 'widgets/laundry_insights.dart';
 
 class LaundryPage extends StatefulWidget {
   const LaundryPage({

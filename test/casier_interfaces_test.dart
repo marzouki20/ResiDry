@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttttttteee/features/casiers/presentation/admin/admin_interface.dart';
 import 'package:ttttttteee/features/casiers/presentation/resident/resident_interface.dart';
-import 'package:ttttttteee/features/laundry/data/models/laundry_item.dart';
+import 'package:ttttttteee/models/laundry_item.dart';
 import 'package:ttttttteee/features/laundry/data/repositories/laundry_repository.dart';
 
 import 'laundry/support/memory_database.dart';

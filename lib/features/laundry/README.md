@@ -2,7 +2,7 @@
 
 ## 1. Base de données indépendante
 
-Fichier créé : `data/database/laundry_database.dart`.
+Fichier créé : `lib/database/laundry_database.dart`.
 
 `LaundryDatabase.instance` est un singleton : les repositories utilisent le même accès à `laundry.db`. Le fichier est placé dans le répertoire SQLite de l'application Android. Il est distinct de `residry.db`. Le champ `_opening` partage une initialisation en cours entre plusieurs appels. `initialize()` permet une ouverture explicite ; sinon le premier appel au repository ouvre la base. `close()` attend une ouverture éventuelle puis ferme la connexion. Ne fermer la connexion qu'après la fin des opérations en cours, par exemple dans un outil de développement ; ne pas la fermer à chaque changement de rôle.
 
@@ -17,9 +17,9 @@ Dépendances : `sqflite` était déjà déclaré ; `path: ^1.9.1` a été ajout�
 
 ## 2. Modèles et repository
 
-Fichier modifié : `data/models/laundry_item.dart`. `LaundryItem.toMap()` transforme les propriétés Dart en colonnes SQLite. `fromMap()` effectue l'opération inverse. `createdAt` est facultatif dans le constructeur pour préserver les appels existants ; `copyWith()` conserve cette date. Les quatre statuts existants restent identiques. Leur propriété `label` fournit le texte français.
+Fichier déplacé : `lib/models/laundry_item.dart`. `LaundryItem.toMap()` transforme les propriétés Dart en colonnes SQLite. `fromMap()` effectue l'opération inverse. `createdAt` est facultatif dans le constructeur pour préserver les appels existants ; `copyWith()` conserve cette date. Les quatre statuts existants restent identiques. Leur propriété `label` fournit le texte français.
 
-Fichier créé : `data/models/laundry_status_change.dart`. `LaundryStatusChange` représente une ligne d'historique, avec ancien statut facultatif, nouveau statut, date et auteur facultatif.
+Fichier déplacé : `lib/models/laundry_status_change.dart`. `LaundryStatusChange` représente une ligne d'historique, avec ancien statut facultatif, nouveau statut, date et auteur facultatif.
 
 Fichier modifié : `data/repositories/laundry_repository.dart`. Le repository ne contient plus de liste ni de demandes fictives. `getAll()`, `getByResidentId()`, `getById()`, `add()`, `update()` et `delete()` sont asynchrones. Les requêtes utilisent des paramètres `?` et `whereArgs`, ou les méthodes structurées `insert/update` ; les valeurs utilisateur ne sont pas concaténées au SQL.
 
@@ -52,26 +52,26 @@ La méthode vérifie le rôle et la transition, puis relit le statut SQLite dans
 
 Le parcours reste : demande déposée par le résident → traitement par le pressing → demande prête → livraison confirmée par le livreur. L'administrateur supervise ce parcours et valide les tarifs indépendamment du traitement. Le prix n'est pas une information demandée au résident. Une demande non tarifée peut continuer son parcours, conformément aux transitions initiales ; aucun système de paiement n'est ajouté.
 
-Fichiers modifiés : `presentation/laundry_page.dart`, `resident_laundry_page.dart`, `pressing_laundry_page.dart`.
+Fichiers : `presentation/laundry_page.dart`, `presentation/pages/resident_laundry_page.dart`, `presentation/pages/pressing_laundry_page.dart`.
 
 - Le résident voit uniquement les demandes de son identifiant reçu par constructeur, leur service, date, statut, prochaine étape et historique. **Il ne voit et ne saisit aucun prix**, dans les cartes comme dans les dialogues. Il peut choisir un service suggéré ou décrire son besoin. Ses demandes en cours et livrées sont séparées. Modifier/supprimer disparaissent après le dépôt. Aucun identifiant résident de test n'est fixé dans cet écran.
 - Le pressing consulte et filtre les demandes ; il peut commencer le traitement puis marquer le linge prêt. Il n'a aucun formulaire de prix/résident, ni création ou suppression.
 - L'administrateur conserve le titre, les cartes et les filtres existants. Il est le seul rôle avec un formulaire de tarification. Un champ tarif vide laisse la demande à valider ; saisir explicitement 0 confirme un service gratuit. Le filtre « Tarifs à valider » et le total des tarifs validés facilitent le suivi. Ce total ne représente pas des paiements encaissés. Le repository facultatif est réellement utilisé et `const LaundryPage()` reste valide. L'identifiant résident facultatif permet d'associer une demande au bon compte ; il reste en lecture seule une fois lié, mais une demande sans compte peut être associée ultérieurement.
 
-Fichier créé : `presentation/driver_laundry_page.dart`. `DriverLaundryPage` expose uniquement les demandes prêtes et livrées, sans prix ; il s'ouvre sur la file des demandes prêtes. La livraison demande une confirmation de remise au résident puis affiche la catégorie livrée. Le pressing voit le tarif confirmé en lecture seule, ou une indication de validation à effectuer par l'administrateur. Les deux écrans proposent recherche et historique, et classent leurs demandes par étape puis par ancienneté. Le composant partagé `LaundryWorkflowView` ne construit jamais l'écran administrateur.
+Fichier : `presentation/pages/driver_laundry_page.dart`. `DriverLaundryPage` expose uniquement les demandes prêtes et livrées, sans prix ; il s'ouvre sur la file des demandes prêtes. La livraison demande une confirmation de remise au résident puis affiche la catégorie livrée. Le pressing voit le tarif confirmé en lecture seule, ou une indication de validation à effectuer par l'administrateur. Les deux écrans proposent recherche et historique, et classent leurs demandes par étape puis par ancienneté. Le composant partagé `LaundryWorkflowView` ne construit jamais l'écran administrateur.
 
-Fichiers créés :
+Fichiers :
 
-- `presentation/laundry_async_state.dart` : petit mixin partagé pour charger les listes hors de `build()`, afficher attente/erreurs, réessayer, actualiser après une écriture et désactiver les actions pendant l'enregistrement. Un compteur empêche une ancienne réponse de remplacer un chargement plus récent. Les retours asynchrones vérifient `mounted` avant de modifier l'écran.
-- `presentation/laundry_admin_dialog.dart` : formulaire administrateur avec validation des champs et du prix fini positif ou nul. Le dialogue possède ses contrôleurs et les libère dans `dispose()`.
-- `presentation/laundry_history_dialog.dart` : lit et affiche l'historique en français, avec dates locales et auteur lorsqu'il est connu.
-- `presentation/laundry_insights.dart` : calcule les compteurs adaptés au rôle, la prochaine étape lisible par le résident, les dates françaises et la recherche. Ces aides suivent des règles locales explicites ; elles ne font pas appel à un modèle d'IA ou à un service distant.
+- `presentation/widgets/laundry_async_state.dart` : petit mixin partagé pour charger les listes hors de `build()`, afficher attente/erreurs, réessayer, actualiser après une écriture et désactiver les actions pendant l'enregistrement. Un compteur empêche une ancienne réponse de remplacer un chargement plus récent. Les retours asynchrones vérifient `mounted` avant de modifier l'écran.
+- `presentation/widgets/laundry_admin_dialog.dart` : formulaire administrateur avec validation des champs et du prix fini positif ou nul. Le dialogue possède ses contrôleurs et les libère dans `dispose()`.
+- `presentation/widgets/laundry_history_dialog.dart` : lit et affiche l'historique en français, avec dates locales et auteur lorsqu'il est connu.
+- `presentation/widgets/laundry_insights.dart` : calcule les compteurs adaptés au rôle, la prochaine étape lisible par le résident, les dates françaises et la recherche. Ces aides suivent des règles locales explicites ; elles ne font pas appel à un modèle d'IA ou à un service distant.
 
 Chemin d'une action : bouton → dialogue éventuel → validation → méthode du repository attendue avec `await` → transaction SQLite → rechargement de la liste. Une erreur produit un message français ; un échec de lecture propose « Réessayer ».
 
 ## 4. Navigation de développement
 
-Fichiers modifiés : `presentation/laundry_routes.dart`, `laundry_dev_main.dart`.
+Fichiers : `presentation/navigation/laundry_routes.dart`, `laundry_dev_main.dart`.
 
 `LaundryRoutes` définit quatre chemins et quatre builders `MaterialPageRoute` : `residentPage`, `driverPage`, `pressingPage`, `adminPage`. Les builders retournent des routes à transmettre à `Navigator.of(context).push(...)` ; les constantes seules ne sont pas automatiquement enregistrées dans `MaterialApp.routes`. La route résident utilise son propre Scaffold ; les trois autres routes enveloppent leur contenu une seule fois.
 

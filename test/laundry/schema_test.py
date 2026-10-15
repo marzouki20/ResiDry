@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 SOURCE = (Path(__file__).resolve().parents[2] /
-          'lib/features/laundry/data/database/laundry_database.dart').read_text(encoding='utf-8')
+          'lib/database/laundry_database.dart').read_text(encoding='utf-8')
 ALL_SQL = re.findall(r"await db.execute\('''(.*?)'''\);", SOURCE, re.S)
 STATEMENTS = [sql for sql in ALL_SQL if sql.lstrip().startswith('CREATE TABLE')]
 MIGRATIONS = [sql for sql in ALL_SQL if sql.lstrip().startswith('ALTER TABLE')]

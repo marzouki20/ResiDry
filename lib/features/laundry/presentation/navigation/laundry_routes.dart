@@ -1,11 +1,10 @@
-import 'driver_laundry_page.dart';
-
 import 'package:flutter/material.dart';
 
-import '../data/repositories/laundry_repository.dart';
-import 'laundry_page.dart';
-import 'pressing_laundry_page.dart';
-import 'resident_laundry_page.dart';
+import '../../data/repositories/laundry_repository.dart';
+import '../laundry_page.dart';
+import '../pages/driver_laundry_page.dart';
+import '../pages/pressing_laundry_page.dart';
+import '../pages/resident_laundry_page.dart';
 
 class LaundryRoutes {
   LaundryRoutes._();

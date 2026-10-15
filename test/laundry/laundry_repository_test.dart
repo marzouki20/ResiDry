@@ -3,8 +3,8 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../lib/features/laundry/data/models/laundry_item.dart';
-import '../../lib/features/laundry/data/models/laundry_role.dart';
+import '../../lib/models/laundry_item.dart';
+import '../../lib/models/laundry_role.dart';
 import '../../lib/features/laundry/data/repositories/laundry_repository.dart';
 import 'support/memory_database.dart';
 
