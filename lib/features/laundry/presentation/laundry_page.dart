@@ -1,83 +1,126 @@
+import 'laundry_async_state.dart';
+import 'laundry_admin_dialog.dart';
+import 'laundry_history_dialog.dart';
+import 'laundry_insights.dart';
+
 import 'package:flutter/material.dart';
+
 import '../data/models/laundry_role.dart';
+
+import '../data/repositories/laundry_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../casiers/presentation/widgets/casier_components.dart';
 import '../data/models/laundry_item.dart';
-import '../data/repositories/laundry_repository.dart';
 
 class LaundryPage extends StatefulWidget {
-  final LaundryRole role;
-  final String userName;
-
   const LaundryPage({
     super.key,
     this.role = LaundryRole.admin,
     this.userName = '',
+    this.repository,
   });
+
+  final LaundryRole role;
+  final String userName;
+  final LaundryRepository? repository;
 
   @override
   State<LaundryPage> createState() => _LaundryPageState();
 }
 
-class _LaundryPageState extends State<LaundryPage> {
-  final LaundryRepository _repository = LaundryRepository();
+class _LaundryPageState extends State<LaundryPage>
+    with LaundryAsyncState<LaundryPage> {
+  late final LaundryRepository _repository =
+      widget.repository ?? LaundryRepository();
 
   LaundryStatus? _selectedStatus;
+  bool _onlyUnpriced = false;
+  String _search = '';
 
   @override
   Widget build(BuildContext context) {
-    final items = _repository.getAll();
-
-    final filteredItems = _selectedStatus == null
-        ? items
-        : items
-        .where((item) => item.status == _selectedStatus)
+    final filteredItems = items
+        .where(
+          (item) =>
+              (_selectedStatus == null || item.status == _selectedStatus) &&
+              (!_onlyUnpriced || !item.priceConfirmed) &&
+              matchesLaundrySearch(item, _search),
+        )
         .toList();
+    final confirmedTotal = items
+        .where((item) => item.priceConfirmed)
+        .fold<double>(0, (total, item) => total + item.price);
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-          child: PageHeading(
-            title: 'Gestion du linge',
-            subtitle:
-            'Suivez les commandes de linge et leur état de traitement.',
-            trailing: FilledButton.icon(
-              onPressed: _showAddDialog,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Ajouter'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.navy,
-                foregroundColor: Colors.white,
+    return requestBody(
+      Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: PageHeading(
+              title: 'Gestion du linge',
+              subtitle:
+                  'Suivez les commandes de linge et leur état de traitement.',
+              trailing: FilledButton.icon(
+                onPressed: _showAddDialog,
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Ajouter'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.navy,
+                  foregroundColor: Colors.white,
+                ),
               ),
             ),
           ),
-        ),
 
-        _buildFilters(),
-
-        Expanded(
-          child: filteredItems.isEmpty
-              ? const Center(
-            child: Text(
-              'Aucun élément trouvé',
-              style: TextStyle(
-                color: AppColors.muted,
-                fontSize: 16,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: LaundryOverview(items: items, role: LaundryRole.admin),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Total des tarifs validés : ${confirmedTotal.toStringAsFixed(2)} DT',
+                style: const TextStyle(
+                  color: AppColors.navy,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          )
-              : ListView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-            itemCount: filteredItems.length,
-            itemBuilder: (context, index) {
-              final item = filteredItems[index];
-
-              return _buildLaundryCard(item);
-            },
           ),
-        ),
-      ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: LaundrySearchField(
+              onChanged: (value) => setState(() => _search = value),
+            ),
+          ),
+
+          _buildFilters(),
+
+          Expanded(
+            child: filteredItems.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Aucun élément trouvé',
+                      style: TextStyle(color: AppColors.muted, fontSize: 16),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                    itemCount: filteredItems.length,
+                    itemBuilder: (context, index) {
+                      final item = filteredItems[index];
+
+                      return _buildLaundryCard(item);
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -91,26 +134,22 @@ class _LaundryPageState extends State<LaundryPage> {
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       child: Row(
         children: [
-          _buildFilterChip(
-            label: 'Toutes',
-            status: null,
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: const Text('Tarifs à valider'),
+              selected: _onlyUnpriced,
+              onSelected: (value) => setState(() => _onlyUnpriced = value),
+            ),
           ),
-          _buildFilterChip(
-            label: 'Déposé',
-            status: LaundryStatus.deposited,
-          ),
+          _buildFilterChip(label: 'Toutes', status: null),
+          _buildFilterChip(label: 'Déposé', status: LaundryStatus.deposited),
           _buildFilterChip(
             label: 'En traitement',
             status: LaundryStatus.processing,
           ),
-          _buildFilterChip(
-            label: 'Prêt',
-            status: LaundryStatus.ready,
-          ),
-          _buildFilterChip(
-            label: 'Livré',
-            status: LaundryStatus.delivered,
-          ),
+          _buildFilterChip(label: 'Prêt', status: LaundryStatus.ready),
+          _buildFilterChip(label: 'Livré', status: LaundryStatus.delivered),
         ],
       ),
     );
@@ -137,9 +176,7 @@ class _LaundryPageState extends State<LaundryPage> {
           color: isSelected ? AppColors.navy : AppColors.muted,
           fontWeight: FontWeight.w600,
         ),
-        side: BorderSide(
-          color: isSelected ? AppColors.cyan : AppColors.line,
-        ),
+        side: BorderSide(color: isSelected ? AppColors.cyan : AppColors.line),
       ),
     );
   }
@@ -232,7 +269,9 @@ class _LaundryPageState extends State<LaundryPage> {
                     ),
                   ),
                   Text(
-                    '${item.price.toStringAsFixed(2)} DT',
+                    item.priceConfirmed
+                        ? '${item.price.toStringAsFixed(2)} DT'
+                        : 'À tarifer',
                     style: const TextStyle(
                       color: AppColors.navy,
                       fontWeight: FontWeight.w800,
@@ -244,9 +283,25 @@ class _LaundryPageState extends State<LaundryPage> {
 
             const SizedBox(height: 12),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            Text(
+              'Créée le ${laundryDate(item.createdAt)}',
+              style: const TextStyle(color: AppColors.muted),
+            ),
+            if (item.residentId == null)
+              const Text(
+                'Aucun compte résident associé.',
+                style: TextStyle(color: AppColors.muted),
+              ),
+
+            Wrap(
+              alignment: WrapAlignment.end,
               children: [
+                TextButton.icon(
+                  onPressed: () =>
+                      showLaundryHistory(context, _repository, item),
+                  icon: const Icon(Icons.history),
+                  label: const Text('Détails'),
+                ),
                 TextButton.icon(
                   onPressed: () {
                     _showEditDialog(item);
@@ -301,10 +356,7 @@ class _LaundryPageState extends State<LaundryPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 6,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
@@ -324,332 +376,50 @@ class _LaundryPageState extends State<LaundryPage> {
   // ADD
   // ------------------------------------------------------------
 
-  void _showAddDialog() {
-    final nameController = TextEditingController();
-    final serviceController = TextEditingController();
-    final priceController = TextEditingController();
+  @override
+  Future<List<LaundryItem>> fetchItems() => _repository.getAll();
 
-    LaundryStatus selectedStatus = LaundryStatus.deposited;
+  void _showAddDialog() => _openAdminForm();
+  void _showEditDialog(LaundryItem item) => _openAdminForm(item);
 
-    showDialog(
+  Future<void> _openAdminForm([LaundryItem? item]) async {
+    final result = await showDialog<LaundryItem>(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Ajouter une commande'),
-              content: SizedBox(
-                width: 420,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nom du résident',
-                          prefixIcon: Icon(Icons.person_outline_rounded),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      TextField(
-                        controller: serviceController,
-                        decoration: const InputDecoration(
-                          labelText: 'Type de service',
-                          prefixIcon:
-                          Icon(Icons.local_laundry_service_outlined),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      TextField(
-                        controller: priceController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        decoration: const InputDecoration(
-                          labelText: 'Prix',
-                          suffixText: 'DT',
-                          prefixIcon: Icon(Icons.payments_outlined),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      DropdownButtonFormField<LaundryStatus>(
-                        initialValue: selectedStatus,
-                        decoration: const InputDecoration(
-                          labelText: 'Statut',
-                          prefixIcon: Icon(Icons.flag_outlined),
-                        ),
-                        items: LaundryStatus.values.map((status) {
-                          return DropdownMenuItem(
-                            value: status,
-                            child: Text(_statusLabel(status)),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setDialogState(() {
-                              selectedStatus = value;
-                            });
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                  },
-                  child: const Text('Annuler'),
-                ),
-
-                FilledButton(
-                  onPressed: () {
-                    final name = nameController.text.trim();
-                    final service = serviceController.text.trim();
-                    final price = double.tryParse(
-                      priceController.text.trim(),
-                    );
-
-                    if (name.isEmpty ||
-                        service.isEmpty ||
-                        price == null ||
-                        price < 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Veuillez remplir correctement tous les champs.',
-                          ),
-                        ),
-                      );
-                      return;
-                    }
-
-                    final newItem = LaundryItem(
-                      id: 'LD${DateTime.now().millisecondsSinceEpoch}',
-                      residentName: name,
-                      serviceType: service,
-                      status: selectedStatus,
-                      price: price,
-                    );
-
-                    setState(() {
-                      _repository.add(newItem);
-                    });
-
-                    Navigator.pop(dialogContext);
-
-                    _showMessage('Commande ajoutée avec succès.');
-                  },
-                  child: const Text('Ajouter'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (_) => LaundryAdminDialog(item: item),
     );
+    if (result == null || !mounted) return;
+    await perform(() async {
+      if (item == null) {
+        await _repository.add(result);
+      } else {
+        await _repository.update(result);
+      }
+    });
   }
 
-  // ------------------------------------------------------------
-  // UPDATE
-  // ------------------------------------------------------------
-
-  void _showEditDialog(LaundryItem item) {
-    final nameController = TextEditingController(
-      text: item.residentName,
-    );
-
-    final serviceController = TextEditingController(
-      text: item.serviceType,
-    );
-
-    final priceController = TextEditingController(
-      text: item.price.toString(),
-    );
-
-    LaundryStatus selectedStatus = item.status;
-
-    showDialog(
+  Future<void> _deleteItem(LaundryItem item) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Modifier la commande'),
-              content: SizedBox(
-                width: 420,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nom du résident',
-                          prefixIcon: Icon(Icons.person_outline_rounded),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      TextField(
-                        controller: serviceController,
-                        decoration: const InputDecoration(
-                          labelText: 'Type de service',
-                          prefixIcon:
-                          Icon(Icons.local_laundry_service_outlined),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      TextField(
-                        controller: priceController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        decoration: const InputDecoration(
-                          labelText: 'Prix',
-                          suffixText: 'DT',
-                          prefixIcon: Icon(Icons.payments_outlined),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      DropdownButtonFormField<LaundryStatus>(
-                        initialValue: selectedStatus,
-                        decoration: const InputDecoration(
-                          labelText: 'Statut',
-                          prefixIcon: Icon(Icons.flag_outlined),
-                        ),
-                        items: LaundryStatus.values.map((status) {
-                          return DropdownMenuItem(
-                            value: status,
-                            child: Text(_statusLabel(status)),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setDialogState(() {
-                              selectedStatus = value;
-                            });
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                  },
-                  child: const Text('Annuler'),
-                ),
-
-                FilledButton(
-                  onPressed: () {
-                    final name = nameController.text.trim();
-                    final service = serviceController.text.trim();
-                    final price = double.tryParse(
-                      priceController.text.trim(),
-                    );
-
-                    if (name.isEmpty ||
-                        service.isEmpty ||
-                        price == null ||
-                        price < 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Veuillez remplir correctement tous les champs.',
-                          ),
-                        ),
-                      );
-                      return;
-                    }
-
-                    final updatedItem = item.copyWith(
-                      residentName: name,
-                      serviceType: service,
-                      price: price,
-                      status: selectedStatus,
-                    );
-
-                    setState(() {
-                      _repository.update(updatedItem);
-                    });
-
-                    Navigator.pop(dialogContext);
-
-                    _showMessage('Commande modifiée avec succès.');
-                  },
-                  child: const Text('Enregistrer'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // ------------------------------------------------------------
-  // DELETE
-  // ------------------------------------------------------------
-
-  void _deleteItem(LaundryItem item) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Supprimer la commande'),
-          content: Text(
-            'Voulez-vous vraiment supprimer la commande #${item.id} ?',
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer la commande'),
+        content: Text('Supprimer la commande #${item.id} ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('Annuler'),
-            ),
-
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFE45858),
-              ),
-              onPressed: () {
-                setState(() {
-                  _repository.delete(item.id);
-                });
-
-                Navigator.pop(dialogContext);
-
-                _showMessage('Commande supprimée.');
-              },
-              child: const Text('Supprimer'),
-            ),
-          ],
-        );
-      },
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
     );
+    if (confirmed != true || !mounted) return;
+    await perform(() async {
+      await _repository.delete(item.id);
+    });
   }
-
-  // ------------------------------------------------------------
-  // STATUS LABEL
-  // ------------------------------------------------------------
 
   String _statusLabel(LaundryStatus status) {
     switch (status) {
@@ -670,13 +440,4 @@ class _LaundryPageState extends State<LaundryPage> {
   // ------------------------------------------------------------
   // MESSAGE
   // ------------------------------------------------------------
-
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
 }

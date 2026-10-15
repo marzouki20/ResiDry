@@ -1,9 +1,4 @@
-enum LaundryRole {
-  resident,
-  driver,
-  pressing,
-  admin,
-}
+enum LaundryRole { resident, driver, pressing, admin }
 
 extension LaundryRoleLabel on LaundryRole {
   String get label {
