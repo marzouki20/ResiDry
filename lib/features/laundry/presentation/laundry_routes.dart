@@ -59,7 +59,7 @@ class LaundryRoutes {
       settings: const RouteSettings(name: admin),
       builder: (_) => Scaffold(
         appBar: AppBar(title: const Text('Gestion du linge')),
-        body: LaundryPage(repository: repository),
+        body: LaundryPage(repository: repository, showAppBar: false),
       ),
     );
   }

@@ -4,9 +4,11 @@ import 'package:sqflite/sqflite.dart';
 import '../../../database/database.dart';
 import '../../../models/user.dart';
 import '../../casiers/presentation/admin/admin_interface.dart';
-import '../../casiers/presentation/resident/resident_interface.dart';
+import '../../delivery_drivers/presentation/driver_onboarding_page.dart';
+import '../../laundry_companies/presentation/company_interface.dart';
 import '../../lockers/presentation/home_page.dart';
-import '../../orders/presentation/home_page.dart';
+import '../../residents/mock/residents_mock_data.dart';
+import '../../residents/presentation/residents_home_page.dart';
 import 'auth_page.dart';
 import 'pages/forgot_password_page.dart';
 import 'pages/sign_in_page.dart';
@@ -165,8 +167,28 @@ class _AuthScreenState extends State<AuthScreen> {
         role: _selectedRole,
       );
       await database.createUser(user.toMap());
+      if (_selectedRole == 'Résident') {
+        final nameParts = name.split(RegExp(r'\s+'));
+        await database.createResident(
+          ResidentProfile(
+            firstName: nameParts.first,
+            lastName: nameParts.length > 1
+                ? nameParts.sublist(1).join(' ')
+                : '',
+            email: email,
+            phone: '',
+            residenceName: '',
+            residenceAddress: '',
+            city: '',
+            postalCode: '',
+            apartmentNumber: '',
+            floor: '',
+            status: 'Active',
+          ),
+        );
+      }
       if (mounted) {
-        _openHome(name, _selectedRole);
+        _openHome(name, _selectedRole, email: email);
       }
     } on DatabaseException {
       if (mounted) {
@@ -203,7 +225,7 @@ class _AuthScreenState extends State<AuthScreen> {
       }
 
       if (mounted) {
-        _openHome(user.name, user.role);
+        _openHome(user.name, user.role, email: user.email);
       }
     } on DatabaseException {
       if (mounted) {
@@ -216,13 +238,15 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  void _openHome(String name, String role) {
+  void _openHome(String name, String role, {String? email}) {
     final homePage = role == 'Livreur'
-        ? OrdersHomePage(userName: name)
+        ? DriverOnboardingPage(userName: name)
         : role == 'Administrateur'
         ? AdminInterface(userName: name)
         : role == 'Résident'
-        ? ResidentInterface(userName: name)
+        ? ResidentsHomePage(userName: name, userEmail: email)
+        : role == 'Société de lavage'
+        ? SocieteInterface(userName: name)
         : HomePage(userName: name, userRole: role);
 
     Navigator.of(context).pushReplacement(

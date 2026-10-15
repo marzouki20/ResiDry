@@ -135,6 +135,7 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
               const SizedBox(height: 12),
               DropdownButtonFormField<LaundryStatus>(
                 initialValue: _status,
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Statut'),
                 items: [
                   for (final status in LaundryStatus.values)

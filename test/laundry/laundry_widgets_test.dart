@@ -45,6 +45,44 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('standalone administrator page has working navigation shell', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: LaundryPage(repository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(Scaffold), findsOneWidget);
+    expect(find.byType(AppBar), findsOneWidget);
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(LaundryAdminDialog), findsOneWidget);
+    await tester.tap(find.text('Annuler'));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('embedded administrator page uses its parent navigation shell', (
+    tester,
+  ) async {
+    await open(tester, LaundryPage(repository: repository, showAppBar: false));
+    expect(find.byType(Scaffold), findsOneWidget);
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.byType(FloatingActionButton), findsNothing);
+    await tester.tap(find.text('Ajouter'));
+    await tester.pumpAndSettle();
+    expect(find.byType(LaundryAdminDialog), findsOneWidget);
+    await tester.tap(find.text('Annuler'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('resident sees only own requests and deposited edit controls', (
     tester,
   ) async {

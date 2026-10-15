@@ -93,19 +93,18 @@ La sélection de rôle simule plusieurs utilisateurs sur UN appareil et UN fichi
 
 L'option `--no-dds` contourne le problème de connexion DDS rencontré sur ce poste. Si votre émulateur utilise un autre identifiant, adapter `-d`. Après le passage du schéma 1 au schéma 2, effectuer un **hot restart** (`R` majuscule dans le terminal Flutter) ou un arrêt/relancement ; un simple hot reload ne réinitialise pas la connexion SQLite déjà ouverte.
 
-## 5. Plan d'intégration équipe — modifications à autoriser séparément
+## 5. Intégration équipe après fusion de main
 
-Aucun des fichiers ci-dessous n'a été modifié.
+La fusion autorisée conserve les nouveaux écrans de l'équipe. La navigation administrateur utilise le module SQLite ; les autres espaces restent à raccorder explicitement à ce module.
 
 | Fichier existant | Intégration proposée | Informations requises |
 | --- | --- | --- |
-| `lib/features/auth/presentation/auth_screen.dart` | `_signIn()` possède déjà le `User` complet mais `_openHome(name, role)` perd son identifiant. Transmettre aussi `user.id` aux écrans d'accueil ; conserver les règles d'authentification existantes. | `User.id` non nul, `User.name`, `User.role` |
-| `lib/features/casiers/presentation/resident/resident_interface.dart` | Ajouter « Mes demandes de linge » ouvrant `LaundryRoutes.residentPage(...)`, ou intégrer `ResidentLaundryPage(embedded: true, ...)` dans une section adaptée. | Identifiant et nom authentifiés ; repository partagé |
-| `lib/features/casiers/presentation/navigation/resident_navigation_bar.dart` | Ajouter l'entrée « Mes demandes de linge » et ajuster ensemble les indices du menu, des titres et du contenu si intégration dans l'IndexedStack. | Callback de navigation |
-| `lib/features/casiers/presentation/admin/admin_interface.dart` | L'IndexedStack contient déjà `const LaundryPage()` à l'indice 2 : cette intégration continue de fonctionner avec la base indépendante. Une injection explicite du repository est facultative. | Identité administrateur facultative pour une future attribution de toutes ses actions |
+| `lib/features/auth/presentation/auth_screen.dart` | `_signIn()` possède le `User` complet mais `_openHome(name, role, email: ...)` ne transmet pas son identifiant. Transmettre aussi `user.id` aux écrans d'accueil ; conserver les règles d'authentification existantes. | `User.id` non nul, `User.name`, `User.role` |
+| `lib/features/residents/presentation/residents_home_page.dart` | Relier « Mes demandes de linge » à `LaundryRoutes.residentPage(...)`, ou intégrer `ResidentLaundryPage(embedded: true, ...)`. Les pages résidentes entrantes utilisent encore leurs propres données de démonstration, distinctes de `laundry.db`. | Identifiant et nom authentifiés ; repository partagé |
+| `lib/features/casiers/presentation/admin/admin_interface.dart` | Le menu 10 ouvre le contenu 7 de l'IndexedStack : `LaundryPage(showAppBar: false)`, sans second Scaffold. Le paramètre facultatif `laundryRepository` permet une injection pour les tests. | Identité administrateur facultative pour une future attribution de toutes ses actions |
 | `lib/features/casiers/presentation/navigation/admin_navigation_bar.dart` | L'entrée « Gestion du linge » existe déjà ; aucun remplacement nécessaire. | Aucun changement obligatoire |
-| `lib/features/orders/presentation/home_page.dart` | C'est l'accueil livreur (`OrdersHomePage`) choisi par `_openHome`. Ajouter « Livraison du linge » ouvrant `LaundryRoutes.driverPage(repository: ..., userId: ...)`. | Identifiant authentifié du livreur pour l'historique |
-| `lib/features/lockers/presentation/home_page.dart` | C'est l'accueil générique (`HomePage`) actuellement utilisé notamment pour le pressing. Ajouter « Gestion du pressing » pour le rôle concerné et ouvrir `LaundryRoutes.pressingPage(...)`. | Rôle authentifié et identifiant du pressing |
+| `lib/features/delivery_drivers/presentation/driver_interface.dart` | L'authentification ouvre d'abord `driver_onboarding_page.dart`. Ajouter « Livraison du linge » ouvrant `LaundryRoutes.driverPage(repository: ..., userId: ...)`. | Identifiant authentifié du livreur pour l'historique |
+| `lib/features/laundry_companies/presentation/company_interface.dart` | Ajouter « Gestion du linge » ouvrant `LaundryRoutes.pressingPage(...)`. Le repository des sociétés et son modèle `LavageOrder` restent distincts des demandes SQLite du module linge. | Rôle authentifié et identifiant du pressing |
 
 Tous les repositories par défaut pointent vers `LaundryDatabase.instance`, donc vers le même `laundry.db`. Il est aussi possible de partager explicitement une instance de `LaundryRepository`. Ne pas relier ce helper à `AppDatabase` et ne pas modifier `lib/database/database.dart`. Les écrans de rôle n'ont pas à recréer les utilisateurs.
 
@@ -150,3 +149,13 @@ Les scénarios Android de bout en bout restent à confirmer manuellement. Aucun 
 - Les nouveaux tests couvrent l'absence de prix dans l'écran, le formulaire et l'historique résident ; l'absence de tarif réel dans ses lectures ; les tentatives de modification de prix ; l'invalidation d'un tarif après changement de service ; le service gratuit confirmé ; la confirmation/annulation d'une livraison ; les filtres et totaux administrateur.
 - Aucun paquet supplémentaire ni modification des fichiers partagés n'a été nécessaire pour cette révision. Les opérations de versionnement restent à la main de l'étudiant.
 - Le rechargement de la session Android déjà ouverte a rencontré un ancien modèle en cache ; effectuer un arrêt puis un lancement complet avec la commande ci-dessus. Le chargement Android de cette révision et les parcours manuels restent à vérifier ; les 36 tests Flutter et 6 tests SQLite sont les résultats automatisés effectivement exécutés.
+
+## 10. Vérification de la fusion de main du 15 octobre 2026
+
+- Les sept conflits concernent la navigation administrateur, le modèle, le repository, le lanceur, la page administrateur et les dépendances. Le modèle et le repository SQLite du module sont conservés ; les nouvelles destinations du menu de main sont préservées.
+- `showAppBar: false` permet à la page administrateur de réutiliser le Scaffold de son parent ; `const LaundryPage()` reste autonome. Le dialogue de statut s'adapte aussi aux écrans de 360 pixels de large.
+- Le test administrateur crée explicitement sa demande dans un repository injecté ; aucune donnée fictive n'est ajoutée à la base de production.
+- Analyse du projet complet : aucun problème détecté. Suite Flutter complète : **50 tests réussis**. SQLite Python : **6 tests réussis**.
+- Le test compact entrant émet des avertissements de clics masqués dans son parcours d'onboarding livreur et dans sa dernière étape linge. Il réussit, mais ces clics ne prouvent pas le parcours complet. Les nouveaux tests linge ouvrent directement le formulaire autonome et le formulaire intégré et vérifient leur fonctionnement.
+- Le contrôle Git des espaces signale une ligne avec espace final déjà présente dans `company_interface.dart` de main ; elle n'a pas été modifiée pour cette fusion.
+- Ces vérifications ne remplacent pas les scénarios Android manuels. La collecte chez le résident reste une évolution proposée : cette fusion ne modifie pas les quatre statuts existants.

@@ -81,6 +81,7 @@ class _LaundryDevAppState extends State<LaundryDevApp> {
                     : selectedRole == LaundryRole.driver
                     ? DriverLaundryPage(repository: _repository)
                     : LaundryPage(
+                        showAppBar: false,
                         key: ValueKey(selectedRole),
                         repository: _repository,
                       ),

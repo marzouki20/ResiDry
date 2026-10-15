@@ -18,11 +18,13 @@ class LaundryPage extends StatefulWidget {
     this.role = LaundryRole.admin,
     this.userName = '',
     this.repository,
+    this.showAppBar = true,
   });
 
   final LaundryRole role;
   final String userName;
   final LaundryRepository? repository;
+  final bool showAppBar;
 
   @override
   State<LaundryPage> createState() => _LaundryPageState();
@@ -51,7 +53,7 @@ class _LaundryPageState extends State<LaundryPage>
         .where((item) => item.priceConfirmed)
         .fold<double>(0, (total, item) => total + item.price);
 
-    return requestBody(
+    final body = requestBody(
       Column(
         children: [
           Padding(
@@ -120,6 +122,18 @@ class _LaundryPageState extends State<LaundryPage>
                   ),
           ),
         ],
+      ),
+    );
+    if (!widget.showAppBar) return body;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Gestion du linge')),
+      body: body,
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'laundry-create',
+        onPressed: busy || loading ? null : _showAddDialog,
+        backgroundColor: AppColors.navy,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
       ),
     );
   }
