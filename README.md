@@ -1,219 +1,209 @@
-# ResiDry
+# ResiDry — Resident Management
 
-### Smart Laundry Service for Residential Buildings
+ResiDry is a Flutter mobile application for managing laundry services and smart
+lockers in residential buildings. This branch focuses on the **resident
+management module**, developed for the ResiDry project.
 
-ResiDry is a Flutter mobile application concept for managing laundry services and
-smart lockers in residential buildings. It brings residents, administrators,
-delivery, and laundry operations into one mobile experience.
+The module provides separate experiences for residents and administrators. A
+resident can manage their own profile and residence information, while an
+administrator can manage the residents registered in the building.
 
-The current application includes authentication screens and role-specific
-administrator, resident, and delivery-driver interfaces. Locker readings and
-management actions in the locker interfaces currently use demonstration data;
-live IoT devices, a remote service, and persistent locker management are not
-connected yet. The delivery driver flow now includes onboarding and the driver
-workspace for assigned delivery tasks.
-
-ResiDry is designed to make laundry and drying services more convenient for
-residents, especially for bulky items that are difficult to dry at home. The
-intended service uses smart lockers to collect laundry, coordinate processing
-with partner laundry companies, and return completed orders to the residence.
-
----
-
-## Project Information
+## Project information
 
 | Item | Details |
 | --- | --- |
 | Project | ResiDry |
 | Class | 4IET_I4 |
 | Team | Ethivon |
-| Platform | Mobile application |
-| Framework | Flutter |
+| Platform | Flutter mobile application |
 | Language | Dart |
+| Local database | SQLite |
+| Feature owner | Mohamed Raed Boukari |
 
----
+## Getting started
 
-## Getting Started
-
-Install Flutter, then run the following commands from the repository root:
+From the repository root, install the dependencies and run the application:
 
 ```bash
 flutter pub get
 flutter run
 ```
 
-Run the relevant checks:
+To run the project on a connected Android phone:
+
+```bash
+flutter devices
+flutter run -d <device-id>
+```
+
+Run the project checks with:
 
 ```bash
 flutter analyze
 flutter test
 ```
 
-The app opens on the authentication screen. After signing in, the selected
-account role determines the destination:
+## Resident management scope
 
-| Role | Destination |
-| --- | --- |
-| Résident | Resident smart-locker interface |
-| Administrateur | Administrator smart-locker interface |
-| Livreur | Driver onboarding flow and driver dashboard |
-| Other roles | Generic locker placeholder |
+### Resident features
 
-Authentication currently uses a local SQLite database. The administrator and
-resident casier screens use in-memory sample records and are intended as a UI
-prototype.
+- Create and authenticate a resident account.
+- Load the resident profile using the authenticated email address.
+- Edit personal information such as name, email, phone number and apartment.
+- Detect the nearby residence using the phone GPS.
+- Save the detected residence and profile changes locally in SQLite.
+- View residence information, laundry requests, notifications and locker assignment.
+- Navigate through a resident dashboard and mobile-friendly profile screens.
 
----
+### Administrator features
 
-## Repository Structure
+The administrator side includes a **Resident Management** page where an
+administrator can:
+
+- view the residents stored locally;
+- search by name, email or apartment;
+- add a resident;
+- edit a resident;
+- delete a resident after confirmation;
+- refresh the resident list.
+
+Resident management is accessible from the administrator side menu and is kept
+separate from the resident's personal profile area.
+
+## GPS residence detection
+
+When a resident edits their profile, ResiDry can request location permission and
+detect the closest configured residence. The application compares the phone's
+GPS position with the configured latitude, longitude and detection radius.
+
+The GPS flow is deliberately performed in the resident profile form, not during
+account creation:
+
+1. The resident creates an account.
+2. The resident opens **Profile** and selects **Edit Profile**.
+3. The application requests location permission.
+4. A nearby residence is detected within its configured radius.
+5. The resident saves the profile and the residence is stored in SQLite.
+
+The configured residence data is stored in:
 
 ```text
-.
-├── assets/
-│   └── logo.png
-├── lib/
-│   ├── app.dart
-│   ├── main.dart
-│   ├── core/
-│   │   └── theme/
-│   │       └── app_theme.dart
-│   ├── database/
-│   │   └── database.dart
-│   ├── models/
-│   │   └── user.dart
-│   └── features/
-│       ├── auth/
-│       │   └── presentation/
-│       │       ├── auth_page.dart
-│       │       ├── auth_screen.dart
-│       │       ├── pages/
-│       │       │   ├── forgot_password_page.dart
-│       │       │   ├── sign_in_page.dart
-│       │       │   └── sign_up_page.dart
-│       │       └── widgets/
-│       │           ├── auth_buttons.dart
-│       │           ├── auth_divider.dart
-│       │           ├── auth_footer.dart
-│       │           ├── auth_heading.dart
-│       │           ├── auth_illustration.dart
-│       │           ├── auth_text_field.dart
-│       │           └── brand_mark.dart
-│       ├── casiers/
-│       │   └── presentation/
-│       │       ├── admin/
-│       │       │   └── admin_interface.dart
-│       │       ├── navigation/
-│       │       │   ├── admin_navigation_bar.dart
-│       │       │   └── resident_navigation_bar.dart
-│       │       ├── resident/
-│       │       │   └── resident_interface.dart
-│       │       └── widgets/
-│       │           └── casier_components.dart
-│       ├── lockers/
-│       │   └── presentation/
-│       │       └── home_page.dart
-│       └── orders/
-│           └── presentation/
-│               └── home_page.dart
-├── test/
-│   ├── casier_interfaces_test.dart
-│   └── widget_test.dart
-├── pubspec.yaml
-└── README.md
+lib/features/residents/data/residence_data.dart
 ```
 
-Platform-specific build and native configuration lives in `android/` and
-`ios/`. Flutter dependencies and asset declarations are in `pubspec.yaml`.
+The GPS logic is implemented in:
 
----
+```text
+lib/features/residents/data/residence_locator.dart
+```
 
-## Application Entry Points
+The current coordinates were supplied for the project prototype and are marked
+as unverified. The detection radius is currently 300 meters per residence and
+should be validated before production use.
+
+The `geolocator` package is used for location access. Android and iOS location
+permissions are configured in:
+
+```text
+android/app/src/main/AndroidManifest.xml
+ios/Runner/Info.plist
+```
+
+## Repository structure
+
+```text
+lib/
+├── app.dart
+├── main.dart
+├── core/
+│   └── theme/app_theme.dart
+├── database/
+│   └── database.dart
+├── models/
+│   └── user.dart
+└── features/
+    ├── auth/
+    │   └── presentation/
+    ├── residents/
+    │   ├── data/
+    │   │   ├── residence_data.dart
+    │   │   └── residence_locator.dart
+    │   ├── mock/
+    │   │   └── residents_mock_data.dart
+    │   └── presentation/
+    │       ├── pages/
+    │       │   ├── edit_profile_page.dart
+    │       │   ├── resident_management_page.dart
+    │       │   ├── resident_profile_page.dart
+    │       │   └── ...
+    │       ├── residents_home_page.dart
+    │       └── widgets/
+    ├── casiers/
+    ├── laundry/
+    ├── laundry_companies/
+    ├── delivery_drivers/
+    └── orders/
+```
+
+## Important files
 
 | File | Responsibility |
 | --- | --- |
-| `lib/main.dart` | Starts the Flutter application. |
-| `lib/app.dart` | Configures `MaterialApp`, the ResiDry title, theme, and initial route. |
-| `lib/core/theme/app_theme.dart` | Shared brand colors and light theme. |
-| `lib/features/auth/presentation/auth_screen.dart` | Owns sign-in/sign-up state and routes users to their role's home screen. |
+| `lib/features/auth/presentation/auth_screen.dart` | Sign-in, sign-up and role-based navigation. |
+| `lib/features/residents/presentation/residents_home_page.dart` | Resident dashboard and resident navigation. |
+| `lib/features/residents/presentation/pages/edit_profile_page.dart` | Resident profile form and GPS residence detection. |
+| `lib/features/residents/presentation/pages/resident_management_page.dart` | Administrator resident CRUD interface. |
+| `lib/features/residents/mock/residents_mock_data.dart` | Resident, request and notification models used by the prototype. |
+| `lib/features/residents/data/residence_data.dart` | Configured residence coordinates and geofencing radii. |
+| `lib/features/residents/data/residence_locator.dart` | GPS permission and nearest-residence detection. |
+| `lib/database/database.dart` | SQLite schema and resident CRUD operations. |
 
----
+## Local data and prototype boundaries
 
-## Feature and Folder Guide
+The following data is currently stored locally or represented with prototype
+data:
 
-### Authentication — `lib/features/auth/`
+- user accounts and resident profiles are stored in SQLite;
+- resident profile creation, update and deletion are persisted locally;
+- laundry requests are currently demonstration data;
+- notifications are currently kept in memory;
+- locker assignment and IoT readings are demonstration data;
+- live backend synchronization is not connected yet;
+- GPS coordinates must be verified before real production deployment.
 
-`presentation/auth_screen.dart` coordinates the sign-in, sign-up, and password
-reset flows. Individual screens are in `presentation/pages/`; shared controls
-and visual elements are in `presentation/widgets/`.
+The laundry, locker, order and delivery modules are being developed by other
+team members. Their final data contracts will be integrated later using stable
+identifiers such as:
 
-The authentication flow looks up and creates users through
-`lib/database/database.dart`, using the `User` model in `lib/models/user.dart`.
-Role-based routing to the casier screens is handled by `auth_screen.dart`.
+```text
+resident_id
+residence_id
+locker_id
+laundry_request_id
+order_id
+```
 
-### Smart lockers — `lib/features/casiers/`
+## Testing
 
-This feature contains separate user experiences:
+The project currently includes tests for:
 
-| Folder/file | Responsibility |
-| --- | --- |
-| `presentation/admin/admin_interface.dart` | Administrator dashboard, locker list, search and filters, locker form, details, alerts, maintenance, and profile screens. |
-| `presentation/resident/resident_interface.dart` | Resident home, assigned-locker controls, activity history, notifications, and profile screens. |
-| `presentation/navigation/admin_navigation_bar.dart` | Collapsible administrator side drawer and its page destinations. Despite the legacy filename, this is a side menu, not a bottom navigation bar. |
-| `presentation/navigation/resident_navigation_bar.dart` | Collapsible resident side drawer and its page destinations. |
-| `presentation/widgets/casier_components.dart` | Shared sample locker records and reusable status, metric, detail, heading, and trend widgets. |
+- authentication screen navigation;
+- resident CRUD persistence;
+- resident and administrator navigation;
+- administrator resident-management access;
+- compact mobile layouts;
+- locker interfaces;
+- administrator order navigation.
 
-The side menu opens from the menu button in the app bar. Selecting a destination
-switches to that role's corresponding page and closes the drawer.
+Run all tests with:
 
-### Feature modules
+```bash
+flutter test
+```
 
-| Folder/file | Current responsibility |
-| --- | --- |
-| `lib/features/delivery_drivers/` | Driver onboarding flow, driver dashboard, fleet management, and delivery task interfaces. |
-| `lib/features/lockers/presentation/home_page.dart` | Generic locker landing-page placeholder for roles without a dedicated screen. |
-| `lib/features/orders/presentation/orders_admin_module.dart` | Administrator navigation and in-memory order management entry point, opened from the administrator side menu. |
-| `lib/features/orders/presentation/order_pages.dart` | Order dashboard, search and filters, details, forms, driver assignment, delivery tracking, history, alerts, statistics, and cancellation confirmation. |
-| `lib/features/orders/presentation/order_data.dart` | Demonstration order records, status presentation, and local order-history data. |
-| `lib/features/orders/presentation/home_page.dart` | Generic delivery/order landing page retained for non-driver order workflows. |
+## Team modules
 
-The order management module is designed for the administrator role. Its changes
-are held in memory and its AI, IoT, and delivery estimates are illustrative;
-they are not connected to a backend, physical lockers, or a live positioning
-service.
-
----
-
-## Data and Prototype Boundaries
-
-- User accounts are stored locally through SQLite.
-- Casier screens currently display sample data defined in
-  `presentation/widgets/casier_components.dart`.
-- Administrator edits and deletes affect in-memory sample records only; they
-  are not persisted between app launches.
-- Resident actions simulate locking and unlocking the assigned sample locker.
-- IoT status, sensor values, charts, alerts, and anomaly confidence are
-  illustrative UI data, not readings from connected hardware or an AI service.
-- The resident interface displays only its assigned locker in the current UI;
-  production access control must also be enforced by the backend and data layer.
-
----
-
-## Tests
-
-`test/widget_test.dart` covers navigation among sign-in, password reset, and
-sign-up screens.
-
-`test/casier_interfaces_test.dart` covers administrator and resident side-menu
-navigation, opening and closing the drawer, locker management access, and the
-resident locker controls.
-
-`test/orders_admin_module_test.dart` covers opening the administrator order
-module and viewing order details, including its locker information.
----
-
-## Team & Planned Modules
-
-| Member | Responsibility | Planned module |
+| Team member | Responsibility | Module |
 | --- | --- | --- |
 | Mohamed Khalil Marzouki | Locker management | `casiers` / `lockers` |
 | Ben Dziri Sabaa | Intelligent laundry management | `laundry` |
@@ -222,85 +212,27 @@ module and viewing order details, including its locker information.
 | Mohamed Raed Boukari | Resident management | `residents` |
 | Saber Ben Amira | Order management | `orders` |
 
----
+## Git workflow
 
-## Git Workflow
-
-Do not push directly to `main`. Develop changes on a feature branch and integrate
-them through a pull request.
-
-### Branch naming
-
-```text
-feature/<module>
-```
-
-Examples:
-
-```text
-feature/casiers
-feature/laundry
-feature/laundry-companies
-feature/delivery-drivers
-feature/residents
-feature/orders
-```
-
-### Typical workflow
+Work on the resident feature branch and open a pull request instead of pushing
+directly to `main`:
 
 ```bash
-git checkout main
-git pull origin main
-git checkout -b feature/casiers
-
-# Make and test your changes.
+git checkout feature/residents
 flutter analyze
 flutter test
-
 git add .
-git commit -m "feat(casiers): implement locker management"
-git push -u origin feature/casiers
+git commit -m "feat(residents): improve resident management"
+git push -u origin feature/residents
 ```
 
-Open a pull request from the feature branch to `main`. Describe the changes,
-tests, dependencies, and any remaining work. Review and test changes before
-merging.
+Keep commits focused, coordinate shared data contracts with the other module
+owners, and never commit passwords, API keys or private credentials.
 
-### Collaboration guidelines
+## Future improvements
 
-- Keep pull requests focused and commits descriptive.
-- Pull the latest `main` regularly.
-- Coordinate before changing another member's feature.
-- Never commit API keys, passwords, or private credentials.
-
----
-
-## Technologies
-
-- Flutter and Dart
-- SQLite for local user data
-- IoT and AI concepts represented in the locker UI prototype
-- Git and GitHub
-
----
-
-## Objective
-
-ResiDry aims to connect residents, smart lockers, delivery, and laundry
-companies in a convenient residential laundry service:
-
-```text
-Residents
-    ↓
-Smart Lockers
-    ↓
-Delivery
-    ↓
-Laundry Companies
-    ↓
-Delivery
-    ↓
-Residents
-```
-
-> Develop independently. Review collaboratively. Integrate safely.
+- Replace prototype laundry requests and notifications with persistent data.
+- Connect resident profiles to a backend API.
+- Verify all residence GPS coordinates and detection radii.
+- Add stronger role-based access control on the backend.
+- Store passwords securely through a real authentication service.
