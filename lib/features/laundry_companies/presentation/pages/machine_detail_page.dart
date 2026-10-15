@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/models/machine.dart';
+import '../widgets/programme_selector_sheet.dart';
 
 class MachineDetailPage extends StatefulWidget {
   const MachineDetailPage({
@@ -27,29 +28,54 @@ class _MachineDetailPageState extends State<MachineDetailPage> {
 
   void _toggleCycle() {
     final isRunning = _machine.statut == 'En cycle';
-    final updatedStatut = isRunning ? 'Disponible' : 'En cycle';
-    final updatedProgress = isRunning ? 0.0 : 0.35;
-    final updatedTime = isRunning ? 0 : 40;
+    if (isRunning) {
+      final updated = _machine.copyWith(
+        statut: 'Disponible',
+        progressionCycle: 0.0,
+        tempsRestantMinutes: 0,
+        programmeActuel: null,
+      );
 
-    final updated = _machine.copyWith(
-      statut: updatedStatut,
-      progressionCycle: updatedProgress,
-      tempsRestantMinutes: updatedTime,
-    );
+      setState(() => _machine = updated);
+      widget.onMachineUpdated(updated);
 
-    setState(() => _machine = updated);
-    widget.onMachineUpdated(updated);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isRunning
-              ? 'Cycle arrêté avec succès.'
-              : 'Nouveau cycle lancé (40 min).',
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cycle arrêté avec succès. Machine disponible.'),
+          backgroundColor: Colors.green,
         ),
-        backgroundColor: AppColors.navy,
-      ),
-    );
+      );
+    } else {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => ProgrammeSelectorSheet(
+          machine: _machine,
+          onProgrammeSelected: (programme) {
+            final nouvelleConso = _machine.consommationKwh + programme.consommationKwh;
+            final updated = _machine.copyWith(
+              statut: 'En cycle',
+              progressionCycle: 0.1,
+              tempsRestantMinutes: programme.dureeMinutes,
+              temperatureC: programme.temperatureC,
+              consommationKwh: double.parse(nouvelleConso.toStringAsFixed(2)),
+              programmeActuel: programme.nom,
+            );
+
+            setState(() => _machine = updated);
+            widget.onMachineUpdated(updated);
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Programme "${programme.nom}" lancé ! (+${programme.consommationKwh} kWh)'),
+                backgroundColor: programme.couleur,
+              ),
+            );
+          },
+        ),
+      );
+    }
   }
 
   @override
@@ -115,7 +141,7 @@ class _MachineDetailPageState extends State<MachineDetailPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Type: ${_machine.type} • ID: ${_machine.id}',
+                              '${_machine.type} • Capacité: ${_machine.capaciteKg.toStringAsFixed(0)} kg • ID: ${_machine.id}',
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: AppColors.muted,
@@ -147,7 +173,31 @@ class _MachineDetailPageState extends State<MachineDetailPage> {
                     ],
                   ),
                   if (isRunning) ...[
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.cyan.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.tune_rounded, size: 16, color: AppColors.cyan),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Programme actif : ${_machine.programmeActuel ?? "Standard"}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.navy,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -260,22 +310,32 @@ class _MachineDetailPageState extends State<MachineDetailPage> {
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton.icon(
+                    child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isRunning ? Colors.amber.shade900 : AppColors.navy,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       onPressed: _toggleCycle,
-                      icon: Icon(
-                        isRunning ? Icons.stop_rounded : Icons.play_arrow_rounded,
-                      ),
-                      label: Text(
-                        isRunning ? 'Interrompre le cycle' : 'Démarrer le cycle de lavage',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            isRunning ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              isRunning ? 'Interrompre le cycle' : 'Démarrer le cycle de lavage',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

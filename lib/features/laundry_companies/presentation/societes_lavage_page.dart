@@ -21,7 +21,7 @@ class SocietesLavagePage extends StatefulWidget {
 }
 
 class _SocietesLavagePageState extends State<SocietesLavagePage> {
-  late final List<SocieteLavage> _societes = List<SocieteLavage>.of(initialSocietesLavage);
+  late final List<SocieteLavage> _societes = LaundryRepository.instance.societes;
   String _searchQuery = '';
   String _statusFilter = 'Tous';
 
@@ -39,6 +39,7 @@ class _SocietesLavagePageState extends State<SocietesLavagePage> {
               _societes.insert(0, savedSociete);
             }
           });
+          LaundryRepository.instance.updateSociete(savedSociete);
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -85,6 +86,7 @@ class _SocietesLavagePageState extends State<SocietesLavagePage> {
               setState(() {
                 _societes.removeWhere((s) => s.id == societe.id);
               });
+              LaundryRepository.instance.deleteSociete(societe.id);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Société "${societe.nom}" supprimée.'),

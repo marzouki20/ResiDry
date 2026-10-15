@@ -64,4 +64,61 @@ class SocieteLavage {
 
   int get runningCyclesCount =>
       machines.where((m) => m.statut == 'En cycle').length;
+
+  /// Somme des capacités de TOUTES les machines installées dans l'atelier (kg)
+  double get capaciteTotaleInstallee =>
+      machines.fold(0.0, (sum, m) => sum + m.capaciteKg);
+
+  /// Capacité immédiatement opérationnelle (uniquement machines DISPONIBLES)
+  double get capaciteDisponibleKg =>
+      machines.where((m) => m.statut == 'Disponible').fold(0.0, (sum, m) => sum + m.capaciteKg);
+
+  /// Capacité actuellement occupée par des cycles en cours
+  double get capaciteEnCycleKg =>
+      machines.where((m) => m.statut == 'En cycle').fold(0.0, (sum, m) => sum + m.capaciteKg);
+
+  /// Capacité immobilisée en panne ou maintenance
+  double get capaciteIndisponibleKg =>
+      machines.where((m) => m.statut == 'Maintenance' || m.statut == 'Hors service').fold(0.0, (sum, m) => sum + m.capaciteKg);
+
+  /// Taux de disponibilité opérationnelle (0.0 à 1.0)
+  double get tauxDisponibilite =>
+      capaciteTotaleInstallee <= 0 ? 0.0 : (capaciteDisponibleKg / capaciteTotaleInstallee);
+
+  Map<String, Object?> toMap() {
+    return {
+      'id': id,
+      'nom': nom,
+      'adresse': adresse,
+      'telephone': telephone,
+      'email': email,
+      'statut': statut,
+      'datePartenariat': datePartenariat.toIso8601String(),
+      'noteEvaluation': noteEvaluation,
+      'capaciteMaxKg': capaciteMaxKg,
+      'iotHealthScore': iotHealthScore,
+      'description': description,
+    };
+  }
+
+  factory SocieteLavage.fromMap(
+    Map<String, Object?> map, {
+    List<Machine> machines = const [],
+  }) {
+    return SocieteLavage(
+      id: map['id'] as String,
+      nom: map['nom'] as String,
+      adresse: map['adresse'] as String,
+      telephone: map['telephone'] as String,
+      email: map['email'] as String,
+      statut: map['statut'] as String,
+      datePartenariat: DateTime.tryParse(map['datePartenariat'] as String? ?? '') ??
+          DateTime(2023, 1, 1),
+      noteEvaluation: (map['noteEvaluation'] as num?)?.toDouble() ?? 4.5,
+      capaciteMaxKg: (map['capaciteMaxKg'] as num?)?.toInt() ?? 120,
+      iotHealthScore: (map['iotHealthScore'] as num?)?.toInt() ?? 95,
+      description: map['description'] as String? ?? '',
+      machines: machines,
+    );
+  }
 }
