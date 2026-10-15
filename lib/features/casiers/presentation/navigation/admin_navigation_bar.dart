@@ -99,6 +99,7 @@ class AdminNavigationBar extends StatelessWidget {
                   Icons.door_front_door_rounded,
                   'Gestion des casiers',
                 ),
+
                 _destination(
                   2,
                   Icons.warning_amber_outlined,
@@ -189,6 +190,7 @@ class AdminNavigationBar extends StatelessWidget {
                   Icons.local_laundry_service_rounded,
                   'Gestion du linge',
                 ),
+
               ],
             ),
           ),

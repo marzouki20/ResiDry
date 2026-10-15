@@ -209,7 +209,6 @@ resident locker controls.
 
 `test/orders_admin_module_test.dart` covers opening the administrator order
 module and viewing order details, including its locker information.
-
 ---
 
 ## Team & Planned Modules

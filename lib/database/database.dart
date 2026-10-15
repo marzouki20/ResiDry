@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../features/laundry_companies/data/sample_laundry_data.dart';
 import '../features/laundry_companies/domain/models/machine.dart';
 import '../features/laundry_companies/domain/models/societe_lavage.dart';
+import '../features/residents/mock/residents_mock_data.dart';
 
 class AppDatabase {
   AppDatabase._();
@@ -16,6 +20,10 @@ class AppDatabase {
       return _database!;
     }
 
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      databaseFactory = databaseFactoryFfi;
+    }
+
     final databasePath = await getDatabasesPath();
     final path = '$databasePath/residry.db';
 
@@ -27,6 +35,8 @@ class AppDatabase {
         await _createSocietesTable(database);
         await _createMachinesTable(database);
         await _seedInitialSocietes(database);
+        await _createResidentsTable(database);
+        await _seedResidents(database);
       },
       onUpgrade: (database, oldVersion, _) async {
         if (oldVersion < 2) {
@@ -41,6 +51,8 @@ class AppDatabase {
           await _createSocietesTable(database);
           await _createMachinesTable(database);
           await _seedInitialSocietes(database);
+          await _createResidentsTable(database);
+          await _seedResidents(database);
         }
         if (oldVersion < 5) {
           try {
@@ -122,6 +134,44 @@ class AppDatabase {
     }
   }
 
+  Future<void> _createResidentsTable(Database database) async {
+    await database.execute('''
+      CREATE TABLE IF NOT EXISTS residents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        phone TEXT NOT NULL,
+        residence_name TEXT NOT NULL,
+        residence_address TEXT NOT NULL,
+        city TEXT NOT NULL,
+        postal_code TEXT NOT NULL,
+        apartment_number TEXT NOT NULL,
+        floor TEXT NOT NULL,
+        status TEXT NOT NULL
+      )
+    ''');
+  }
+
+  Future<void> _seedResidents(Database database) async {
+    final count = Sqflite.firstIntValue(
+      await database.rawQuery('SELECT COUNT(*) FROM residents'),
+    );
+
+    if (count != null && count > 0) {
+      return;
+    }
+
+    final demoResidents = <ResidentProfile>[
+      demoResidentProfile,
+      secondDemoResidentProfile,
+    ];
+
+    for (final resident in demoResidents) {
+      await database.insert('residents', resident.toMap()..remove('id'));
+    }
+  }
+
   // -------------------------------------------------------------
   // USERS CRUD
   // -------------------------------------------------------------
@@ -193,5 +243,58 @@ class AppDatabase {
   Future<void> deleteMachine(String machineId) async {
     final db = await database;
     await db.delete('machines', where: 'id = ?', whereArgs: [machineId]);
+  }
+
+  // -------------------------------------------------------------
+  // RESIDENTS CRUD
+  // -------------------------------------------------------------
+  Future<int> createResident(ResidentProfile resident) async {
+    final database = await this.database;
+    return database.insert('residents', resident.toMap()..remove('id'));
+  }
+
+  Future<List<ResidentProfile>> listResidents() async {
+    final database = await this.database;
+    final rows = await database.query('residents', orderBy: 'id ASC');
+    return rows.map(ResidentProfile.fromMap).toList();
+  }
+
+  Future<ResidentProfile?> getResidentByEmail(String email) async {
+    final database = await this.database;
+    final rows = await database.query(
+      'residents',
+      where: 'email = ?',
+      whereArgs: [email],
+      limit: 1,
+    );
+
+    if (rows.isEmpty) {
+      return null;
+    }
+
+    return ResidentProfile.fromMap(rows.first);
+  }
+
+  Future<int> updateResident(ResidentProfile resident) async {
+    final database = await this.database;
+    if (resident.id == null) {
+      return 0;
+    }
+
+    return database.update(
+      'residents',
+      resident.toMap(),
+      where: 'id = ?',
+      whereArgs: [resident.id],
+    );
+  }
+
+  Future<int> deleteResident(int residentId) async {
+    final database = await this.database;
+    return database.delete(
+      'residents',
+      where: 'id = ?',
+      whereArgs: [residentId],
+    );
   }
 }

@@ -71,6 +71,7 @@ void main() {
     expect(find.text('Profil administrateur'), findsOneWidget);
   });
 
+
   testWidgets('administrator sidebar opens laundry-company management', (
     WidgetTester tester,
   ) async {
@@ -218,6 +219,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('C-042'), findsNothing);
   });
+
 
   testWidgets('resident sidebar navigates pages and only shows their locker', (
     WidgetTester tester,
