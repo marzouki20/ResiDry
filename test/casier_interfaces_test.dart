@@ -9,11 +9,6 @@ Future<void> _selectDrawerDestination(
 ) async {
   await tester.tap(find.byTooltip('Ouvrir le menu'));
   await tester.pumpAndSettle();
-<<<<<<< HEAD
-  await tester.tap(
-    find.descendant(of: find.byType(Drawer), matching: find.text(destination)),
-  );
-=======
   final destinationFinder = find.descendant(
     of: find.byType(Drawer),
     matching: find.text(destination),
@@ -27,7 +22,6 @@ Future<void> _selectDrawerDestination(
     ),
   );
   await tester.tap(destinationFinder);
->>>>>>> origin/main
   await tester.pumpAndSettle();
 }
 
@@ -77,8 +71,6 @@ void main() {
     expect(find.text('Profil administrateur'), findsOneWidget);
   });
 
-<<<<<<< HEAD
-=======
   testWidgets('administrator sidebar opens laundry-company management', (
     WidgetTester tester,
   ) async {
@@ -227,7 +219,6 @@ void main() {
     expect(find.text('C-042'), findsNothing);
   });
 
->>>>>>> origin/main
   testWidgets('resident sidebar navigates pages and only shows their locker', (
     WidgetTester tester,
   ) async {

@@ -80,10 +80,7 @@ class SignUpPage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-<<<<<<< HEAD
-=======
           isExpanded: true,
->>>>>>> origin/main
           initialValue: selectedRole,
           decoration: InputDecoration(
             labelText: 'Role',
