@@ -6,6 +6,8 @@
   <string>Photograph vehicle capacity evidence for your driver profile.</string>
   <key>NSPhotoLibraryUsageDescription</key>
   <string>Select vehicle capacity evidence for your driver profile.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>ResiDry uses your location to identify your residence.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

@@ -12,6 +12,11 @@ are persisted locally in SQLite with validated assignment and mission-status
 transitions. Locker readings and management actions still use demonstration
 data; live IoT devices and a remote service are not connected yet.
 
+The administrator interface also includes resident, laundry, laundry-company,
+order, and delivery-driver management. Resident accounts can manage a local
+profile and residence information; the GPS, laundry, and order modules remain
+prototype features backed by local data.
+
 ---
 
 ## Project Information

@@ -1,9 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/localization/app_locale.dart';
-
-import '../../../../core/localization/localized_text.dart';
-
-import '../../../auth/presentation/widgets/sign_out_button.dart';
 
 import '../../../../core/theme/app_theme.dart';
 
@@ -46,7 +41,7 @@ class AdminNavigationBar extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          LocalizedText(
+                          Text(
                             'ResiDry',
                             style: TextStyle(
                               color: AppColors.navy,
@@ -55,7 +50,7 @@ class AdminNavigationBar extends StatelessWidget {
                             ),
                           ),
                           SizedBox(height: 2),
-                          LocalizedText(
+                          Text(
                             'ESPACE ADMINISTRATEUR',
                             style: TextStyle(
                               color: AppColors.muted,
@@ -68,8 +63,8 @@ class AdminNavigationBar extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      tooltip: context.localize('Fermer le menu'),
-                      onPressed: () => Scaffold.of(context).closeDrawer(),
+                      tooltip: 'Fermer le menu',
+                      onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.close_rounded),
                     ),
                   ],
@@ -78,7 +73,7 @@ class AdminNavigationBar extends StatelessWidget {
               const Divider(height: 1, color: AppColors.line),
               const Padding(
                 padding: EdgeInsets.fromLTRB(24, 22, 16, 10),
-                child: LocalizedText(
+                child: Text(
                   'GESTION DE LA RÉSIDENCE',
                   style: TextStyle(
                     color: AppColors.muted,
@@ -92,8 +87,12 @@ class AdminNavigationBar extends StatelessWidget {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   children: [
-                    _destination(0, Icons.dashboard_outlined,
-                        Icons.dashboard_rounded, 'Tableau de bord'),
+                    _destination(
+                      0,
+                      Icons.dashboard_outlined,
+                      Icons.dashboard_rounded,
+                      'Tableau de bord',
+                    ),
                     _destination(
                       1,
                       Icons.door_front_door_outlined,
@@ -102,39 +101,117 @@ class AdminNavigationBar extends StatelessWidget {
                     ),
                     _destination(
                       2,
+                      Icons.warning_amber_outlined,
+                      Icons.warning_rounded,
+                      'Anomalies',
+                    ),
+                    _destination(
+                      3,
+                      Icons.handyman_outlined,
+                      Icons.handyman_rounded,
+                      'Maintenance',
+                    ),
+                    _destination(
+                      4,
+                      Icons.person_outline_rounded,
+                      Icons.person_rounded,
+                      'Profil',
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(12, 18, 12, 8),
+                      child: Text(
+                        'COMMANDES ET LIVRAISONS',
+                        style: TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 10,
+                          letterSpacing: 1,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    _destination(
+                      5,
+                      Icons.dashboard_outlined,
+                      Icons.dashboard_rounded,
+                      'Dashboard commandes',
+                    ),
+                    _destination(
+                      6,
+                      Icons.receipt_long_outlined,
+                      Icons.receipt_long_rounded,
+                      'Commandes',
+                    ),
+                    _destination(
+                      7,
+                      Icons.local_shipping_outlined,
+                      Icons.local_shipping_rounded,
+                      'Livraisons',
+                    ),
+                    _destination(
+                      8,
+                      Icons.warning_amber_outlined,
+                      Icons.warning_rounded,
+                      'Alertes commandes',
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(12, 18, 12, 8),
+                      child: Text(
+                        'PARTENAIRES',
+                        style: TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 10,
+                          letterSpacing: 1,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    _destination(
+                      9,
+                      Icons.local_laundry_service_outlined,
+                      Icons.local_laundry_service_rounded,
+                      'Sociétés de lavage',
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(12, 18, 12, 8),
+                      child: Text(
+                        'SERVICES DE LAVAGE',
+                        style: TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 10,
+                          letterSpacing: 1,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    _destination(
+                      10,
+                      Icons.local_laundry_service_outlined,
+                      Icons.local_laundry_service_rounded,
+                      'Gestion du linge',
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(12, 18, 12, 8),
+                      child: Text(
+                        'RÉSIDENTS',
+                        style: TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 10,
+                          letterSpacing: 1,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    _destination(
+                      11,
+                      Icons.people_outline_rounded,
+                      Icons.people_rounded,
+                      'Gestion des résidents',
+                    ),
+                    _destination(
+                      12,
                       Icons.local_shipping_outlined,
                       Icons.local_shipping_rounded,
                       'Gestion des livreurs',
-                    ),
-                    _destination(3, Icons.warning_amber_outlined,
-                        Icons.warning_rounded, 'Anomalies'),
-                    _destination(4, Icons.handyman_outlined,
-                        Icons.handyman_rounded, 'Maintenance'),
-                    _destination(5, Icons.person_outline_rounded,
-                        Icons.person_rounded, 'Profil'),
-                  ],
-                ),
-              ),
-              const SignOutButton(),
-              const Divider(height: 1, color: AppColors.line),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(24, 15, 24, 18),
-                child: Row(
-                  children: [
-                    Icon(Icons.sensors_rounded,
-                        color: AppColors.cyan, size: 18),
-                    SizedBox(width: 9),
-                    Expanded(
-                      child: LocalizedText(
-                        'Réseau IoT opérationnel',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: AppColors.muted,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
                     ),
                   ],
                 ),
@@ -158,8 +235,7 @@ class AdminNavigationBar extends StatelessWidget {
         selectedTileColor: AppColors.cyan.withValues(alpha: 0.14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         leading: Icon(selected ? selectedIcon : icon),
-        title:
-            LocalizedText(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
         textColor: selected ? AppColors.navy : AppColors.muted,
         iconColor: selected ? AppColors.navy : AppColors.muted,
         onTap: () => onDestinationSelected(index),

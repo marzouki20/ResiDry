@@ -10,10 +10,13 @@ import '../../../core/backend/backend_client.dart';
 import '../../delivery_drivers/presentation/application_status_screen.dart';
 import '../../../core/validation/tunisian_phone.dart';
 import '../../casiers/presentation/admin/admin_interface.dart';
-import '../../casiers/presentation/resident/resident_interface.dart';
 import '../../delivery_drivers/presentation/driver_interface.dart';
 import '../../delivery_drivers/presentation/driver_onboarding_page.dart';
 import '../../delivery_drivers/data/driver_profile_repository.dart';
+import '../../laundry_companies/data/sample_laundry_data.dart';
+import '../../laundry_companies/presentation/company_interface.dart';
+import '../../residents/presentation/residents_home_page.dart';
+import '../../residents/mock/residents_mock_data.dart';
 import '../../lockers/presentation/home_page.dart';
 import 'auth_page.dart';
 import 'pages/forgot_password_page.dart';
@@ -263,6 +266,25 @@ class _AuthScreenState extends State<AuthScreen> {
             : null,
       );
       await database.createUser(user.toMap());
+      if (_selectedRole == 'Résident') {
+        final nameParts = name.split(RegExp(r'\s+'));
+        await database.createResident(
+          ResidentProfile(
+            firstName: nameParts.first,
+            lastName:
+                nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '',
+            email: email,
+            phone: '',
+            residenceName: '',
+            residenceAddress: '',
+            city: '',
+            postalCode: '',
+            apartmentNumber: '',
+            floor: '',
+            status: 'Active',
+          ),
+        );
+      }
       if (mounted) {
         if (_selectedRole == 'Livreur') {
           Navigator.of(context).pushReplacement(
@@ -272,7 +294,7 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           );
         } else {
-          _openHome(name, _selectedRole);
+          _openHome(name, _selectedRole, email: email);
         }
       }
     } on BackendException catch (error) {
@@ -344,7 +366,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 : DriverOnboardingPage(
                     userName: user.name, userEmail: user.email)));
       } else if (mounted) {
-        _openHome(user.name, user.role);
+        _openHome(user.name, user.role, email: user.email);
       }
     } on BackendException catch (error) {
       if (mounted) _showBackendError(error);
@@ -371,7 +393,8 @@ class _AuthScreenState extends State<AuthScreen> {
       final role = BackendClient.roles.entries
           .firstWhere((entry) => entry.value == account['role'])
           .key;
-      _openHome(account['name'] as String, role);
+      _openHome(account['name'] as String, role,
+          email: account['email'] as String?);
     }
   }
 
@@ -415,14 +438,16 @@ class _AuthScreenState extends State<AuthScreen> {
                 ar: 'فشل الطلب. تحقق من بياناتك واتصالك.'));
   }
 
-  void _openHome(String name, String role) {
+  void _openHome(String name, String role, {String? email}) {
     final homePage = role == 'Livreur'
-        ? DriverInterface(userName: name)
+        ? DriverOnboardingPage(userName: name, userEmail: email)
         : role == 'Administrateur'
             ? AdminInterface(userName: name)
             : role == 'Résident'
-                ? ResidentInterface(userName: name)
-                : HomePage(userName: name, userRole: role);
+                ? ResidentsHomePage(userName: name, userEmail: email)
+                : role == 'Société de lavage'
+                    ? SocieteInterface(userName: name)
+                    : HomePage(userName: name, userRole: role);
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(builder: (_) => homePage),

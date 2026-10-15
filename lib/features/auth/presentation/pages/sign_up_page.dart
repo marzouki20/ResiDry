@@ -117,7 +117,7 @@ class SignUpPage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: selectedRole,
+          initialValue: selectedRole,
           decoration: InputDecoration(
             labelText: context.tr(en: 'Role', fr: 'Rôle', ar: 'الدور'),
             prefixIcon: const Icon(Icons.badge_outlined),

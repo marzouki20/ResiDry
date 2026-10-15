@@ -1,4 +1,12 @@
+import 'dart:io';
+
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+import '../features/laundry_companies/data/sample_laundry_data.dart';
+import '../features/laundry_companies/domain/models/machine.dart';
+import '../features/laundry_companies/domain/models/societe_lavage.dart';
+import '../features/residents/mock/residents_mock_data.dart';
 import '../core/validation/tunisian_phone.dart';
 
 class AppDatabase {
@@ -13,15 +21,24 @@ class AppDatabase {
       return _database!;
     }
 
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      databaseFactory = databaseFactoryFfi;
+    }
+
     final databasePath = await getDatabasesPath();
     final path = '$databasePath/residry.db';
 
     _database = await openDatabase(
       path,
-      version: 8,
+      version: 9,
       onConfigure: (database) => database.execute('PRAGMA foreign_keys = ON'),
       onCreate: (database, _) async {
         await _createUsersTable(database);
+        await _createSocietesTable(database);
+        await _createMachinesTable(database);
+        await _seedInitialSocietes(database);
+        await _createResidentsTable(database);
+        await _seedResidents(database);
         await _createDeliveryTables(database);
         await _seedDeliveryData(database);
         await createDriverProfileSchema(database);
@@ -37,41 +54,66 @@ class AppDatabase {
             "ALTER TABLE users ADD COLUMN password TEXT NOT NULL DEFAULT ''",
           );
         }
-        if (oldVersion < 4) {
-          await _createDeliveryTables(database);
-          await _seedDeliveryData(database);
+        await _createSocietesTable(database);
+        await _createMachinesTable(database);
+        await _createResidentsTable(database);
+        await _seedInitialSocietes(database);
+        await _seedResidents(database);
+        if (!await _hasColumn(database, 'machines', 'programmeActuel')) {
+          await database.execute(
+            'ALTER TABLE machines ADD COLUMN programmeActuel TEXT',
+          );
         }
-        if (oldVersion < 5) await createDriverProfileSchema(database);
-        if (oldVersion < 6) await createCapacityEvidenceSchema(database);
-        if (oldVersion >= 2 && oldVersion < 8) {
-          await createUserPhoneSchema(database);
-        }
-        if (oldVersion < 7) await createRegistrationCertificateSchema(database);
+        await _createDeliveryTables(database);
+        await _seedDeliveryData(database);
+        await createUserPhoneSchema(database);
+        await createDriverProfileSchema(database);
+        await createCapacityEvidenceSchema(database);
+        await createRegistrationCertificateSchema(database);
       },
     );
     return _database!;
   }
 
   static Future<void> createUserPhoneSchema(DatabaseExecutor database) async {
-    await database.execute('ALTER TABLE users ADD COLUMN phone TEXT');
+    if (!await _hasColumn(database, 'users', 'phone')) {
+      await database.execute('ALTER TABLE users ADD COLUMN phone TEXT');
+    }
+  }
+
+  static Future<bool> _hasColumn(
+      DatabaseExecutor database, String table, String column) async {
+    final columns = await database.rawQuery('PRAGMA table_info($table)');
+    return columns.any((row) => row['name'] == column);
   }
 
   static Future<void> createRegistrationCertificateSchema(
       DatabaseExecutor database) async {
-    await database.execute(
-        "ALTER TABLE vehicle_capacity_checks ADD COLUMN back_photo_path TEXT NOT NULL DEFAULT ''");
-    await database.execute(
-        "ALTER TABLE vehicle_capacity_checks ADD COLUMN registration_text TEXT NOT NULL DEFAULT ''");
-    await database.execute(
-        "ALTER TABLE vehicle_capacity_review_events ADD COLUMN back_photo_path TEXT NOT NULL DEFAULT ''");
+    if (!await _hasColumn(
+        database, 'vehicle_capacity_checks', 'back_photo_path')) {
+      await database.execute(
+          "ALTER TABLE vehicle_capacity_checks ADD COLUMN back_photo_path TEXT NOT NULL DEFAULT ''");
+    }
+    if (!await _hasColumn(
+        database, 'vehicle_capacity_checks', 'registration_text')) {
+      await database.execute(
+          "ALTER TABLE vehicle_capacity_checks ADD COLUMN registration_text TEXT NOT NULL DEFAULT ''");
+    }
+    if (!await _hasColumn(
+        database, 'vehicle_capacity_review_events', 'back_photo_path')) {
+      await database.execute(
+          "ALTER TABLE vehicle_capacity_review_events ADD COLUMN back_photo_path TEXT NOT NULL DEFAULT ''");
+    }
   }
 
   static Future<void> createDriverProfileSchema(
       DatabaseExecutor database) async {
-    await database.execute(
-        'ALTER TABLE delivery_drivers ADD COLUMN capacity_kg REAL CHECK(capacity_kg > 0 AND capacity_kg <= 10000)');
+    if (!await _hasColumn(database, 'delivery_drivers', 'capacity_kg')) {
+      await database.execute(
+          'ALTER TABLE delivery_drivers ADD COLUMN capacity_kg REAL CHECK(capacity_kg > 0 AND capacity_kg <= 10000)');
+    }
     await database.execute('''
-      CREATE TABLE driver_service_zones (
+      CREATE TABLE IF NOT EXISTS driver_service_zones (
         driver_id TEXT NOT NULL REFERENCES delivery_drivers(id) ON DELETE CASCADE,
         governorate_code TEXT NOT NULL,
         PRIMARY KEY (driver_id, governorate_code)
@@ -81,9 +123,13 @@ class AppDatabase {
 
   static Future<void> createCapacityEvidenceSchema(
       DatabaseExecutor database) async {
-    await database.execute(
-        "ALTER TABLE delivery_drivers ADD COLUMN capacity_assessment TEXT NOT NULL DEFAULT 'reviewRequired'");
-    await database.execute('''CREATE TABLE vehicle_capacity_checks (
+    if (!await _hasColumn(
+        database, 'delivery_drivers', 'capacity_assessment')) {
+      await database.execute(
+          "ALTER TABLE delivery_drivers ADD COLUMN capacity_assessment TEXT NOT NULL DEFAULT 'reviewRequired'");
+    }
+    await database
+        .execute('''CREATE TABLE IF NOT EXISTS vehicle_capacity_checks (
       driver_id TEXT PRIMARY KEY REFERENCES delivery_drivers(id) ON DELETE CASCADE,
       brand TEXT NOT NULL, model TEXT NOT NULL, vehicle_year TEXT NOT NULL,
       photo_path TEXT NOT NULL, photo_source TEXT NOT NULL,
@@ -92,7 +138,8 @@ class AppDatabase {
       recorded_at TEXT NOT NULL, admin_review_status TEXT NOT NULL DEFAULT 'pending',
       reviewed_at TEXT, reviewed_by TEXT
     )''');
-    await database.execute('''CREATE TABLE vehicle_capacity_review_events (
+    await database
+        .execute('''CREATE TABLE IF NOT EXISTS vehicle_capacity_review_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       driver_id TEXT NOT NULL REFERENCES delivery_drivers(id),
       evidence_recorded_at TEXT NOT NULL, photo_path TEXT NOT NULL,
@@ -309,9 +356,166 @@ class AppDatabase {
     };
   }
 
+  Future<void> _createSocietesTable(Database database) async {
+    await database.execute('''
+      CREATE TABLE IF NOT EXISTS societes (
+        id TEXT PRIMARY KEY,
+        nom TEXT NOT NULL,
+        adresse TEXT NOT NULL,
+        telephone TEXT NOT NULL,
+        email TEXT NOT NULL,
+        statut TEXT NOT NULL,
+        datePartenariat TEXT NOT NULL,
+        noteEvaluation REAL NOT NULL,
+        capaciteMaxKg INTEGER NOT NULL,
+        iotHealthScore INTEGER NOT NULL,
+        description TEXT NOT NULL
+      )
+    ''');
+  }
+
+  Future<void> _createMachinesTable(Database database) async {
+    await database.execute('''
+      CREATE TABLE IF NOT EXISTS machines (
+        id TEXT PRIMARY KEY,
+        societeId TEXT NOT NULL,
+        nom TEXT NOT NULL,
+        type TEXT NOT NULL,
+        statut TEXT NOT NULL,
+        capaciteKg REAL NOT NULL,
+        progressionCycle REAL NOT NULL,
+        tempsRestantMinutes INTEGER NOT NULL,
+        temperatureC REAL NOT NULL,
+        vibrationLevel REAL NOT NULL,
+        consommationKwh REAL NOT NULL,
+        santeIot INTEGER NOT NULL,
+        programmeActuel TEXT,
+        FOREIGN KEY (societeId) REFERENCES societes (id) ON DELETE CASCADE
+      )
+    ''');
+  }
+
+  Future<void> _seedInitialSocietes(Database database) async {
+    for (final societe in initialSocietesLavage) {
+      await database.insert(
+        'societes',
+        societe.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+      for (final machine in societe.machines) {
+        await database.insert(
+          'machines',
+          machine.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
+      }
+    }
+  }
+
+  Future<void> _createResidentsTable(Database database) async {
+    await database.execute('''
+      CREATE TABLE IF NOT EXISTS residents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        phone TEXT NOT NULL,
+        residence_name TEXT NOT NULL,
+        residence_address TEXT NOT NULL,
+        city TEXT NOT NULL,
+        postal_code TEXT NOT NULL,
+        apartment_number TEXT NOT NULL,
+        floor TEXT NOT NULL,
+        status TEXT NOT NULL
+      )
+    ''');
+  }
+
+  Future<void> _seedResidents(Database database) async {
+    final count = Sqflite.firstIntValue(
+      await database.rawQuery('SELECT COUNT(*) FROM residents'),
+    );
+    if (count != null && count > 0) return;
+    for (final resident in [demoResidentProfile, secondDemoResidentProfile]) {
+      await database.insert('residents', resident.toMap()..remove('id'));
+    }
+  }
+
+  Future<List<SocieteLavage>> getAllSocietes() async {
+    final db = await database;
+    final societesRows = await db.query('societes');
+    final machinesRows = await db.query('machines');
+    final machinesBySocieteId = <String, List<Machine>>{};
+    for (final row in machinesRows) {
+      final machine = Machine.fromMap(row);
+      machinesBySocieteId.putIfAbsent(machine.societeId, () => []).add(machine);
+    }
+    return societesRows.map((row) {
+      final id = row['id'] as String;
+      return SocieteLavage.fromMap(row,
+          machines: machinesBySocieteId[id] ?? const []);
+    }).toList();
+  }
+
+  Future<void> saveSociete(SocieteLavage societe) async {
+    final db = await database;
+    await db.insert('societes', societe.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    for (final machine in societe.machines) {
+      await saveMachine(machine);
+    }
+  }
+
+  Future<void> deleteSociete(String societeId) async {
+    final db = await database;
+    await db.delete('machines', where: 'societeId = ?', whereArgs: [societeId]);
+    await db.delete('societes', where: 'id = ?', whereArgs: [societeId]);
+  }
+
+  Future<void> saveMachine(Machine machine) async {
+    final db = await database;
+    await db.insert('machines', machine.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> deleteMachine(String machineId) async {
+    final db = await database;
+    await db.delete('machines', where: 'id = ?', whereArgs: [machineId]);
+  }
+
+  Future<int> createResident(ResidentProfile resident) async {
+    final db = await database;
+    return db.insert('residents', resident.toMap()..remove('id'));
+  }
+
+  Future<List<ResidentProfile>> listResidents() async {
+    final db = await database;
+    final rows = await db.query('residents', orderBy: 'id ASC');
+    return rows.map(ResidentProfile.fromMap).toList();
+  }
+
+  Future<ResidentProfile?> getResidentByEmail(String email) async {
+    final db = await database;
+    final rows = await db.query('residents',
+        where: 'email = ?', whereArgs: [email], limit: 1);
+    return rows.isEmpty ? null : ResidentProfile.fromMap(rows.first);
+  }
+
+  Future<int> updateResident(ResidentProfile resident) async {
+    final db = await database;
+    if (resident.id == null) return 0;
+    return db.update('residents', resident.toMap(),
+        where: 'id = ?', whereArgs: [resident.id]);
+  }
+
+  Future<int> deleteResident(int residentId) async {
+    final db = await database;
+    return db.delete('residents', where: 'id = ?', whereArgs: [residentId]);
+  }
+
   Future<void> _createUsersTable(Database database) async {
     await database.execute('''
-      CREATE TABLE users (
+      CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,

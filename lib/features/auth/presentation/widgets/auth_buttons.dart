@@ -63,13 +63,17 @@ class GoogleAuthButton extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            Text(
-              context.tr(
-                en: 'Continue with Google',
-                fr: 'Continuer avec Google',
-                ar: 'المتابعة باستخدام Google',
+            Flexible(
+              child: Text(
+                context.tr(
+                  en: 'Continue with Google',
+                  fr: 'Continuer avec Google',
+                  ar: 'المتابعة باستخدام Google',
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.navy),
               ),
-              style: const TextStyle(color: AppColors.navy),
             ),
           ],
         ),
