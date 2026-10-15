@@ -1,13 +1,12 @@
-import 'presentation/driver_laundry_page.dart';
-
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
-import 'data/models/laundry_role.dart';
+import '../../models/laundry_role.dart';
 import 'data/repositories/laundry_repository.dart';
 import 'presentation/laundry_page.dart';
-import 'presentation/pressing_laundry_page.dart';
-import 'presentation/resident_laundry_page.dart';
+import 'presentation/pages/driver_laundry_page.dart';
+import 'presentation/pages/pressing_laundry_page.dart';
+import 'presentation/pages/resident_laundry_page.dart';
 
 // Entry point used only to test the laundry module.
 void main() {

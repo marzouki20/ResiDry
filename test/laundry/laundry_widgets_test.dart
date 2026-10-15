@@ -1,21 +1,20 @@
 // Relative imports are required by this module's project instructions.
 // ignore_for_file: avoid_relative_lib_imports
 
-import '../../lib/features/laundry/laundry_dev_main.dart';
-import '../../lib/features/laundry/data/models/laundry_role.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../lib/core/theme/app_theme.dart';
-import '../../lib/features/laundry/data/models/laundry_item.dart';
+import '../../lib/models/laundry_item.dart';
+import '../../lib/models/laundry_role.dart';
 import '../../lib/features/laundry/data/repositories/laundry_repository.dart';
-import '../../lib/features/laundry/presentation/driver_laundry_page.dart';
-import '../../lib/features/laundry/presentation/laundry_admin_dialog.dart';
+import '../../lib/features/laundry/laundry_dev_main.dart';
 import '../../lib/features/laundry/presentation/laundry_page.dart';
-import '../../lib/features/laundry/presentation/laundry_routes.dart';
-import '../../lib/features/laundry/presentation/pressing_laundry_page.dart';
-import '../../lib/features/laundry/presentation/resident_laundry_page.dart';
+import '../../lib/features/laundry/presentation/navigation/laundry_routes.dart';
+import '../../lib/features/laundry/presentation/pages/driver_laundry_page.dart';
+import '../../lib/features/laundry/presentation/pages/pressing_laundry_page.dart';
+import '../../lib/features/laundry/presentation/pages/resident_laundry_page.dart';
+import '../../lib/features/laundry/presentation/widgets/laundry_admin_dialog.dart';
 import 'support/memory_database.dart';
 
 void main() {

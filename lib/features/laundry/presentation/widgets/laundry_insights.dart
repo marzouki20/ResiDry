@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_theme.dart';
-import '../data/models/laundry_item.dart';
-import '../data/models/laundry_role.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../models/laundry_item.dart';
+import '../../../../models/laundry_role.dart';
 
 /// Local workflow guidance, calculated from saved data; no remote AI service.
 String laundryNextStep(LaundryStatus status) => switch (status) {

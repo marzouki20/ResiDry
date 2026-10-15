@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../data/models/laundry_item.dart';
-import '../data/repositories/laundry_repository.dart';
+import '../../../../models/laundry_item.dart';
+import '../../data/repositories/laundry_repository.dart';
 
 /// Small shared state helper: keep database futures out of build().
 mixin LaundryAsyncState<T extends StatefulWidget> on State<T> {

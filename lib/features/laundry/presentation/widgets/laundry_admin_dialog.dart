@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../data/models/laundry_item.dart';
+import '../../../../models/laundry_item.dart';
 
 /// Dialog owns its controllers until its widget is disposed.
 class LaundryAdminDialog extends StatefulWidget {
