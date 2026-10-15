@@ -84,7 +84,10 @@ class MachineCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Row(
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 4,
+                          runSpacing: 2,
                           children: [
                             Text(
                               machine.type,
@@ -93,7 +96,6 @@ class MachineCard extends StatelessWidget {
                                 color: AppColors.muted,
                               ),
                             ),
-                            const Text(' • ', style: TextStyle(color: AppColors.muted)),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                               decoration: BoxDecoration(
@@ -182,15 +184,17 @@ class MachineCard extends StatelessWidget {
                         children: [
                           const Icon(Icons.timer_outlined, size: 13, color: AppColors.cyan),
                           const SizedBox(width: 4),
-                          Text(
-                            'Temps restant : ${machine.tempsRestantMinutes} min',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.navy,
+                          Expanded(
+                            child: Text(
+                              'Temps restant : ${machine.tempsRestantMinutes} min',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.navy,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const Spacer(),
                           Text(
                             '${(machine.progressionCycle * 100).toInt()}%',
                             style: const TextStyle(

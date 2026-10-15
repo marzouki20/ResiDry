@@ -174,33 +174,65 @@ class _SocieteDetailPageState extends State<SocieteDetailPage> {
             const SizedBox(height: 24),
 
             // Machines Section Heading & Add Machine Button
-            Row(
-              children: [
-                const Icon(Icons.precision_manufacturing_rounded, color: AppColors.navy),
-                const SizedBox(width: 8),
-                const Text(
-                  'Parc de Machines',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.navy,
-                  ),
-                ),
-                const Spacer(),
-                ElevatedButton.icon(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final addMachineButton = ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.navy,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                   ),
                   onPressed: () => _addOrEditMachine(),
                   icon: const Icon(Icons.add_rounded, size: 18),
                   label: const Text('Ajouter Machine'),
-                ),
-              ],
+                );
+                final sectionTitle = Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.precision_manufacturing_rounded,
+                      color: AppColors.navy,
+                    ),
+                    const SizedBox(width: 8),
+                    const Flexible(
+                      child: Text(
+                        'Parc de Machines',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.navy,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+
+                if (constraints.maxWidth < 420) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      sectionTitle,
+                      const SizedBox(height: 10),
+                      addMachineButton,
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    sectionTitle,
+                    const Spacer(),
+                    addMachineButton,
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 12),
 
@@ -383,44 +415,47 @@ class _SocieteDetailPageState extends State<SocieteDetailPage> {
   }
 
   Widget _buildMetricsGrid() {
-    return Row(
-      children: [
-        Expanded(
-          child: _metricCard(
-            'Machines',
-            _currentSociete.machines.length.toString(),
-            Icons.precision_manufacturing_rounded,
-            AppColors.navy,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _metricCard(
-            'En Cycle',
-            _currentSociete.runningCyclesCount.toString(),
-            Icons.sync_rounded,
-            AppColors.cyan,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _metricCard(
-            'Capacité',
-            '${_currentSociete.capaciteMaxKg} Kg',
-            Icons.fitness_center_rounded,
-            Colors.purple.shade700,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _metricCard(
-            'Santé IoT',
-            '${_currentSociete.iotHealthScore}%',
-            Icons.sensors_rounded,
-            Colors.green.shade700,
-          ),
-        ),
-      ],
+    final metrics = [
+      _metricCard(
+        'Machines',
+        _currentSociete.machines.length.toString(),
+        Icons.precision_manufacturing_rounded,
+        AppColors.navy,
+      ),
+      _metricCard(
+        'En Cycle',
+        _currentSociete.runningCyclesCount.toString(),
+        Icons.sync_rounded,
+        AppColors.cyan,
+      ),
+      _metricCard(
+        'Capacité',
+        '${_currentSociete.capaciteMaxKg} Kg',
+        Icons.fitness_center_rounded,
+        Colors.purple.shade700,
+      ),
+      _metricCard(
+        'Santé IoT',
+        '${_currentSociete.iotHealthScore}%',
+        Icons.sensors_rounded,
+        Colors.green.shade700,
+      ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth < 420 ? 2 : 4;
+        final spacing = 10.0;
+        final itemWidth =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final metric in metrics)
+              SizedBox(width: itemWidth, child: metric),
+          ],
+        );
+      },
     );
   }
 

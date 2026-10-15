@@ -4,10 +4,10 @@ import 'package:sqflite/sqflite.dart';
 import '../../../database/database.dart';
 import '../../../models/user.dart';
 import '../../casiers/presentation/admin/admin_interface.dart';
-import '../../casiers/presentation/resident/resident_interface.dart';
+import '../../delivery_drivers/presentation/driver_onboarding_page.dart';
 import '../../laundry_companies/presentation/company_interface.dart';
 import '../../lockers/presentation/home_page.dart';
-import '../../orders/presentation/home_page.dart';
+import '../../residents/presentation/residents_home_page.dart';
 import 'auth_page.dart';
 import 'pages/forgot_password_page.dart';
 import 'pages/sign_in_page.dart';
@@ -219,11 +219,11 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _openHome(String name, String role) {
     final homePage = role == 'Livreur'
-        ? OrdersHomePage(userName: name)
+        ? DriverOnboardingPage(userName: name)
         : role == 'Administrateur'
         ? AdminInterface(userName: name)
         : role == 'Résident'
-        ? ResidentInterface(userName: name)
+        ? ResidentsHomePage(userName: name)
         : role == 'Société de lavage'
         ? SocieteInterface(userName: name)
         : HomePage(userName: name, userRole: role);

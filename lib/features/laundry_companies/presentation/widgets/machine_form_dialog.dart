@@ -145,54 +145,94 @@ class _MachineFormDialogState extends State<MachineFormDialog> {
               ),
               const SizedBox(height: 14),
 
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      initialValue: _type,
-                      decoration: _buildInputDecoration(
-                        label: 'Type de Machine',
-                        icon: Icons.category_rounded,
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 'Lave-linge', child: Text('Lave-linge')),
-                        DropdownMenuItem(value: 'Sèche-linge', child: Text('Sèche-linge')),
-                        DropdownMenuItem(
-                          value: 'Nettoyage Écologique',
-                          child: Text('Nettoyage Éco'),
+              if (MediaQuery.sizeOf(context).width < 440) ...[
+                DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  initialValue: _type,
+                  decoration: _buildInputDecoration(
+                    label: 'Type de Machine',
+                    icon: Icons.category_rounded,
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'Lave-linge', child: Text('Lave-linge')),
+                    DropdownMenuItem(value: 'Sèche-linge', child: Text('Sèche-linge')),
+                    DropdownMenuItem(
+                      value: 'Nettoyage Écologique',
+                      child: Text('Nettoyage Éco'),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => _type = val);
+                  },
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _capaciteController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: _buildInputDecoration(
+                    label: 'Capacité tambour (kg) *',
+                    icon: Icons.scale_rounded,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Capacité requise.';
+                    }
+                    final v = double.tryParse(value.trim());
+                    if (v == null || v <= 0) {
+                      return 'Poids supérieur à 0 kg.';
+                    }
+                    return null;
+                  },
+                ),
+              ] else
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        initialValue: _type,
+                        decoration: _buildInputDecoration(
+                          label: 'Type de Machine',
+                          icon: Icons.category_rounded,
                         ),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _type = val);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _capaciteController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: _buildInputDecoration(
-                        label: 'Capacité (kg) *',
-                        icon: Icons.scale_rounded,
+                        items: const [
+                          DropdownMenuItem(value: 'Lave-linge', child: Text('Lave-linge')),
+                          DropdownMenuItem(value: 'Sèche-linge', child: Text('Sèche-linge')),
+                          DropdownMenuItem(
+                            value: 'Nettoyage Écologique',
+                            child: Text('Nettoyage Éco'),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setState(() => _type = val);
+                        },
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Requis.';
-                        }
-                        final v = double.tryParse(value.trim());
-                        if (v == null || v <= 0) {
-                          return '> 0 kg.';
-                        }
-                        return null;
-                      },
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        controller: _capaciteController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: _buildInputDecoration(
+                          label: 'Capacité (kg) *',
+                          icon: Icons.scale_rounded,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Requis.';
+                          }
+                          final v = double.tryParse(value.trim());
+                          if (v == null || v <= 0) {
+                            return '> 0 kg.';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 14),
 
               Row(
@@ -220,60 +260,99 @@ class _MachineFormDialogState extends State<MachineFormDialog> {
               ),
               const SizedBox(height: 14),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _temperatureController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: _buildInputDecoration(
-                        label: 'Température (°C) *',
-                        icon: Icons.device_thermostat_rounded,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Température requise.';
-                        }
-                        if (double.tryParse(value.trim()) == null) {
-                          return 'Nombre valide.';
-                        }
-                        return null;
-                      },
-                    ),
+              if (MediaQuery.sizeOf(context).width < 440) ...[
+                TextFormField(
+                  controller: _temperatureController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: _buildInputDecoration(
+                    label: 'Température (°C) *',
+                    icon: Icons.device_thermostat_rounded,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _santeController,
-                      keyboardType: TextInputType.number,
-                      decoration: _buildInputDecoration(
-                        label: 'Santé IoT (%) *',
-                        icon: Icons.monitor_heart_rounded,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Santé requise.';
-                        }
-                        final v = int.tryParse(value.trim());
-                        if (v == null || v < 0 || v > 100) {
-                          return 'Entre 0 et 100.';
-                        }
-                        return null;
-                      },
-                    ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Température requise.';
+                    }
+                    if (double.tryParse(value.trim()) == null) {
+                      return 'Nombre valide.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _santeController,
+                  keyboardType: TextInputType.number,
+                  decoration: _buildInputDecoration(
+                    label: 'Santé IoT (%) *',
+                    icon: Icons.monitor_heart_rounded,
                   ),
-                ],
-              ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Santé requise.';
+                    }
+                    final v = int.tryParse(value.trim());
+                    if (v == null || v < 0 || v > 100) {
+                      return 'Entre 0 et 100.';
+                    }
+                    return null;
+                  },
+                ),
+              ] else
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _temperatureController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: _buildInputDecoration(
+                          label: 'Température (°C) *',
+                          icon: Icons.device_thermostat_rounded,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Température requise.';
+                          }
+                          if (double.tryParse(value.trim()) == null) {
+                            return 'Nombre valide.';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _santeController,
+                        keyboardType: TextInputType.number,
+                        decoration: _buildInputDecoration(
+                          label: 'Santé IoT (%) *',
+                          icon: Icons.monitor_heart_rounded,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Santé requise.';
+                          }
+                          final v = int.tryParse(value.trim());
+                          if (v == null || v < 0 || v > 100) {
+                            return 'Entre 0 et 100.';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 22),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 4,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('Annuler', style: TextStyle(color: AppColors.muted)),
                   ),
-                  const SizedBox(width: 12),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.navy,

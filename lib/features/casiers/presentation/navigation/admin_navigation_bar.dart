@@ -87,7 +87,12 @@ class AdminNavigationBar extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
-                _destination(0, Icons.dashboard_outlined, Icons.dashboard_rounded, 'Tableau de bord'),
+                _destination(
+                  0,
+                  Icons.dashboard_outlined,
+                  Icons.dashboard_rounded,
+                  'Tableau de bord',
+                ),
                 _destination(
                   1,
                   Icons.door_front_door_outlined,
@@ -95,35 +100,94 @@ class AdminNavigationBar extends StatelessWidget {
                   'Gestion des casiers',
                 ),
                 _destination(
-                  5,
-                  Icons.store_outlined,
-                  Icons.store_rounded,
-                  'Sociétés de lavage',
+                  2,
+                  Icons.warning_amber_outlined,
+                  Icons.warning_rounded,
+                  'Anomalies',
                 ),
-                _destination(2, Icons.warning_amber_outlined, Icons.warning_rounded, 'Anomalies'),
-                _destination(3, Icons.handyman_outlined, Icons.handyman_rounded, 'Maintenance'),
-                _destination(4, Icons.person_outline_rounded, Icons.person_rounded, 'Profil'),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.line),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(24, 15, 24, 18),
-            child: Row(
-              children: [
-                Icon(Icons.sensors_rounded, color: AppColors.cyan, size: 18),
-                SizedBox(width: 9),
-                Expanded(
+                _destination(
+                  3,
+                  Icons.handyman_outlined,
+                  Icons.handyman_rounded,
+                  'Maintenance',
+                ),
+                _destination(
+                  4,
+                  Icons.person_outline_rounded,
+                  Icons.person_rounded,
+                  'Profil',
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(12, 18, 12, 8),
                   child: Text(
-                    'Réseau IoT opérationnel',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    'COMMANDES ET LIVRAISONS',
                     style: TextStyle(
                       color: AppColors.muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                      letterSpacing: 1,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
+                ),
+                _destination(
+                  5,
+                  Icons.dashboard_outlined,
+                  Icons.dashboard_rounded,
+                  'Dashboard commandes',
+                ),
+                _destination(
+                  6,
+                  Icons.receipt_long_outlined,
+                  Icons.receipt_long_rounded,
+                  'Commandes',
+                ),
+                _destination(
+                  7,
+                  Icons.local_shipping_outlined,
+                  Icons.local_shipping_rounded,
+                  'Livraisons',
+                ),
+                _destination(
+                  8,
+                  Icons.warning_amber_outlined,
+                  Icons.warning_rounded,
+                  'Alertes commandes',
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(12, 18, 12, 8),
+                  child: Text(
+                    'PARTENAIRES',
+                    style: TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 10,
+                      letterSpacing: 1,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                _destination(
+                  9,
+                  Icons.local_laundry_service_outlined,
+                  Icons.local_laundry_service_rounded,
+                  'Sociétés de lavage',
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(12, 18, 12, 8),
+                  child: Text(
+                    'SERVICES DE LAVAGE',
+                    style: TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 10,
+                      letterSpacing: 1,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                _destination(
+                  10,
+                  Icons.local_laundry_service_outlined,
+                  Icons.local_laundry_service_rounded,
+                  'Gestion du linge',
                 ),
               ],
             ),

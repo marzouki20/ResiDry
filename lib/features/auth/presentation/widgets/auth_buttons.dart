@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class PrimaryAuthButton extends StatelessWidget {
-  const PrimaryAuthButton({
-    super.key,
-    required this.label,
-    this.onPressed,
-  });
+  const PrimaryAuthButton({super.key, required this.label, this.onPressed});
 
   final String label;
   final VoidCallback? onPressed;
@@ -62,9 +58,13 @@ class GoogleAuthButton extends StatelessWidget {
               ),
             ),
             SizedBox(width: 10),
-            Text(
-              'Continue with Google',
-              style: TextStyle(color: AppColors.navy),
+            Flexible(
+              child: Text(
+                'Continue with Google',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: AppColors.navy),
+              ),
             ),
           ],
         ),

@@ -157,10 +157,8 @@ class _SocieteFormDialogState extends State<SocieteFormDialog> {
               const SizedBox(height: 14),
 
               // Row Telephone & Email
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
+              if (MediaQuery.sizeOf(context).width < 440) ...[
+                TextFormField(
                       controller: _telephoneController,
                       keyboardType: TextInputType.phone,
                       decoration: _buildInputDecoration(
@@ -177,10 +175,8 @@ class _SocieteFormDialogState extends State<SocieteFormDialog> {
                         return null;
                       },
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
+                const SizedBox(height: 14),
+                TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: _buildInputDecoration(
@@ -198,16 +194,58 @@ class _SocieteFormDialogState extends State<SocieteFormDialog> {
                         return null;
                       },
                     ),
-                  ),
-                ],
-              ),
+              ] else
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _telephoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: _buildInputDecoration(
+                          label: 'Téléphone *',
+                          icon: Icons.phone_rounded,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Téléphone requis.';
+                          }
+                          if (value.trim().length < 8) {
+                            return 'Au moins 8 chiffres.';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: _buildInputDecoration(
+                          label: 'Email *',
+                          icon: Icons.email_rounded,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Email requis.';
+                          }
+                          final emailRegex = RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          );
+                          if (!emailRegex.hasMatch(value.trim())) {
+                            return 'Email non valide.';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 14),
 
               // Row Statut & Capacité
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
+              if (MediaQuery.sizeOf(context).width < 440) ...[
+                DropdownButtonFormField<String>(
                       isExpanded: true,
                       initialValue: _statut,
                       decoration: _buildInputDecoration(
@@ -226,10 +264,8 @@ class _SocieteFormDialogState extends State<SocieteFormDialog> {
                         if (val != null) setState(() => _statut = val);
                       },
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
+                const SizedBox(height: 14),
+                TextFormField(
                       controller: _capaciteController,
                       keyboardType: TextInputType.number,
                       decoration: _buildInputDecoration(
@@ -247,9 +283,59 @@ class _SocieteFormDialogState extends State<SocieteFormDialog> {
                         return null;
                       },
                     ),
-                  ),
-                ],
-              ),
+              ] else
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        initialValue: _statut,
+                        decoration: _buildInputDecoration(
+                          label: 'Statut',
+                          icon: Icons.verified_user_rounded,
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'Actif',
+                            child: Text('Actif'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Sous Maintenance',
+                            child: Text('Sous Maintenance'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Inactif',
+                            child: Text('Inactif'),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setState(() => _statut = val);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _capaciteController,
+                        keyboardType: TextInputType.number,
+                        decoration: _buildInputDecoration(
+                          label: 'Capacité (Kg) *',
+                          icon: Icons.fitness_center_rounded,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Capacité requise.';
+                          }
+                          final cap = int.tryParse(value.trim());
+                          if (cap == null || cap <= 0) {
+                            return 'Valeur invalide (>0).';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 14),
 
               // Description
@@ -264,14 +350,15 @@ class _SocieteFormDialogState extends State<SocieteFormDialog> {
               const SizedBox(height: 22),
 
               // Action buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 4,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('Annuler', style: TextStyle(color: AppColors.muted)),
                   ),
-                  const SizedBox(width: 12),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.navy,
