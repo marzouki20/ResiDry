@@ -35,6 +35,10 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   sqflite: ^2.4.4+1
+<<<<<<< HEAD
+  sqflite_common_ffi: ^2.3.5
+=======
+>>>>>>> origin/main
 
 dev_dependencies:
   flutter_test:

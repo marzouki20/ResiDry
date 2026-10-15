@@ -1,5 +1,9 @@
 class ResidentProfile {
   const ResidentProfile({
+<<<<<<< HEAD
+    this.id,
+=======
+>>>>>>> origin/main
     required this.firstName,
     required this.lastName,
     required this.email,
@@ -13,6 +17,10 @@ class ResidentProfile {
     required this.status,
   });
 
+<<<<<<< HEAD
+  final int? id;
+=======
+>>>>>>> origin/main
   final String firstName;
   final String lastName;
   final String email;
@@ -27,9 +35,80 @@ class ResidentProfile {
 
   String get fullName => '$firstName $lastName';
   String get initials => '${firstName[0]}${lastName[0]}';
+<<<<<<< HEAD
+
+  ResidentProfile copyWith({
+    int? id,
+    String? firstName,
+    String? lastName,
+    String? email,
+    String? phone,
+    String? residenceName,
+    String? residenceAddress,
+    String? city,
+    String? postalCode,
+    String? apartmentNumber,
+    String? floor,
+    String? status,
+  }) {
+    return ResidentProfile(
+      id: id ?? this.id,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      residenceName: residenceName ?? this.residenceName,
+      residenceAddress: residenceAddress ?? this.residenceAddress,
+      city: city ?? this.city,
+      postalCode: postalCode ?? this.postalCode,
+      apartmentNumber: apartmentNumber ?? this.apartmentNumber,
+      floor: floor ?? this.floor,
+      status: status ?? this.status,
+    );
+  }
+
+  Map<String, Object?> toMap() {
+    return <String, Object?>{
+      'id': id,
+      'first_name': firstName,
+      'last_name': lastName,
+      'email': email,
+      'phone': phone,
+      'residence_name': residenceName,
+      'residence_address': residenceAddress,
+      'city': city,
+      'postal_code': postalCode,
+      'apartment_number': apartmentNumber,
+      'floor': floor,
+      'status': status,
+    };
+  }
+
+  factory ResidentProfile.fromMap(Map<String, Object?> map) {
+    return ResidentProfile(
+      id: map['id'] as int?,
+      firstName: map['first_name'] as String? ?? '',
+      lastName: map['last_name'] as String? ?? '',
+      email: map['email'] as String? ?? '',
+      phone: map['phone'] as String? ?? '',
+      residenceName: map['residence_name'] as String? ?? '',
+      residenceAddress: map['residence_address'] as String? ?? '',
+      city: map['city'] as String? ?? '',
+      postalCode: map['postal_code'] as String? ?? '',
+      apartmentNumber: map['apartment_number'] as String? ?? '',
+      floor: map['floor'] as String? ?? '',
+      status: map['status'] as String? ?? 'Active',
+    );
+  }
 }
 
 const demoResidentProfile = ResidentProfile(
+  id: 1,
+=======
+}
+
+const demoResidentProfile = ResidentProfile(
+>>>>>>> origin/main
   firstName: 'Mohamed Raed',
   lastName: 'Boukari',
   email: 'raed@example.com',
@@ -43,6 +122,24 @@ const demoResidentProfile = ResidentProfile(
   status: 'Active',
 );
 
+<<<<<<< HEAD
+const secondDemoResidentProfile = ResidentProfile(
+  id: 2,
+  firstName: 'Sarra',
+  lastName: 'Ben Ali',
+  email: 'sarra@example.com',
+  phone: '+216 21 654 321',
+  residenceName: 'ResiDry Residence',
+  residenceAddress: '72 Rue de la Maison',
+  city: 'Tunis',
+  postalCode: '1000',
+  apartmentNumber: 'B-101',
+  floor: '1',
+  status: 'Active',
+);
+
+=======
+>>>>>>> origin/main
 class LaundryRequest {
   const LaundryRequest({
     required this.requestNumber,

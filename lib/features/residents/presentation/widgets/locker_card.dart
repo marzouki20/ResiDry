@@ -154,6 +154,14 @@ class _DetailRow extends StatelessWidget {
             style: const TextStyle(color: AppColors.muted, fontSize: 12),
           ),
         ),
+<<<<<<< HEAD
+        Text(
+          value,
+          style: const TextStyle(
+            color: AppColors.navy,
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+=======
         Expanded(
           child: Text(
             value,
@@ -165,6 +173,7 @@ class _DetailRow extends StatelessWidget {
               fontWeight: FontWeight.w700,
               fontSize: 13,
             ),
+>>>>>>> origin/main
           ),
         ),
       ],

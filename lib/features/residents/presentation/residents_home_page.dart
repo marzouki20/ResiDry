@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+<<<<<<< HEAD
+import '../../../database/database.dart';
+=======
+>>>>>>> origin/main
 import '../mock/residents_mock_data.dart';
 import 'pages/edit_profile_page.dart';
 import 'pages/laundry_request_details_page.dart';
@@ -24,6 +28,10 @@ class ResidentsHomePage extends StatefulWidget {
 
 class _ResidentsHomePageState extends State<ResidentsHomePage> {
   int _selectedIndex = 0;
+<<<<<<< HEAD
+  bool _isLoading = true;
+=======
+>>>>>>> origin/main
   ResidentProfile _resident = demoResidentProfile;
   final List<LaundryRequest> _laundryRequests = List<LaundryRequest>.from(
     demoLaundryRequests,
@@ -33,6 +41,27 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
   );
 
   @override
+<<<<<<< HEAD
+  void initState() {
+    super.initState();
+    _loadResident();
+  }
+
+  Future<void> _loadResident() async {
+    final residents = await AppDatabase.instance.listResidents();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _resident = residents.isNotEmpty ? residents.first : demoResidentProfile;
+      _isLoading = false;
+    });
+  }
+
+  @override
+=======
+>>>>>>> origin/main
   Widget build(BuildContext context) {
     final titles = <String>[
       'Dashboard',
@@ -63,6 +92,14 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
         ),
         actions: [
           IconButton(
+<<<<<<< HEAD
+            tooltip: 'Ajouter un résident',
+            onPressed: _openCreateResident,
+            icon: const Icon(Icons.person_add_alt_1_rounded),
+          ),
+          IconButton(
+=======
+>>>>>>> origin/main
             tooltip: 'Notifications',
             onPressed: () => setState(() => _selectedIndex = 4),
             icon: const Icon(Icons.notifications_none_rounded),
@@ -169,6 +206,31 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
           ),
         ),
       ),
+<<<<<<< HEAD
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : IndexedStack(
+              index: _selectedIndex,
+              children: [
+                _dashboardPage(),
+                ResidentProfilePage(
+                  resident: _resident,
+                  onEditProfile: _openEditProfile,
+                  onDeleteProfile: _deleteResident,
+                ),
+                ResidencePage(resident: _resident),
+                LaundryRequestsPage(
+                  requests: _laundryRequests,
+                  onRequestSelected: _openRequestDetails,
+                ),
+                NotificationsPage(
+                  notifications: _notifications,
+                  onMarkAllAsRead: _markAllAsRead,
+                ),
+                LockerAssignmentPage(assignment: demoLockerAssignment),
+              ],
+            ),
+=======
       body: IndexedStack(
         index: _selectedIndex,
         children: [
@@ -189,6 +251,7 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
           LockerAssignmentPage(assignment: demoLockerAssignment),
         ],
       ),
+>>>>>>> origin/main
     );
   }
 
@@ -252,7 +315,11 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
+<<<<<<< HEAD
+          childAspectRatio: 1.45,
+=======
           childAspectRatio: 0.95,
+>>>>>>> origin/main
           children: [
             _metricCard(
               label: 'Laundry requests',
@@ -301,12 +368,20 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
         ),
         const SizedBox(height: 10),
         GridView.count(
+<<<<<<< HEAD
+          crossAxisCount: 3,
+=======
           crossAxisCount: MediaQuery.sizeOf(context).width < 400 ? 2 : 3,
+>>>>>>> origin/main
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
+<<<<<<< HEAD
+          childAspectRatio: 1.2,
+=======
           childAspectRatio: 1.1,
+>>>>>>> origin/main
           children: [
             QuickActionCard(
               icon: Icons.person_outline_rounded,
@@ -323,6 +398,14 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
               label: 'Locker',
               onTap: () => setState(() => _selectedIndex = 5),
             ),
+<<<<<<< HEAD
+            QuickActionCard(
+              icon: Icons.person_add_alt_1_rounded,
+              label: 'New resident',
+              onTap: _openCreateResident,
+            ),
+=======
+>>>>>>> origin/main
           ],
         ),
         const SizedBox(height: 22),
@@ -473,15 +556,108 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
   Future<void> _openEditProfile() async {
     final updatedResident = await Navigator.of(context).push<ResidentProfile>(
       MaterialPageRoute<ResidentProfile>(
+<<<<<<< HEAD
+        builder: (context) =>
+            EditProfilePage(resident: _resident, onSave: (_) {}),
+=======
         builder: (context) => EditProfilePage(
           resident: _resident,
           onSave: (profile) => setState(() => _resident = profile),
         ),
+>>>>>>> origin/main
       ),
     );
 
     if (updatedResident != null) {
+<<<<<<< HEAD
+      final updatedRows = await AppDatabase.instance.updateResident(
+        updatedResident,
+      );
+      if (updatedRows > 0) {
+        setState(() => _resident = updatedResident);
+      }
+    }
+  }
+
+  Future<void> _openCreateResident() async {
+    final blankResident = ResidentProfile(
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      residenceName: _resident.residenceName,
+      residenceAddress: _resident.residenceAddress,
+      city: _resident.city,
+      postalCode: _resident.postalCode,
+      apartmentNumber: '',
+      floor: '',
+      status: 'Active',
+    );
+
+    final createdResident = await Navigator.of(context).push<ResidentProfile>(
+      MaterialPageRoute<ResidentProfile>(
+        builder: (context) =>
+            EditProfilePage(resident: blankResident, onSave: (_) {}),
+      ),
+    );
+
+    if (createdResident != null) {
+      final id = await AppDatabase.instance.createResident(createdResident);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _resident = createdResident.copyWith(id: id);
+        _selectedIndex = 1;
+      });
+    }
+  }
+
+  Future<void> _deleteResident() async {
+    if (_resident.id == null) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete resident?'),
+        content: Text(
+          'Do you want to delete ${_resident.fullName}? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    final deletedRows = await AppDatabase.instance.deleteResident(
+      _resident.id!,
+    );
+    if (deletedRows > 0) {
+      final remainingResidents = await AppDatabase.instance.listResidents();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _resident = remainingResidents.isNotEmpty
+            ? remainingResidents.first
+            : demoResidentProfile;
+      });
+=======
       setState(() => _resident = updatedResident);
+>>>>>>> origin/main
     }
   }
 
