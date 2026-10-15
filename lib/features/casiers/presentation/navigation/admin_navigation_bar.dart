@@ -99,7 +99,6 @@ class AdminNavigationBar extends StatelessWidget {
                   Icons.door_front_door_rounded,
                   'Gestion des casiers',
                 ),
-
                 _destination(
                   2,
                   Icons.warning_amber_outlined,
@@ -190,7 +189,24 @@ class AdminNavigationBar extends StatelessWidget {
                   Icons.local_laundry_service_rounded,
                   'Gestion du linge',
                 ),
-
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(12, 18, 12, 8),
+                  child: Text(
+                    'RÉSIDENTS',
+                    style: TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 10,
+                      letterSpacing: 1,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                _destination(
+                  11,
+                  Icons.people_outline_rounded,
+                  Icons.people_rounded,
+                  'Gestion des résidents',
+                ),
               ],
             ),
           ),

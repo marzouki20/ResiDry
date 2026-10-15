@@ -27,8 +27,14 @@ class ResidentProfile {
   final String floor;
   final String status;
 
-  String get fullName => '$firstName $lastName';
-  String get initials => '${firstName[0]}${lastName[0]}';
+  String get fullName => '$firstName $lastName'.trim();
+
+  String get initials {
+    final firstInitial = firstName.trim().isEmpty ? '' : firstName.trim()[0];
+    final lastInitial = lastName.trim().isEmpty ? '' : lastName.trim()[0];
+    final value = '$firstInitial$lastInitial';
+    return value.isEmpty ? '?' : value.toUpperCase();
+  }
 
   ResidentProfile copyWith({
     int? id,

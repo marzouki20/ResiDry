@@ -4,6 +4,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../laundry/presentation/laundry_page.dart';
 import '../../../laundry_companies/presentation/societes_lavage_page.dart';
 import '../../../orders/presentation/orders_admin_module.dart';
+import '../../../residents/presentation/pages/resident_management_page.dart';
 import '../navigation/admin_navigation_bar.dart';
 import '../widgets/casier_components.dart';
 
@@ -37,6 +38,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
       'Alertes commandes',
       'Sociétés de lavage',
       'Gestion du linge',
+      'Gestion des résidents',
     ];
     return Scaffold(
       appBar: AppBar(
@@ -76,6 +78,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
         index: switch (_selectedIndex) {
           9 => 6,
           10 => 7,
+          11 => 8,
           >= 5 => 5,
           _ => _selectedIndex,
         },
@@ -94,6 +97,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
           ),
           const SocietesLavagePage(),
           const LaundryPage(showAppBar: false),
+          const ResidentManagementPage(),
         ],
       ),
       floatingActionButton: _selectedIndex == 1

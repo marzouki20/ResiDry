@@ -66,7 +66,7 @@ class RequestCard extends StatelessWidget {
                             color: AppColors.muted,
                           ),
                           const SizedBox(width: 4),
-                          Expanded(
+                          Flexible(
                             child: Text(
                               'Created ${request.creationDate}',
                               maxLines: 1,
@@ -82,12 +82,8 @@ class RequestCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                RequestStatusChip(status: request.status),
               ],
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: RequestStatusChip(status: request.status),
             ),
             const SizedBox(height: 16),
             Container(

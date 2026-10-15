@@ -15,9 +15,10 @@ import 'widgets/request_card.dart';
 import 'widgets/resident_header.dart';
 
 class ResidentsHomePage extends StatefulWidget {
-  const ResidentsHomePage({super.key, this.userName});
+  const ResidentsHomePage({super.key, this.userName, this.userEmail});
 
   final String? userName;
+  final String? userEmail;
 
   @override
   State<ResidentsHomePage> createState() => _ResidentsHomePageState();
@@ -41,16 +42,21 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
 
   Future<void> _loadResident() async {
     try {
-      final residents = await AppDatabase.instance.listResidents();
+      final resident = widget.userEmail == null
+          ? null
+          : await AppDatabase.instance.getResidentByEmail(widget.userEmail!);
+      final residents = resident == null && widget.userEmail == null
+          ? await AppDatabase.instance.listResidents()
+          : const <ResidentProfile>[];
       if (!mounted) {
         return;
       }
 
-      if (residents.isNotEmpty) {
-        setState(() {
-          _resident = residents.first;
-        });
-      }
+      setState(() {
+        _resident =
+            resident ??
+            (residents.isNotEmpty ? residents.first : demoResidentProfile);
+      });
     } catch (_) {}
   }
 
@@ -84,11 +90,6 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
           ),
         ),
         actions: [
-          IconButton(
-            tooltip: 'Ajouter un résident',
-            onPressed: _openCreateResident,
-            icon: const Icon(Icons.person_add_alt_1_rounded),
-          ),
           IconButton(
             tooltip: 'Notifications',
             onPressed: () => setState(() => _selectedIndex = 4),
@@ -197,26 +198,26 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
         ),
       ),
       body: IndexedStack(
-              index: _selectedIndex,
-              children: [
-                _dashboardPage(),
-                ResidentProfilePage(
-                  resident: _resident,
-                  onEditProfile: _openEditProfile,
-                  onDeleteProfile: _deleteResident,
-                ),
-                ResidencePage(resident: _resident),
-                LaundryRequestsPage(
-                  requests: _laundryRequests,
-                  onRequestSelected: _openRequestDetails,
-                ),
-                NotificationsPage(
-                  notifications: _notifications,
-                  onMarkAllAsRead: _markAllAsRead,
-                ),
-                LockerAssignmentPage(assignment: demoLockerAssignment),
-              ],
-            ),
+        index: _selectedIndex,
+        children: [
+          _dashboardPage(),
+          ResidentProfilePage(
+            resident: _resident,
+            onEditProfile: _openEditProfile,
+            onDeleteProfile: _deleteResident,
+          ),
+          ResidencePage(resident: _resident),
+          LaundryRequestsPage(
+            requests: _laundryRequests,
+            onRequestSelected: _openRequestDetails,
+          ),
+          NotificationsPage(
+            notifications: _notifications,
+            onMarkAllAsRead: _markAllAsRead,
+          ),
+          LockerAssignmentPage(assignment: demoLockerAssignment),
+        ],
+      ),
     );
   }
 
@@ -350,11 +351,6 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
               icon: Icons.lock_outline_rounded,
               label: 'Locker',
               onTap: () => setState(() => _selectedIndex = 5),
-            ),
-            QuickActionCard(
-              icon: Icons.person_add_alt_1_rounded,
-              label: 'New resident',
-              onTap: _openCreateResident,
             ),
           ],
         ),
@@ -518,40 +514,6 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
       if (updatedRows > 0) {
         setState(() => _resident = updatedResident);
       }
-    }
-  }
-
-  Future<void> _openCreateResident() async {
-    final blankResident = ResidentProfile(
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      residenceName: _resident.residenceName,
-      residenceAddress: _resident.residenceAddress,
-      city: _resident.city,
-      postalCode: _resident.postalCode,
-      apartmentNumber: '',
-      floor: '',
-      status: 'Active',
-    );
-
-    final createdResident = await Navigator.of(context).push<ResidentProfile>(
-      MaterialPageRoute<ResidentProfile>(
-        builder: (context) =>
-            EditProfilePage(resident: blankResident, onSave: (_) {}),
-      ),
-    );
-
-    if (createdResident != null) {
-      final id = await AppDatabase.instance.createResident(createdResident);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _resident = createdResident.copyWith(id: id);
-        _selectedIndex = 1;
-      });
     }
   }
 
