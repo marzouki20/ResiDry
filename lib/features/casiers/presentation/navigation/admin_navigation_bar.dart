@@ -87,49 +87,18 @@ class AdminNavigationBar extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
-<<<<<<< HEAD
-                _destination(0, Icons.dashboard_outlined, Icons.dashboard_rounded, 'Tableau de bord'),
-=======
                 _destination(
                   0,
                   Icons.dashboard_outlined,
                   Icons.dashboard_rounded,
                   'Tableau de bord',
                 ),
->>>>>>> origin/main
                 _destination(
                   1,
                   Icons.door_front_door_outlined,
                   Icons.door_front_door_rounded,
                   'Gestion des casiers',
                 ),
-<<<<<<< HEAD
-                _destination(2, Icons.warning_amber_outlined, Icons.warning_rounded, 'Anomalies'),
-                _destination(3, Icons.handyman_outlined, Icons.handyman_rounded, 'Maintenance'),
-                _destination(4, Icons.person_outline_rounded, Icons.person_rounded, 'Profil'),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.line),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(24, 15, 24, 18),
-            child: Row(
-              children: [
-                Icon(Icons.sensors_rounded, color: AppColors.cyan, size: 18),
-                SizedBox(width: 9),
-                Expanded(
-                  child: Text(
-                    'Réseau IoT opérationnel',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-=======
                 _destination(
                   2,
                   Icons.warning_amber_outlined,
@@ -220,7 +189,24 @@ class AdminNavigationBar extends StatelessWidget {
                   Icons.local_laundry_service_rounded,
                   'Gestion du linge',
                 ),
->>>>>>> origin/main
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(12, 18, 12, 8),
+                  child: Text(
+                    'RÉSIDENTS',
+                    style: TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 10,
+                      letterSpacing: 1,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                _destination(
+                  11,
+                  Icons.people_outline_rounded,
+                  Icons.people_rounded,
+                  'Gestion des résidents',
+                ),
               ],
             ),
           ),

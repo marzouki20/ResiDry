@@ -1,9 +1,6 @@
 class ResidentProfile {
   const ResidentProfile({
-<<<<<<< HEAD
     this.id,
-=======
->>>>>>> origin/main
     required this.firstName,
     required this.lastName,
     required this.email,
@@ -17,10 +14,7 @@ class ResidentProfile {
     required this.status,
   });
 
-<<<<<<< HEAD
   final int? id;
-=======
->>>>>>> origin/main
   final String firstName;
   final String lastName;
   final String email;
@@ -33,9 +27,14 @@ class ResidentProfile {
   final String floor;
   final String status;
 
-  String get fullName => '$firstName $lastName';
-  String get initials => '${firstName[0]}${lastName[0]}';
-<<<<<<< HEAD
+  String get fullName => '$firstName $lastName'.trim();
+
+  String get initials {
+    final firstInitial = firstName.trim().isEmpty ? '' : firstName.trim()[0];
+    final lastInitial = lastName.trim().isEmpty ? '' : lastName.trim()[0];
+    final value = '$firstInitial$lastInitial';
+    return value.isEmpty ? '?' : value.toUpperCase();
+  }
 
   ResidentProfile copyWith({
     int? id,
@@ -104,11 +103,6 @@ class ResidentProfile {
 
 const demoResidentProfile = ResidentProfile(
   id: 1,
-=======
-}
-
-const demoResidentProfile = ResidentProfile(
->>>>>>> origin/main
   firstName: 'Mohamed Raed',
   lastName: 'Boukari',
   email: 'raed@example.com',
@@ -122,7 +116,6 @@ const demoResidentProfile = ResidentProfile(
   status: 'Active',
 );
 
-<<<<<<< HEAD
 const secondDemoResidentProfile = ResidentProfile(
   id: 2,
   firstName: 'Sarra',
@@ -138,8 +131,6 @@ const secondDemoResidentProfile = ResidentProfile(
   status: 'Active',
 );
 
-=======
->>>>>>> origin/main
 class LaundryRequest {
   const LaundryRequest({
     required this.requestNumber,

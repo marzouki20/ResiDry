@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../mock/residents_mock_data.dart';
+import '../../data/residence_data.dart';
+import '../../data/residence_locator.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({
@@ -25,6 +27,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late final TextEditingController _phoneController;
   late final TextEditingController _residenceController;
   late final TextEditingController _apartmentController;
+  Residence? _detectedResidence;
+  bool _isDetectingResidence = false;
 
   @override
   void initState() {
@@ -41,6 +45,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _apartmentController = TextEditingController(
       text: widget.resident.apartmentNumber,
     );
+    _detectResidence();
+  }
+
+  Future<void> _detectResidence() async {
+    if (!mounted) return;
+    setState(() => _isDetectingResidence = true);
+    Residence? residence;
+    try {
+      residence = await ResidenceLocator.detectNearest();
+    } catch (_) {
+      residence = null;
+    }
+    if (!mounted) return;
+    setState(() {
+      _detectedResidence = residence;
+      _isDetectingResidence = false;
+      if (residence != null) {
+        _residenceController.text = residence.name;
+      }
+    });
   }
 
   @override
@@ -126,18 +150,47 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildField(
+              TextFormField(
                 controller: _residenceController,
-                label: 'Residence',
-                icon: Icons.home_outlined,
-                keyboardType: TextInputType.text,
+                readOnly: true,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your residence.';
+                    return 'Residence not detected.';
                   }
                   return null;
                 },
+                decoration: InputDecoration(
+                  labelText: 'Residence détectée par GPS',
+                  prefixIcon: const Icon(Icons.location_on_outlined),
+                  suffixIcon: _isDetectingResidence
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : IconButton(
+                          tooltip: 'Détecter la résidence',
+                          onPressed: _detectResidence,
+                          icon: const Icon(Icons.my_location_rounded),
+                        ),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
               ),
+              if (_detectedResidence != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    'Résidence trouvée à proximité (${_detectedResidence!.radius.toInt()} m).',
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 16),
               _buildField(
                 controller: _apartmentController,
@@ -240,18 +293,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   void _saveProfile() {
     if (_formKey.currentState?.validate() ?? false) {
-      final updatedResident = ResidentProfile(
+      final updatedResident = widget.resident.copyWith(
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
         email: _emailController.text.trim(),
         phone: _phoneController.text.trim(),
         residenceName: _residenceController.text.trim(),
-        residenceAddress: widget.resident.residenceAddress,
-        city: widget.resident.city,
-        postalCode: widget.resident.postalCode,
+        residenceAddress:
+            _detectedResidence?.address ?? widget.resident.residenceAddress,
+        city: _detectedResidence?.city ?? widget.resident.city,
         apartmentNumber: _apartmentController.text.trim(),
-        floor: widget.resident.floor,
-        status: widget.resident.status,
       );
       widget.onSave(updatedResident);
       Navigator.of(context).pop(updatedResident);

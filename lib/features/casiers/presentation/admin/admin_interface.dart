@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
-<<<<<<< HEAD
-=======
 import '../../../laundry/presentation/laundry_page.dart';
 import '../../../laundry_companies/presentation/societes_lavage_page.dart';
 import '../../../orders/presentation/orders_admin_module.dart';
->>>>>>> origin/main
+import '../../../residents/presentation/pages/resident_management_page.dart';
 import '../navigation/admin_navigation_bar.dart';
 import '../widgets/casier_components.dart';
 
@@ -34,15 +32,13 @@ class _AdminInterfaceState extends State<AdminInterface> {
       'Anomalies',
       'Maintenance',
       'Profil',
-<<<<<<< HEAD
-=======
       'Dashboard commandes',
       'Commandes',
       'Livraisons',
       'Alertes commandes',
       'Sociétés de lavage',
       'Gestion du linge',
->>>>>>> origin/main
+      'Gestion des résidents',
     ];
     return Scaffold(
       appBar: AppBar(
@@ -79,24 +75,19 @@ class _AdminInterfaceState extends State<AdminInterface> {
         },
       ),
       body: IndexedStack(
-<<<<<<< HEAD
-        index: _selectedIndex,
-=======
         index: switch (_selectedIndex) {
           9 => 6,
           10 => 7,
+          11 => 8,
           >= 5 => 5,
           _ => _selectedIndex,
         },
->>>>>>> origin/main
         children: [
           _dashboard(),
           _lockersPage(),
           _anomaliesPage(),
           _maintenancePage(),
           _profilePage(),
-<<<<<<< HEAD
-=======
           OrdersAdminModule(
             userName: widget.userName,
             selectedIndex: _selectedIndex >= 5 && _selectedIndex <= 8
@@ -106,15 +97,12 @@ class _AdminInterfaceState extends State<AdminInterface> {
           ),
           const SocietesLavagePage(),
           const LaundryPage(showAppBar: false),
->>>>>>> origin/main
+          const ResidentManagementPage(),
         ],
       ),
       floatingActionButton: _selectedIndex == 1
           ? FloatingActionButton(
-<<<<<<< HEAD
-=======
               heroTag: 'locker-create',
->>>>>>> origin/main
               onPressed: () => _editLocker(),
               backgroundColor: AppColors.navy,
               foregroundColor: Colors.white,
@@ -156,11 +144,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
           crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-<<<<<<< HEAD
-          childAspectRatio: 1.3,
-=======
           childAspectRatio: 1.1,
->>>>>>> origin/main
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           children: [
@@ -795,135 +779,6 @@ class _AdminInterfaceState extends State<AdminInterface> {
   }
 
   Future<void> _editLocker([LockerRecord? locker]) async {
-<<<<<<< HEAD
-    final idController = TextEditingController(text: locker?.id ?? '');
-    final residentController = TextEditingController(
-      text: locker?.resident == 'Non attribué' ? '' : locker?.resident ?? '',
-    );
-    final apartmentController = TextEditingController(
-      text: locker?.apartment ?? '',
-    );
-    final weightController = TextEditingController(
-      text: locker?.maxWeight.toString() ?? '8.0',
-    );
-    var type = locker?.lockerType ?? 'Standard';
-    var iotEnabled = locker?.connected ?? true;
-    var climateMonitoring = locker?.climateMonitoring ?? true;
-    var rfidEnabled = locker?.rfidEnabled ?? true;
-    var electronicLock = locker?.electronicLock ?? true;
-    final formKey = GlobalKey<FormState>();
-
-    final save = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(locker == null ? 'Nouveau casier' : 'Modifier le casier'),
-          content: SizedBox(
-            width: 420,
-            child: SingleChildScrollView(
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _formField(idController, 'Identifiant du casier'),
-                    _formField(residentController, 'Résident'),
-                    _formField(apartmentController, 'Appartement'),
-                    _formField(
-                      weightController,
-                      'Poids maximal (kg)',
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        final weight = double.tryParse(value ?? '');
-                        return weight == null || weight <= 0
-                            ? 'Saisissez un poids valide'
-                            : null;
-                      },
-                    ),
-                    DropdownButtonFormField<String>(
-                      initialValue: type,
-                      decoration: const InputDecoration(labelText: 'Type'),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Standard',
-                          child: Text('Standard'),
-                        ),
-                        DropdownMenuItem(value: 'Grand', child: Text('Grand')),
-                        DropdownMenuItem(
-                          value: 'Réfrigéré',
-                          child: Text('Contrôlé'),
-                        ),
-                      ],
-                      onChanged: (value) =>
-                          setDialogState(() => type = value ?? 'Standard'),
-                    ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Appareil IoT activé'),
-                      value: iotEnabled,
-                      onChanged: (value) =>
-                          setDialogState(() => iotEnabled = value),
-                    ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Suivi température / humidité'),
-                      value: climateMonitoring,
-                      onChanged: (value) =>
-                          setDialogState(() => climateMonitoring = value),
-                    ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('RFID / NFC'),
-                      value: rfidEnabled,
-                      onChanged: (value) =>
-                          setDialogState(() => rfidEnabled = value),
-                    ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Verrou électronique'),
-                      value: electronicLock,
-                      onChanged: (value) =>
-                          setDialogState(() => electronicLock = value),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Annuler'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState?.validate() ?? false) {
-                  Navigator.pop(dialogContext, true);
-                }
-              },
-              child: const Text('Enregistrer'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (save != true || !mounted) {
-      idController.dispose();
-      residentController.dispose();
-      apartmentController.dispose();
-      weightController.dispose();
-      return;
-    }
-    final parsedWeight = double.tryParse(weightController.text) ?? 8;
-    final lockerId = idController.text.trim();
-    final residentName = residentController.text.trim();
-    final apartment = apartmentController.text.trim();
-    idController.dispose();
-    residentController.dispose();
-    apartmentController.dispose();
-    weightController.dispose();
-    setState(() {
-=======
     final formData = await showDialog<_LockerFormData>(
       context: context,
       builder: (_) => _LockerFormDialog(
@@ -939,24 +794,10 @@ class _AdminInterfaceState extends State<AdminInterface> {
       final resident = formData.resident.isEmpty
           ? 'Non attribué'
           : formData.resident;
->>>>>>> origin/main
       if (locker == null) {
         _lockers.insert(
           0,
           LockerRecord(
-<<<<<<< HEAD
-            id: lockerId,
-            resident: residentName.isEmpty ? 'Non attribué' : residentName,
-            apartment: apartment.isEmpty ? '—' : apartment,
-            maxWeight: parsedWeight,
-            lockerType: type,
-            climateMonitoring: climateMonitoring,
-            rfidEnabled: rfidEnabled,
-            electronicLock: electronicLock,
-            weight: 0,
-            connected: iotEnabled,
-            status: residentName.isEmpty ? 'Disponible' : 'Normal',
-=======
             id: formData.id,
             resident: resident,
             apartment: formData.apartment,
@@ -968,23 +809,10 @@ class _AdminInterfaceState extends State<AdminInterface> {
             weight: 0,
             connected: formData.iotEnabled,
             status: formData.resident.isEmpty ? 'Disponible' : 'Normal',
->>>>>>> origin/main
           ),
         );
       } else {
         locker
-<<<<<<< HEAD
-          ..id = lockerId
-          ..resident = residentName.isEmpty ? 'Non attribué' : residentName
-          ..apartment = apartment.isEmpty ? '—' : apartment
-          ..maxWeight = parsedWeight
-          ..lockerType = type
-          ..climateMonitoring = climateMonitoring
-          ..rfidEnabled = rfidEnabled
-          ..electronicLock = electronicLock
-          ..connected = iotEnabled
-          ..status = residentName.isEmpty
-=======
           ..id = formData.id
           ..resident = resident
           ..apartment = formData.apartment
@@ -995,7 +823,6 @@ class _AdminInterfaceState extends State<AdminInterface> {
           ..electronicLock = formData.electronicLock
           ..connected = formData.iotEnabled
           ..status = formData.resident.isEmpty
->>>>>>> origin/main
               ? 'Disponible'
               : locker.status == 'Disponible'
               ? 'Normal'
@@ -1005,8 +832,6 @@ class _AdminInterfaceState extends State<AdminInterface> {
     _showMessage(locker == null ? 'Casier créé.' : 'Casier mis à jour.');
   }
 
-<<<<<<< HEAD
-=======
   void _openDetails(LockerRecord locker) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -1206,7 +1031,6 @@ class _LockerFormDialogState extends State<_LockerFormDialog> {
     ],
   );
 
->>>>>>> origin/main
   Widget _formField(
     TextEditingController controller,
     String label, {
@@ -1225,7 +1049,6 @@ class _LockerFormDialogState extends State<_LockerFormDialog> {
               : null,
     ),
   );
-<<<<<<< HEAD
 
   void _openDetails(LockerRecord locker) {
     Navigator.of(context).push(
@@ -1240,8 +1063,6 @@ class _LockerFormDialogState extends State<_LockerFormDialog> {
       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
-=======
->>>>>>> origin/main
 }
 
 class _LockerDetailsPage extends StatelessWidget {
