@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../../../../core/localization/app_locale.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../widgets/auth_buttons.dart';
 import '../widgets/auth_divider.dart';
@@ -17,6 +19,9 @@ class SignUpPage extends StatelessWidget {
     required this.emailController,
     required this.passwordController,
     required this.selectedRole,
+    required this.phoneController,
+    required this.phoneError,
+    required this.onPhoneChanged,
     required this.onRoleChanged,
     required this.onSignUp,
     required this.isSubmitting,
@@ -30,6 +35,9 @@ class SignUpPage extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final String selectedRole;
+  final TextEditingController phoneController;
+  final String? phoneError;
+  final ValueChanged<String> onPhoneChanged;
   final ValueChanged<String> onRoleChanged;
   final VoidCallback onSignUp;
   final bool isSubmitting;
@@ -39,21 +47,37 @@ class SignUpPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const AuthHeading(
-          title: 'Create your account',
-          subtitle: 'Start your journey with ResiDry today.',
+        AuthHeading(
+          title: context.tr(
+            en: 'Create your account',
+            fr: 'Créer votre compte',
+            ar: 'أنشئ حسابك',
+          ),
+          subtitle: context.tr(
+            en: 'Start your journey with ResiDry today.',
+            fr: 'Commencez votre expérience ResiDry dès aujourd’hui.',
+            ar: 'ابدأ رحلتك مع ResiDry اليوم.',
+          ),
         ),
         const SizedBox(height: 27),
         AuthTextField(
-          label: 'Full name',
-          hint: 'How should we call you?',
+          label: context.tr(
+              en: 'Full name', fr: 'Nom complet', ar: 'الاسم الكامل'),
+          hint: context.tr(
+            en: 'How should we call you?',
+            fr: 'Comment devons-nous vous appeler ?',
+            ar: 'بماذا نناديك؟',
+          ),
           icon: Icons.person_outline_rounded,
           textCapitalization: TextCapitalization.words,
           controller: nameController,
         ),
         const SizedBox(height: 15),
         AuthTextField(
-          label: 'Email address',
+          label: context.tr(
+              en: 'Email address',
+              fr: 'Adresse e-mail',
+              ar: 'البريد الإلكتروني'),
           hint: 'you@example.com',
           icon: Icons.mail_outline_rounded,
           keyboardType: TextInputType.emailAddress,
@@ -61,13 +85,26 @@ class SignUpPage extends StatelessWidget {
         ),
         const SizedBox(height: 15),
         AuthTextField(
-          label: 'Password',
-          hint: 'Create a password',
+          label:
+              context.tr(en: 'Password', fr: 'Mot de passe', ar: 'كلمة المرور'),
+          hint: context.tr(
+            en: 'Create a password',
+            fr: 'Créez un mot de passe',
+            ar: 'أنشئ كلمة مرور',
+          ),
           icon: Icons.lock_outline_rounded,
           obscureText: !passwordVisible,
           controller: passwordController,
           suffix: IconButton(
-            tooltip: passwordVisible ? 'Hide password' : 'Show password',
+            tooltip: passwordVisible
+                ? context.tr(
+                    en: 'Hide password',
+                    fr: 'Masquer le mot de passe',
+                    ar: 'إخفاء كلمة المرور')
+                : context.tr(
+                    en: 'Show password',
+                    fr: 'Afficher le mot de passe',
+                    ar: 'إظهار كلمة المرور'),
             onPressed: onTogglePassword,
             icon: Icon(
               passwordVisible
@@ -82,7 +119,7 @@ class SignUpPage extends StatelessWidget {
         DropdownButtonFormField<String>(
           value: selectedRole,
           decoration: InputDecoration(
-            labelText: 'Role',
+            labelText: context.tr(en: 'Role', fr: 'Rôle', ar: 'الدور'),
             prefixIcon: const Icon(Icons.badge_outlined),
             filled: true,
             fillColor: Colors.white,
@@ -95,16 +132,30 @@ class SignUpPage extends StatelessWidget {
               borderSide: const BorderSide(color: AppColors.line),
             ),
           ),
-          items: const [
-            DropdownMenuItem(value: 'Résident', child: Text('Résident')),
-            DropdownMenuItem(value: 'Livreur', child: Text('Livreur')),
+          items: [
+            DropdownMenuItem(
+              value: 'Résident',
+              child:
+                  Text(context.tr(en: 'Resident', fr: 'Résident', ar: 'مقيم')),
+            ),
+            DropdownMenuItem(
+              value: 'Livreur',
+              child: Text(
+                  context.tr(en: 'Driver', fr: 'Livreur', ar: 'عامل التوصيل')),
+            ),
             DropdownMenuItem(
               value: 'Société de lavage',
-              child: Text('Société de lavage'),
+              child: Text(
+                context.tr(
+                    en: 'Laundry company',
+                    fr: 'Société de lavage',
+                    ar: 'شركة غسيل'),
+              ),
             ),
             DropdownMenuItem(
               value: 'Administrateur',
-              child: Text('Administrateur'),
+              child: Text(context.tr(
+                  en: 'Administrator', fr: 'Administrateur', ar: 'مسؤول')),
             ),
           ],
           onChanged: (role) {
@@ -112,6 +163,45 @@ class SignUpPage extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
+        if (selectedRole == 'Livreur') ...[
+          Text(
+              context.tr(
+                  en: 'Phone number — required',
+                  fr: 'Téléphone — obligatoire',
+                  ar: 'رقم الهاتف — إلزامي'),
+              style: const TextStyle(
+                  color: AppColors.navy, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Directionality(
+              textDirection: TextDirection.ltr,
+              child: TextField(
+                key: const ValueKey('driver-phone-field'),
+                controller: phoneController,
+                enabled: !isSubmitting,
+                keyboardType: TextInputType.phone,
+                autofillHints: const [AutofillHints.telephoneNumberNational],
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(8)
+                ],
+                onChanged: onPhoneChanged,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.phone_outlined),
+                  prefixText: '+216 ',
+                  hintText: '55 123 456',
+                  errorText: phoneError,
+                  helperText: context.tr(
+                      en: '8 digits starting with 2, 3, 4, 5, 7 or 9; omit +216.',
+                      fr: '8 chiffres commençant par 2, 3, 4, 5, 7 ou 9 ; sans +216.',
+                      ar: '8 أرقام تبدأ بـ 2 أو 3 أو 4 أو 5 أو 7 أو 9، دون +216.'),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+              )),
+          const SizedBox(height: 12),
+        ],
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -129,27 +219,42 @@ class SignUpPage extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 9),
-            const Expanded(
+            Expanded(
               child: Text.rich(
                 TextSpan(
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: AppColors.muted,
                     fontSize: 12,
                     height: 1.5,
                   ),
                   children: [
-                    TextSpan(text: 'I agree to the '),
                     TextSpan(
-                      text: 'Terms of Service',
-                      style: TextStyle(
+                      text: context.tr(
+                        en: 'I agree to the ',
+                        fr: 'J’accepte les ',
+                        ar: 'أوافق على ',
+                      ),
+                    ),
+                    TextSpan(
+                      text: context.tr(
+                        en: 'Terms of Service',
+                        fr: 'Conditions d’utilisation',
+                        ar: 'شروط الاستخدام',
+                      ),
+                      style: const TextStyle(
                         color: AppColors.purple,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    TextSpan(text: ' and '),
                     TextSpan(
-                      text: 'Privacy Policy',
-                      style: TextStyle(
+                        text: context.tr(en: ' and ', fr: ' et la ', ar: ' و')),
+                    TextSpan(
+                      text: context.tr(
+                        en: 'Privacy Policy',
+                        fr: 'Politique de confidentialité',
+                        ar: 'سياسة الخصوصية',
+                      ),
+                      style: const TextStyle(
                         color: AppColors.purple,
                         fontWeight: FontWeight.w700,
                       ),
@@ -162,7 +267,15 @@ class SignUpPage extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         PrimaryAuthButton(
-          label: isSubmitting ? 'Creating account...' : 'Create account',
+          label: isSubmitting
+              ? context.tr(
+                  en: 'Creating account...',
+                  fr: 'Création du compte...',
+                  ar: 'جارٍ إنشاء الحساب...')
+              : context.tr(
+                  en: 'Create account',
+                  fr: 'Créer un compte',
+                  ar: 'إنشاء حساب'),
           onPressed: isSubmitting ? null : onSignUp,
         ),
         const SizedBox(height: 20),

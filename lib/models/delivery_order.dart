@@ -18,12 +18,30 @@ class DeliveryOrder {
   final String apartment;
   final String lockerId;
   final String laundryCompany;
-  String status; // 'À récupérer', 'En transit', 'En lavage', 'En transit retour', 'Déposé au casier', 'Livré'
-  final String type; // 'Collecte' (Casier -> Blanchisserie) or 'Livraison' (Blanchisserie -> Casier)
+  String
+      status; // 'À récupérer', 'En transit', 'En lavage', 'En transit retour', 'Déposé au casier', 'Livré'
+  final String
+      type; // 'Collecte' (Casier -> Blanchisserie) or 'Livraison' (Blanchisserie -> Casier)
   double weight;
   String time;
   String? driverName;
   String? notes;
+
+  factory DeliveryOrder.fromMap(Map<String, Object?> map) {
+    return DeliveryOrder(
+      id: map['id']! as String,
+      residentName: map['resident_name']! as String,
+      apartment: map['apartment']! as String,
+      lockerId: map['locker_id']! as String,
+      laundryCompany: map['laundry_company']! as String,
+      status: map['status']! as String,
+      type: map['mission_type']! as String,
+      weight: (map['weight_kg']! as num).toDouble(),
+      time: map['scheduled_label']! as String,
+      driverName: map['driver_name'] as String?,
+      notes: map['notes'] as String?,
+    );
+  }
 }
 
 final demoDeliveryOrders = <DeliveryOrder>[

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/localized_text.dart';
+
+import '../../../../core/localization/app_locale.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../models/delivery_order.dart';
 
@@ -11,12 +14,27 @@ class MissionStatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (color, label) = switch (status) {
-      'À récupérer' => (const Color(0xFFE77B32), 'À récupérer'),
-      'En transit' => (AppColors.navy, 'En transit'),
-      'En lavage' => (const Color(0xFF7457E8), 'En lavage'),
-      'En transit retour' => (AppColors.navy, 'Transit retour'),
-      'Déposé au casier' => (AppColors.cyan, 'Déposé casier'),
-      'Livré' => (AppColors.cyan, 'Livré'),
+      'À récupérer' => (
+          const Color(0xFFE77B32),
+          context.tr(en: 'To collect', fr: 'À récupérer')
+        ),
+      'En transit' => (
+          AppColors.navy,
+          context.tr(en: 'In transit', fr: 'En transit')
+        ),
+      'En lavage' => (
+          const Color(0xFF7457E8),
+          context.tr(en: 'At laundry', fr: 'En lavage')
+        ),
+      'En transit retour' => (
+          AppColors.navy,
+          context.tr(en: 'Return transit', fr: 'Transit retour')
+        ),
+      'Déposé au casier' => (
+          AppColors.cyan,
+          context.tr(en: 'In locker', fr: 'Déposé casier')
+        ),
+      'Livré' => (AppColors.cyan, context.tr(en: 'Delivered', fr: 'Livré')),
       _ => (AppColors.muted, status),
     };
 
@@ -35,7 +53,7 @@ class MissionStatusPill extends StatelessWidget {
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 6),
-          Text(
+          LocalizedText(
             label,
             style: TextStyle(
               color: color,
@@ -89,9 +107,7 @@ class DeliveryOrderCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    isCollect
-                        ? Icons.upload_outlined
-                        : Icons.download_outlined,
+                    isCollect ? Icons.upload_outlined : Icons.download_outlined,
                     color: isCollect ? const Color(0xFFE77B32) : AppColors.cyan,
                     size: 20,
                   ),
@@ -101,7 +117,9 @@ class DeliveryOrderCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 2,
                         children: [
                           Text(
                             order.id,
@@ -111,9 +129,8 @@ class DeliveryOrderCard extends StatelessWidget {
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '· ${order.type}',
+                          LocalizedText(
+                            '· ${order.type == 'Collecte' ? context.tr(en: 'Collection', fr: 'Collecte') : context.tr(en: 'Delivery', fr: 'Livraison')}',
                             style: const TextStyle(
                               color: AppColors.muted,
                               fontSize: 12,
@@ -123,7 +140,7 @@ class DeliveryOrderCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 2),
-                      Text(
+                      LocalizedText(
                         '${order.residentName} (${order.apartment})',
                         style: const TextStyle(
                           color: AppColors.muted,
@@ -142,21 +159,21 @@ class DeliveryOrderCard extends StatelessWidget {
                 Expanded(
                   child: _infoTile(
                     Icons.door_front_door_outlined,
-                    'Casier',
+                    context.tr(en: 'Locker', fr: 'Casier'),
                     order.lockerId,
                   ),
                 ),
                 Expanded(
                   child: _infoTile(
                     Icons.local_laundry_service_outlined,
-                    'Partenaire',
+                    context.tr(en: 'Partner', fr: 'Partenaire'),
                     order.laundryCompany,
                   ),
                 ),
                 Expanded(
                   child: _infoTile(
                     Icons.scale_outlined,
-                    'Poids',
+                    context.tr(en: 'Weight', fr: 'Poids'),
                     '${order.weight} kg',
                   ),
                 ),
@@ -180,13 +197,9 @@ class DeliveryOrderCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        order.notes!,
-                        style: const TextStyle(
-                          color: AppColors.navy,
-                          fontSize: 11,
-                        ),
-                      ),
+                      child: LocalizedText(order.notes!,
+                          style: const TextStyle(
+                              color: AppColors.navy, fontSize: 11)),
                     ),
                   ],
                 ),
@@ -199,7 +212,9 @@ class DeliveryOrderCard extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: onOpenLocker,
                     icon: const Icon(Icons.key_rounded, size: 18),
-                    label: Text('Accès ${order.lockerId}'),
+                    label: LocalizedText(
+                      '${context.tr(en: 'Access', fr: 'Accès')} ${order.lockerId}',
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.navy,
                       side: const BorderSide(color: AppColors.line),
@@ -214,7 +229,7 @@ class DeliveryOrderCard extends StatelessWidget {
                   child: FilledButton.icon(
                     onPressed: onAdvanceStatus,
                     icon: Icon(_actionIcon(order.status), size: 18),
-                    label: Text(_actionLabel(order.status)),
+                    label: LocalizedText(_actionLabel(context, order.status)),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.navy,
                       foregroundColor: Colors.white,
@@ -240,11 +255,11 @@ class DeliveryOrderCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                LocalizedText(
                   label,
                   style: const TextStyle(color: AppColors.muted, fontSize: 10),
                 ),
-                Text(
+                LocalizedText(
                   value,
                   style: const TextStyle(
                     color: AppColors.navy,
@@ -268,13 +283,14 @@ class DeliveryOrderCard extends StatelessWidget {
         _ => Icons.check_circle_outline_rounded,
       };
 
-  String _actionLabel(String status) => switch (status) {
-        'À récupérer' => 'Récupérer',
-        'En transit' => 'Dépôt Lavage',
-        'En lavage' => 'Prise en charge',
-        'En transit retour' => 'Déposer casier',
-        'Déposé au casier' => 'Finaliser',
-        _ => 'Terminé',
+  String _actionLabel(BuildContext context, String status) => switch (status) {
+        'À récupérer' => context.tr(en: 'Collect', fr: 'Récupérer'),
+        'En transit' => context.tr(en: 'Laundry drop-off', fr: 'Dépôt Lavage'),
+        'En lavage' => context.tr(en: 'Pick up', fr: 'Prise en charge'),
+        'En transit retour' =>
+          context.tr(en: 'Deposit in locker', fr: 'Déposer casier'),
+        'Déposé au casier' => context.tr(en: 'Complete', fr: 'Finaliser'),
+        _ => context.tr(en: 'Completed', fr: 'Terminé'),
       };
 }
 
@@ -307,7 +323,7 @@ class DriverMetricCard extends StatelessWidget {
           children: [
             Icon(icon, color: color, size: 21),
             const SizedBox(height: 10),
-            Text(
+            LocalizedText(
               value,
               style: const TextStyle(
                 color: AppColors.navy,
@@ -316,13 +332,14 @@ class DriverMetricCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 2),
-            Text(
+            LocalizedText(
               label,
               style: const TextStyle(color: AppColors.muted, fontSize: 11),
             ),
             if (caption != null) ...[
               const SizedBox(height: 4),
-              Text(caption!, style: TextStyle(color: color, fontSize: 10)),
+              LocalizedText(caption!,
+                  style: TextStyle(color: color, fontSize: 10)),
             ],
           ],
         ),

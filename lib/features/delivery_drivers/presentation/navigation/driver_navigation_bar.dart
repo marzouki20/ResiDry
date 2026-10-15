@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/localized_text.dart';
+
+import '../../../auth/presentation/widgets/sign_out_button.dart';
+
+import '../../../../core/localization/app_locale.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class DriverNavigationBar extends StatelessWidget {
@@ -37,11 +42,11 @@ class DriverNavigationBar extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          LocalizedText(
                             'ResiDry',
                             style: TextStyle(
                               color: AppColors.navy,
@@ -50,8 +55,11 @@ class DriverNavigationBar extends StatelessWidget {
                             ),
                           ),
                           SizedBox(height: 2),
-                          Text(
-                            'ESPACE LIVREUR',
+                          LocalizedText(
+                            context.tr(
+                              en: 'DRIVER AREA',
+                              fr: 'ESPACE LIVREUR',
+                            ),
                             style: TextStyle(
                               color: AppColors.muted,
                               fontSize: 9,
@@ -63,19 +71,25 @@ class DriverNavigationBar extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Fermer le menu',
-                      onPressed: () => Navigator.of(context).pop(),
+                      tooltip: context.tr(
+                        en: 'Close menu',
+                        fr: 'Fermer le menu',
+                      ),
+                      onPressed: () => Scaffold.of(context).closeDrawer(),
                       icon: const Icon(Icons.close_rounded),
                     ),
                   ],
                 ),
               ),
               const Divider(height: 1, color: AppColors.line),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.fromLTRB(24, 22, 16, 10),
-                child: Text(
-                  'GESTION DES COURSES',
-                  style: TextStyle(
+                child: LocalizedText(
+                  context.tr(
+                    en: 'DELIVERY MANAGEMENT',
+                    fr: 'GESTION DES COURSES',
+                  ),
+                  style: const TextStyle(
                     color: AppColors.muted,
                     fontSize: 10,
                     letterSpacing: 1,
@@ -91,46 +105,50 @@ class DriverNavigationBar extends StatelessWidget {
                       0,
                       Icons.dashboard_outlined,
                       Icons.dashboard_rounded,
-                      'Tableau de bord',
+                      context.tr(en: 'Dashboard', fr: 'Tableau de bord'),
                     ),
                     _destination(
                       1,
                       Icons.local_shipping_outlined,
                       Icons.local_shipping_rounded,
-                      'Mes livraisons',
+                      context.tr(en: 'My deliveries', fr: 'Mes livraisons'),
                     ),
                     _destination(
                       2,
                       Icons.door_front_door_outlined,
                       Icons.door_front_door_rounded,
-                      'Casiers IoT',
+                      context.tr(en: 'IoT lockers', fr: 'Casiers IoT'),
                     ),
                     _destination(
                       3,
                       Icons.notifications_none_rounded,
                       Icons.notifications_rounded,
-                      'Notifications',
+                      context.tr(en: 'Notifications', fr: 'Notifications'),
                     ),
                     _destination(
                       4,
                       Icons.person_outline_rounded,
                       Icons.person_rounded,
-                      'Mon profil',
+                      context.tr(en: 'My profile', fr: 'Mon profil'),
                     ),
                   ],
                 ),
               ),
+              const SignOutButton(),
               const Divider(height: 1, color: AppColors.line),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.fromLTRB(24, 15, 24, 18),
                 child: Row(
                   children: [
-                    Icon(Icons.check_circle_outline_rounded,
+                    const Icon(Icons.check_circle_outline_rounded,
                         color: AppColors.cyan, size: 18),
-                    SizedBox(width: 9),
+                    const SizedBox(width: 9),
                     Expanded(
-                      child: Text(
-                        'Livreur en service',
+                      child: LocalizedText(
+                        context.tr(
+                          en: 'Driver on duty',
+                          fr: 'Livreur en service',
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -162,7 +180,8 @@ class DriverNavigationBar extends StatelessWidget {
         selectedTileColor: AppColors.cyan.withValues(alpha: 0.14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         leading: Icon(selected ? selectedIcon : icon),
-        title: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title:
+            LocalizedText(label, maxLines: 1, overflow: TextOverflow.ellipsis),
         textColor: selected ? AppColors.navy : AppColors.muted,
         iconColor: selected ? AppColors.navy : AppColors.muted,
         onTap: () => onDestinationSelected(index),

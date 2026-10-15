@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../../core/localization/app_locale.dart';
+
+import '../../../../core/localization/localized_text.dart';
+
+import '../../../auth/presentation/widgets/sign_out_button.dart';
 
 import '../../../../core/theme/app_theme.dart';
 
@@ -14,124 +19,130 @@ class AdminNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Drawer(
-    width: 304,
-    backgroundColor: Colors.white,
-    child: SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(22, 20, 18, 18),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: AppColors.navy,
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: const Icon(
-                    Icons.water_drop_rounded,
-                    color: Colors.white,
+        width: 304,
+        backgroundColor: Colors.white,
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(22, 20, 18, 18),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: AppColors.navy,
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: const Icon(
+                        Icons.water_drop_rounded,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          LocalizedText(
+                            'ResiDry',
+                            style: TextStyle(
+                              color: AppColors.navy,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          LocalizedText(
+                            'ESPACE ADMINISTRATEUR',
+                            style: TextStyle(
+                              color: AppColors.muted,
+                              fontSize: 9,
+                              letterSpacing: 1,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: context.localize('Fermer le menu'),
+                      onPressed: () => Scaffold.of(context).closeDrawer(),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: AppColors.line),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(24, 22, 16, 10),
+                child: LocalizedText(
+                  'GESTION DE LA RÉSIDENCE',
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 10,
+                    letterSpacing: 1,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'ResiDry',
-                        style: TextStyle(
-                          color: AppColors.navy,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'ESPACE ADMINISTRATEUR',
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  children: [
+                    _destination(0, Icons.dashboard_outlined,
+                        Icons.dashboard_rounded, 'Tableau de bord'),
+                    _destination(
+                      1,
+                      Icons.door_front_door_outlined,
+                      Icons.door_front_door_rounded,
+                      'Gestion des casiers',
+                    ),
+                    _destination(
+                      2,
+                      Icons.local_shipping_outlined,
+                      Icons.local_shipping_rounded,
+                      'Gestion des livreurs',
+                    ),
+                    _destination(3, Icons.warning_amber_outlined,
+                        Icons.warning_rounded, 'Anomalies'),
+                    _destination(4, Icons.handyman_outlined,
+                        Icons.handyman_rounded, 'Maintenance'),
+                    _destination(5, Icons.person_outline_rounded,
+                        Icons.person_rounded, 'Profil'),
+                  ],
+                ),
+              ),
+              const SignOutButton(),
+              const Divider(height: 1, color: AppColors.line),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(24, 15, 24, 18),
+                child: Row(
+                  children: [
+                    Icon(Icons.sensors_rounded,
+                        color: AppColors.cyan, size: 18),
+                    SizedBox(width: 9),
+                    Expanded(
+                      child: LocalizedText(
+                        'Réseau IoT opérationnel',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: AppColors.muted,
-                          fontSize: 9,
-                          letterSpacing: 1,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Fermer le menu',
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.line),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(24, 22, 16, 10),
-            child: Text(
-              'GESTION DE LA RÉSIDENCE',
-              style: TextStyle(
-                color: AppColors.muted,
-                fontSize: 10,
-                letterSpacing: 1,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: [
-                _destination(0, Icons.dashboard_outlined, Icons.dashboard_rounded, 'Tableau de bord'),
-                _destination(
-                  1,
-                  Icons.door_front_door_outlined,
-                  Icons.door_front_door_rounded,
-                  'Gestion des casiers',
-                ),
-                _destination(
-                  2,
-                  Icons.local_shipping_outlined,
-                  Icons.local_shipping_rounded,
-                  'Gestion des livreurs',
-                ),
-                _destination(3, Icons.warning_amber_outlined, Icons.warning_rounded, 'Anomalies'),
-                _destination(4, Icons.handyman_outlined, Icons.handyman_rounded, 'Maintenance'),
-                _destination(5, Icons.person_outline_rounded, Icons.person_rounded, 'Profil'),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.line),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(24, 15, 24, 18),
-            child: Row(
-              children: [
-                Icon(Icons.sensors_rounded, color: AppColors.cyan, size: 18),
-                SizedBox(width: 9),
-                Expanded(
-                  child: Text(
-                    'Réseau IoT opérationnel',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 
   Widget _destination(
     int index,
@@ -147,7 +158,8 @@ class AdminNavigationBar extends StatelessWidget {
         selectedTileColor: AppColors.cyan.withValues(alpha: 0.14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         leading: Icon(selected ? selectedIcon : icon),
-        title: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title:
+            LocalizedText(label, maxLines: 1, overflow: TextOverflow.ellipsis),
         textColor: selected ? AppColors.navy : AppColors.muted,
         iconColor: selected ? AppColors.navy : AppColors.muted,
         onTap: () => onDestinationSelected(index),

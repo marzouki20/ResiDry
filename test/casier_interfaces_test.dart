@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttttttteee/features/casiers/presentation/admin/admin_interface.dart';
 import 'package:ttttttteee/features/casiers/presentation/resident/resident_interface.dart';
@@ -20,7 +21,11 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(home: AdminInterface(userName: 'Admin')),
+      const MaterialApp(
+          locale: Locale('fr'),
+          supportedLocales: [Locale('fr')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          home: AdminInterface(userName: 'Admin')),
     );
 
     expect(find.text('Tableau de bord'), findsOneWidget);
@@ -65,7 +70,11 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(home: ResidentInterface(userName: 'Resident Test')),
+      const MaterialApp(
+          locale: Locale('fr'),
+          supportedLocales: [Locale('fr')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          home: ResidentInterface(userName: 'Resident Test')),
     );
 
     expect(find.text('C-024'), findsOneWidget);
