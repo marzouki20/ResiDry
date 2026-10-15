@@ -1,0 +1,66 @@
+services:
+  https:
+    image: caddy:2
+    ports: ["80:80", "443:443"]
+    environment:
+      RESIDRY_DOMAIN: ${RESIDRY_DOMAIN:?Set your domain pointing to the server}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - tls_data:/data
+      - tls_config:/config
+    depends_on: [backend]
+    restart: unless-stopped
+  backend:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.backend
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      RESIDRY_BIND: 0.0.0.0
+      RESIDRY_PORT: 8766
+      RESIDRY_DB_URL: jdbc:postgresql://postgres:5432/residry
+      RESIDRY_DB_USER: residry
+      RESIDRY_DB_PASSWORD: ${RESIDRY_DB_PASSWORD:?Set a strong database password}
+      RESIDRY_ADMIN_EMAIL: ${RESIDRY_ADMIN_EMAIL:?Set bootstrap admin email}
+      RESIDRY_ADMIN_PASSWORD: ${RESIDRY_ADMIN_PASSWORD:?Set bootstrap admin password}
+      RESIDRY_AI_DOSSIER_URL: http://vision:8765/verify-dossier
+      REGISTRATION_DEV_TOKEN: ${REGISTRATION_DEV_TOKEN:?Set a random private service token}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vision:
+        condition: service_started
+    restart: unless-stopped
+  vision:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.vision
+    environment:
+      AI_PROVIDER: ollama
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-gemma3:4b}
+      REGISTRATION_DEV_TOKEN: ${REGISTRATION_DEV_TOKEN:?Set a random private service token}
+    depends_on: [ollama]
+    restart: unless-stopped
+  ollama:
+    image: ollama/ollama:latest
+    volumes: ["models:/root/.ollama"]
+    restart: unless-stopped
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: residry
+      POSTGRES_USER: residry
+      POSTGRES_PASSWORD: ${RESIDRY_DB_PASSWORD:?Set a strong database password}
+    volumes: ["database:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U residry -d residry"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+volumes:
+  tls_data:
+  tls_config:
+  models:
+  database:

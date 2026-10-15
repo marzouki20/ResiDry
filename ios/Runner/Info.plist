@@ -2,14 +2,18 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+  <key>NSCameraUsageDescription</key>
+  <string>Photograph vehicle capacity evidence for your driver profile.</string>
+  <key>NSPhotoLibraryUsageDescription</key>
+  <string>Select vehicle capacity evidence for your driver profile.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>ResiDry utilise votre position pour identifier votre résidence.</string>
+	<string>ResiDry uses your location to identify your residence.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Ttttttteee</string>
+	<string>ResiDry</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -17,7 +21,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>ttttttteee</string>
+	<string>ResiDry</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
