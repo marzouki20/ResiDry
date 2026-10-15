@@ -5,6 +5,7 @@ import '../../../database/database.dart';
 import '../../../models/user.dart';
 import '../../casiers/presentation/admin/admin_interface.dart';
 import '../../delivery_drivers/presentation/driver_onboarding_page.dart';
+import '../../laundry_companies/presentation/company_interface.dart';
 import '../../lockers/presentation/home_page.dart';
 import '../../residents/mock/residents_mock_data.dart';
 import '../../residents/presentation/residents_home_page.dart';
@@ -244,10 +245,13 @@ class _AuthScreenState extends State<AuthScreen> {
         ? AdminInterface(userName: name)
         : role == 'Résident'
         ? ResidentsHomePage(userName: name, userEmail: email)
+        : role == 'Société de lavage'
+        ? SocieteInterface(userName: name)
         : HomePage(userName: name, userRole: role);
 
-    Navigator.of(context)
-        .pushReplacement(MaterialPageRoute<void>(builder: (_) => homePage));
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(builder: (_) => homePage),
+    );
   }
 
   void _showMessage(String message) {

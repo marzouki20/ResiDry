@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class PrimaryAuthButton extends StatelessWidget {
-  const PrimaryAuthButton({super.key, required this.label, this.onPressed});
+  const PrimaryAuthButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+  });
 
   final String label;
   final VoidCallback? onPressed;

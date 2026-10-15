@@ -8,6 +8,11 @@ The module provides separate experiences for residents and administrators. A
 resident can manage their own profile and residence information, while an
 administrator can manage the residents registered in the building.
 
+ResiDry is designed to make laundry and drying services more convenient for
+residents, especially for bulky items that are difficult to dry at home. The
+intended service uses smart lockers to collect laundry, coordinate processing
+with partner laundry companies, and return completed orders to the residence.
+
 ## Project information
 
 | Item | Details |

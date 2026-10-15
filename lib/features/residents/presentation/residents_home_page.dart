@@ -41,21 +41,23 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
   }
 
   Future<void> _loadResident() async {
-    final resident = widget.userEmail == null
-        ? null
-        : await AppDatabase.instance.getResidentByEmail(widget.userEmail!);
-    final residents = resident == null && widget.userEmail == null
-        ? await AppDatabase.instance.listResidents()
-        : const <ResidentProfile>[];
-    if (!mounted) {
-      return;
-    }
+    try {
+      final resident = widget.userEmail == null
+          ? null
+          : await AppDatabase.instance.getResidentByEmail(widget.userEmail!);
+      final residents = resident == null && widget.userEmail == null
+          ? await AppDatabase.instance.listResidents()
+          : const <ResidentProfile>[];
+      if (!mounted) {
+        return;
+      }
 
-    setState(() {
-      _resident =
-          resident ??
-          (residents.isNotEmpty ? residents.first : demoResidentProfile);
-    });
+      setState(() {
+        _resident =
+            resident ??
+            (residents.isNotEmpty ? residents.first : demoResidentProfile);
+      });
+    } catch (_) {}
   }
 
   @override

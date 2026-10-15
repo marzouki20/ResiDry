@@ -1049,20 +1049,6 @@ class _LockerFormDialogState extends State<_LockerFormDialog> {
               : null,
     ),
   );
-
-  void _openDetails(LockerRecord locker) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => _LockerDetailsPage(locker: locker),
-      ),
-    );
-  }
-
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-    );
-  }
 }
 
 class _LockerDetailsPage extends StatelessWidget {

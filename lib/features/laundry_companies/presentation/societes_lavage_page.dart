@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../../../core/theme/app_theme.dart';
 import '../data/sample_laundry_data.dart';
 import '../domain/models/societe_lavage.dart';
@@ -8,7 +7,11 @@ import 'widgets/societe_card.dart';
 import 'widgets/societe_form_dialog.dart';
 
 class SocietesLavagePage extends StatefulWidget {
-  const SocietesLavagePage({super.key, this.userName, this.drawer});
+  const SocietesLavagePage({
+    super.key,
+    this.userName,
+    this.drawer,
+  });
 
   final String? userName;
   final Widget? drawer;
@@ -18,9 +21,7 @@ class SocietesLavagePage extends StatefulWidget {
 }
 
 class _SocietesLavagePageState extends State<SocietesLavagePage> {
-  late final List<SocieteLavage> _societes = List<SocieteLavage>.of(
-    initialSocietesLavage,
-  );
+  late final List<SocieteLavage> _societes = LaundryRepository.instance.societes;
   String _searchQuery = '';
   String _statusFilter = 'Tous';
 
@@ -38,6 +39,7 @@ class _SocietesLavagePageState extends State<SocietesLavagePage> {
               _societes.insert(0, savedSociete);
             }
           });
+          LaundryRepository.instance.updateSociete(savedSociete);
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -72,10 +74,7 @@ class _SocietesLavagePageState extends State<SocietesLavagePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
-              'Annuler',
-              style: TextStyle(color: AppColors.muted),
-            ),
+            child: const Text('Annuler', style: TextStyle(color: AppColors.muted)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -87,6 +86,7 @@ class _SocietesLavagePageState extends State<SocietesLavagePage> {
               setState(() {
                 _societes.removeWhere((s) => s.id == societe.id);
               });
+              LaundryRepository.instance.deleteSociete(societe.id);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Société "${societe.nom}" supprimée.'),
@@ -111,8 +111,7 @@ class _SocietesLavagePageState extends State<SocietesLavagePage> {
 
   List<SocieteLavage> get _filteredSocietes {
     return _societes.where((s) {
-      final matchesSearch =
-          s.nom.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+      final matchesSearch = s.nom.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           s.adresse.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           s.email.toLowerCase().contains(_searchQuery.toLowerCase());
 
@@ -124,17 +123,11 @@ class _SocietesLavagePageState extends State<SocietesLavagePage> {
   }
 
   int get _totalMachines {
-    return _societes.fold<int>(
-      0,
-      (int sum, SocieteLavage s) => sum + s.machines.length,
-    );
+    return _societes.fold<int>(0, (int sum, SocieteLavage s) => sum + s.machines.length);
   }
 
   int get _activeCycles {
-    return _societes.fold<int>(
-      0,
-      (int sum, SocieteLavage s) => sum + s.runningCyclesCount,
-    );
+    return _societes.fold<int>(0, (int sum, SocieteLavage s) => sum + s.runningCyclesCount);
   }
 
   @override
@@ -184,7 +177,10 @@ class _SocietesLavagePageState extends State<SocietesLavagePage> {
                       SizedBox(height: 4),
                       Text(
                         'Supervision intelligente des blanchisseries, machines et cycles IoT.',
-                        style: TextStyle(fontSize: 13, color: AppColors.muted),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.muted,
+                        ),
                       ),
                     ],
                   ),
@@ -241,19 +237,12 @@ class _SocietesLavagePageState extends State<SocietesLavagePage> {
                     onChanged: (val) => setState(() => _searchQuery = val),
                     decoration: InputDecoration(
                       hintText: 'Rechercher par nom, adresse, email...',
-                      hintStyle: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.muted,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.search_rounded,
-                        color: AppColors.navy,
-                      ),
+                      hintStyle: const TextStyle(fontSize: 13, color: AppColors.muted),
+                      prefixIcon: const Icon(Icons.search_rounded, color: AppColors.navy),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear_rounded, size: 18),
-                              onPressed: () =>
-                                  setState(() => _searchQuery = ''),
+                              onPressed: () => setState(() => _searchQuery = ''),
                             )
                           : null,
                       filled: true,
@@ -271,33 +260,25 @@ class _SocietesLavagePageState extends State<SocietesLavagePage> {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: ['Tous', 'Actif', 'Sous Maintenance', 'Inactif']
-                          .map((filter) {
-                            final isSelected = _statusFilter == filter;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: ChoiceChip(
-                                label: Text(filter),
-                                selected: isSelected,
-                                selectedColor: AppColors.navy,
-                                labelStyle: TextStyle(
-                                  color: isSelected
-                                      ? Colors.white
-                                      : AppColors.navy,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                  fontSize: 12,
-                                ),
-                                onSelected: (selected) {
-                                  if (selected) {
-                                    setState(() => _statusFilter = filter);
-                                  }
-                                },
-                              ),
-                            );
-                          })
-                          .toList(),
+                      children: ['Tous', 'Actif', 'Sous Maintenance', 'Inactif'].map((filter) {
+                        final isSelected = _statusFilter == filter;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(filter),
+                            selected: isSelected,
+                            selectedColor: AppColors.navy,
+                            labelStyle: TextStyle(
+                              color: isSelected ? Colors.white : AppColors.navy,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 12,
+                            ),
+                            onSelected: (selected) {
+                              if (selected) setState(() => _statusFilter = filter);
+                            },
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                 ],
@@ -346,9 +327,7 @@ class _SocietesLavagePageState extends State<SocietesLavagePage> {
                           societe: societe,
                           onSocieteUpdated: (updatedSociete) {
                             setState(() {
-                              final idx = _societes.indexWhere(
-                                (s) => s.id == updatedSociete.id,
-                              );
+                              final idx = _societes.indexWhere((s) => s.id == updatedSociete.id);
                               if (idx != -1) _societes[idx] = updatedSociete;
                             });
                           },
@@ -364,7 +343,6 @@ class _SocietesLavagePageState extends State<SocietesLavagePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'laundry-company-create',
         onPressed: () => _addOrEditSociete(),
         backgroundColor: AppColors.navy,
         foregroundColor: Colors.white,

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttttttteee/features/auth/presentation/auth_screen.dart';
 import 'package:ttttttteee/features/casiers/presentation/admin/admin_interface.dart';
-import 'package:ttttttteee/features/casiers/presentation/resident/resident_interface.dart';
 import 'package:ttttttteee/features/delivery_drivers/presentation/driver_interface.dart';
 import 'package:ttttttteee/features/delivery_drivers/presentation/driver_onboarding_page.dart';
 import 'package:ttttttteee/features/laundry/presentation/laundry_page.dart';
