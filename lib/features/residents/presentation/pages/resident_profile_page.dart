@@ -9,12 +9,18 @@ class ResidentProfilePage extends StatelessWidget {
     super.key,
     required this.resident,
     required this.onEditProfile,
+<<<<<<< HEAD
     required this.onDeleteProfile,
+=======
+>>>>>>> origin/main
   });
 
   final ResidentProfile resident;
   final VoidCallback onEditProfile;
+<<<<<<< HEAD
   final VoidCallback onDeleteProfile;
+=======
+>>>>>>> origin/main
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +80,7 @@ class ResidentProfilePage extends StatelessWidget {
             ),
           ],
         ),
+<<<<<<< HEAD
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
@@ -94,11 +101,20 @@ class ResidentProfilePage extends StatelessWidget {
         const SizedBox(height: 20),
         GridView.count(
           crossAxisCount: 2,
+=======
+        const SizedBox(height: 20),
+        GridView.count(
+          crossAxisCount: MediaQuery.sizeOf(context).width < 400 ? 1 : 2,
+>>>>>>> origin/main
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
+<<<<<<< HEAD
           childAspectRatio: 1.5,
+=======
+          childAspectRatio: MediaQuery.sizeOf(context).width < 400 ? 3 : 1.5,
+>>>>>>> origin/main
           children: [
             ResidentInfoCard(
               icon: Icons.person_outline_rounded,

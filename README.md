@@ -7,10 +7,23 @@ smart lockers in residential buildings. It brings residents, administrators,
 delivery, and laundry operations into one mobile experience.
 
 The current application includes authentication screens and role-specific
+<<<<<<< HEAD
 administrator and resident smart-locker interfaces. Locker readings and
 management actions in those interfaces currently use demonstration data; live
 IoT devices, a remote service, and persistent locker management are not
 connected yet.
+=======
+administrator, resident, and delivery-driver interfaces. Locker readings and
+management actions in the locker interfaces currently use demonstration data;
+live IoT devices, a remote service, and persistent locker management are not
+connected yet. The delivery driver flow now includes onboarding and the driver
+workspace for assigned delivery tasks.
+
+ResiDry is designed to make laundry and drying services more convenient for
+residents, especially for bulky items that are difficult to dry at home. The
+intended service uses smart lockers to collect laundry, coordinate processing
+with partner laundry companies, and return completed orders to the residence.
+>>>>>>> origin/main
 
 ---
 
@@ -50,7 +63,11 @@ account role determines the destination:
 | --- | --- |
 | Résident | Resident smart-locker interface |
 | Administrateur | Administrator smart-locker interface |
+<<<<<<< HEAD
 | Livreur | Delivery/order interface |
+=======
+| Livreur | Driver onboarding flow and driver dashboard |
+>>>>>>> origin/main
 | Other roles | Generic locker placeholder |
 
 Authentication currently uses a local SQLite database. The administrator and
@@ -159,6 +176,7 @@ This feature contains separate user experiences:
 The side menu opens from the menu button in the app bar. Selecting a destination
 switches to that role's corresponding page and closes the drawer.
 
+<<<<<<< HEAD
 ### Other feature placeholders
 
 | Folder/file | Current responsibility |
@@ -169,6 +187,23 @@ switches to that role's corresponding page and closes the drawer.
 Other modules listed in the team plan (laundry, laundry companies, delivery
 drivers, and residents) have not yet been added to the current `lib/features/`
 tree.
+=======
+### Feature modules
+
+| Folder/file | Current responsibility |
+| --- | --- |
+| `lib/features/delivery_drivers/` | Driver onboarding flow, driver dashboard, fleet management, and delivery task interfaces. |
+| `lib/features/lockers/presentation/home_page.dart` | Generic locker landing-page placeholder for roles without a dedicated screen. |
+| `lib/features/orders/presentation/orders_admin_module.dart` | Administrator navigation and in-memory order management entry point, opened from the administrator side menu. |
+| `lib/features/orders/presentation/order_pages.dart` | Order dashboard, search and filters, details, forms, driver assignment, delivery tracking, history, alerts, statistics, and cancellation confirmation. |
+| `lib/features/orders/presentation/order_data.dart` | Demonstration order records, status presentation, and local order-history data. |
+| `lib/features/orders/presentation/home_page.dart` | Generic delivery/order landing page retained for non-driver order workflows. |
+
+The order management module is designed for the administrator role. Its changes
+are held in memory and its AI, IoT, and delivery estimates are illustrative;
+they are not connected to a backend, physical lockers, or a live positioning
+service.
+>>>>>>> origin/main
 
 ---
 
@@ -196,6 +231,12 @@ sign-up screens.
 navigation, opening and closing the drawer, locker management access, and the
 resident locker controls.
 
+<<<<<<< HEAD
+=======
+`test/orders_admin_module_test.dart` covers opening the administrator order
+module and viewing order details, including its locker information.
+
+>>>>>>> origin/main
 ---
 
 ## Team & Planned Modules

@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+<<<<<<< HEAD
+=======
+import '../../../laundry/presentation/laundry_page.dart';
+import '../../../laundry_companies/presentation/societes_lavage_page.dart';
+import '../../../orders/presentation/orders_admin_module.dart';
+>>>>>>> origin/main
 import '../navigation/admin_navigation_bar.dart';
 import '../widgets/casier_components.dart';
 
@@ -28,6 +34,15 @@ class _AdminInterfaceState extends State<AdminInterface> {
       'Anomalies',
       'Maintenance',
       'Profil',
+<<<<<<< HEAD
+=======
+      'Dashboard commandes',
+      'Commandes',
+      'Livraisons',
+      'Alertes commandes',
+      'Sociétés de lavage',
+      'Gestion du linge',
+>>>>>>> origin/main
     ];
     return Scaffold(
       appBar: AppBar(
@@ -64,17 +79,42 @@ class _AdminInterfaceState extends State<AdminInterface> {
         },
       ),
       body: IndexedStack(
+<<<<<<< HEAD
         index: _selectedIndex,
+=======
+        index: switch (_selectedIndex) {
+          9 => 6,
+          10 => 7,
+          >= 5 => 5,
+          _ => _selectedIndex,
+        },
+>>>>>>> origin/main
         children: [
           _dashboard(),
           _lockersPage(),
           _anomaliesPage(),
           _maintenancePage(),
           _profilePage(),
+<<<<<<< HEAD
+=======
+          OrdersAdminModule(
+            userName: widget.userName,
+            selectedIndex: _selectedIndex >= 5 && _selectedIndex <= 8
+                ? _selectedIndex - 5
+                : 0,
+            onNavigate: (index) => setState(() => _selectedIndex = index + 5),
+          ),
+          const SocietesLavagePage(),
+          const LaundryPage(showAppBar: false),
+>>>>>>> origin/main
         ],
       ),
       floatingActionButton: _selectedIndex == 1
           ? FloatingActionButton(
+<<<<<<< HEAD
+=======
+              heroTag: 'locker-create',
+>>>>>>> origin/main
               onPressed: () => _editLocker(),
               backgroundColor: AppColors.navy,
               foregroundColor: Colors.white,
@@ -116,7 +156,11 @@ class _AdminInterfaceState extends State<AdminInterface> {
           crossAxisCount: 2,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
+<<<<<<< HEAD
           childAspectRatio: 1.3,
+=======
+          childAspectRatio: 1.1,
+>>>>>>> origin/main
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           children: [
@@ -751,6 +795,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
   }
 
   Future<void> _editLocker([LockerRecord? locker]) async {
+<<<<<<< HEAD
     final idController = TextEditingController(text: locker?.id ?? '');
     final residentController = TextEditingController(
       text: locker?.resident == 'Non attribué' ? '' : locker?.resident ?? '',
@@ -878,10 +923,28 @@ class _AdminInterfaceState extends State<AdminInterface> {
     apartmentController.dispose();
     weightController.dispose();
     setState(() {
+=======
+    final formData = await showDialog<_LockerFormData>(
+      context: context,
+      builder: (_) => _LockerFormDialog(
+        locker: locker,
+        isIdTaken: (id) => _lockers.any(
+          (item) => item != locker && item.id.toLowerCase() == id.toLowerCase(),
+        ),
+      ),
+    );
+    if (formData == null || !mounted) return;
+
+    setState(() {
+      final resident = formData.resident.isEmpty
+          ? 'Non attribué'
+          : formData.resident;
+>>>>>>> origin/main
       if (locker == null) {
         _lockers.insert(
           0,
           LockerRecord(
+<<<<<<< HEAD
             id: lockerId,
             resident: residentName.isEmpty ? 'Non attribué' : residentName,
             apartment: apartment.isEmpty ? '—' : apartment,
@@ -893,10 +956,24 @@ class _AdminInterfaceState extends State<AdminInterface> {
             weight: 0,
             connected: iotEnabled,
             status: residentName.isEmpty ? 'Disponible' : 'Normal',
+=======
+            id: formData.id,
+            resident: resident,
+            apartment: formData.apartment,
+            maxWeight: formData.maxWeight,
+            lockerType: formData.type,
+            climateMonitoring: formData.climateMonitoring,
+            rfidEnabled: formData.rfidEnabled,
+            electronicLock: formData.electronicLock,
+            weight: 0,
+            connected: formData.iotEnabled,
+            status: formData.resident.isEmpty ? 'Disponible' : 'Normal',
+>>>>>>> origin/main
           ),
         );
       } else {
         locker
+<<<<<<< HEAD
           ..id = lockerId
           ..resident = residentName.isEmpty ? 'Non attribué' : residentName
           ..apartment = apartment.isEmpty ? '—' : apartment
@@ -907,6 +984,18 @@ class _AdminInterfaceState extends State<AdminInterface> {
           ..electronicLock = electronicLock
           ..connected = iotEnabled
           ..status = residentName.isEmpty
+=======
+          ..id = formData.id
+          ..resident = resident
+          ..apartment = formData.apartment
+          ..maxWeight = formData.maxWeight
+          ..lockerType = formData.type
+          ..climateMonitoring = formData.climateMonitoring
+          ..rfidEnabled = formData.rfidEnabled
+          ..electronicLock = formData.electronicLock
+          ..connected = formData.iotEnabled
+          ..status = formData.resident.isEmpty
+>>>>>>> origin/main
               ? 'Disponible'
               : locker.status == 'Disponible'
               ? 'Normal'
@@ -916,6 +1005,208 @@ class _AdminInterfaceState extends State<AdminInterface> {
     _showMessage(locker == null ? 'Casier créé.' : 'Casier mis à jour.');
   }
 
+<<<<<<< HEAD
+=======
+  void _openDetails(LockerRecord locker) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _LockerDetailsPage(locker: locker),
+      ),
+    );
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
+  }
+}
+
+class _LockerFormData {
+  const _LockerFormData({
+    required this.id,
+    required this.resident,
+    required this.apartment,
+    required this.maxWeight,
+    required this.type,
+    required this.iotEnabled,
+    required this.climateMonitoring,
+    required this.rfidEnabled,
+    required this.electronicLock,
+  });
+
+  final String id;
+  final String resident;
+  final String apartment;
+  final double maxWeight;
+  final String type;
+  final bool iotEnabled;
+  final bool climateMonitoring;
+  final bool rfidEnabled;
+  final bool electronicLock;
+}
+
+class _LockerFormDialog extends StatefulWidget {
+  const _LockerFormDialog({required this.locker, required this.isIdTaken});
+
+  final LockerRecord? locker;
+  final bool Function(String) isIdTaken;
+
+  @override
+  State<_LockerFormDialog> createState() => _LockerFormDialogState();
+}
+
+class _LockerFormDialogState extends State<_LockerFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _idController;
+  late final TextEditingController _residentController;
+  late final TextEditingController _apartmentController;
+  late final TextEditingController _weightController;
+  late String _type;
+  late bool _iotEnabled;
+  late bool _climateMonitoring;
+  late bool _rfidEnabled;
+  late bool _electronicLock;
+
+  @override
+  void initState() {
+    super.initState();
+    final locker = widget.locker;
+    _idController = TextEditingController(text: locker?.id ?? '');
+    _residentController = TextEditingController(
+      text: locker?.resident == 'Non attribué' ? '' : locker?.resident ?? '',
+    );
+    _apartmentController = TextEditingController(text: locker?.apartment ?? '');
+    _weightController = TextEditingController(
+      text: locker?.maxWeight.toString() ?? '8.0',
+    );
+    _type = locker?.lockerType ?? 'Standard';
+    _iotEnabled = locker?.connected ?? true;
+    _climateMonitoring = locker?.climateMonitoring ?? true;
+    _rfidEnabled = locker?.rfidEnabled ?? true;
+    _electronicLock = locker?.electronicLock ?? true;
+  }
+
+  @override
+  void dispose() {
+    _idController.dispose();
+    _residentController.dispose();
+    _apartmentController.dispose();
+    _weightController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    Navigator.of(context).pop(
+      _LockerFormData(
+        id: _idController.text.trim(),
+        resident: _residentController.text.trim(),
+        apartment: _apartmentController.text.trim(),
+        maxWeight: double.parse(_weightController.text.trim()),
+        type: _type,
+        iotEnabled: _iotEnabled,
+        climateMonitoring: _climateMonitoring,
+        rfidEnabled: _rfidEnabled,
+        electronicLock: _electronicLock,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(
+      widget.locker == null ? 'Nouveau casier' : 'Modifier le casier',
+    ),
+    content: SizedBox(
+      width: 420,
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _formField(
+                _idController,
+                'Identifiant du casier',
+                validator: (value) {
+                  final id = value?.trim() ?? '';
+                  if (id.isEmpty) {
+                    return 'L’identifiant du casier est obligatoire.';
+                  }
+                  return widget.isIdTaken(id)
+                      ? 'Cet identifiant est déjà utilisé.'
+                      : null;
+                },
+              ),
+              _formField(
+                _residentController,
+                'Résident (optionnel)',
+                validator: (_) => null,
+              ),
+              _formField(_apartmentController, 'Appartement'),
+              _formField(
+                _weightController,
+                'Poids maximal (kg)',
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  final weight = double.tryParse(value ?? '');
+                  return weight == null || !weight.isFinite || weight <= 0
+                      ? 'Saisissez un poids valide'
+                      : null;
+                },
+              ),
+              DropdownButtonFormField<String>(
+                initialValue: _type,
+                decoration: const InputDecoration(labelText: 'Type'),
+                items: const [
+                  DropdownMenuItem(value: 'Standard', child: Text('Standard')),
+                  DropdownMenuItem(value: 'Grand', child: Text('Grand')),
+                  DropdownMenuItem(value: 'Réfrigéré', child: Text('Contrôlé')),
+                ],
+                onChanged: (value) =>
+                    setState(() => _type = value ?? 'Standard'),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Appareil IoT activé'),
+                value: _iotEnabled,
+                onChanged: (value) => setState(() => _iotEnabled = value),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Suivi température / humidité'),
+                value: _climateMonitoring,
+                onChanged: (value) =>
+                    setState(() => _climateMonitoring = value),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('RFID / NFC'),
+                value: _rfidEnabled,
+                onChanged: (value) => setState(() => _rfidEnabled = value),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Verrou électronique'),
+                value: _electronicLock,
+                onChanged: (value) => setState(() => _electronicLock = value),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Annuler'),
+      ),
+      FilledButton(onPressed: _submit, child: const Text('Enregistrer')),
+    ],
+  );
+
+>>>>>>> origin/main
   Widget _formField(
     TextEditingController controller,
     String label, {
@@ -934,6 +1225,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
               : null,
     ),
   );
+<<<<<<< HEAD
 
   void _openDetails(LockerRecord locker) {
     Navigator.of(context).push(
@@ -948,6 +1240,8 @@ class _AdminInterfaceState extends State<AdminInterface> {
       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
+=======
+>>>>>>> origin/main
 }
 
 class _LockerDetailsPage extends StatelessWidget {

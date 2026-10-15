@@ -1,9 +1,13 @@
+<<<<<<< HEAD
 import 'dart:io';
 
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../features/residents/mock/residents_mock_data.dart';
+=======
+import 'package:sqflite/sqflite.dart';
+>>>>>>> origin/main
 
 class AppDatabase {
   AppDatabase._();
@@ -17,21 +21,29 @@ class AppDatabase {
       return _database!;
     }
 
+<<<<<<< HEAD
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       databaseFactory = databaseFactoryFfi;
     }
 
+=======
+>>>>>>> origin/main
     final databasePath = await getDatabasesPath();
     final path = '$databasePath/residry.db';
 
     _database = await openDatabase(
       path,
+<<<<<<< HEAD
       version: 4,
       onCreate: (database, _) async {
         await _createUsersTable(database);
         await _createResidentsTable(database);
         await _seedResidents(database);
       },
+=======
+      version: 3,
+      onCreate: (database, _) => _createUsersTable(database),
+>>>>>>> origin/main
       onUpgrade: (database, oldVersion, _) async {
         if (oldVersion < 2) {
           await _createUsersTable(database);
@@ -41,10 +53,13 @@ class AppDatabase {
             "ALTER TABLE users ADD COLUMN password TEXT NOT NULL DEFAULT ''",
           );
         }
+<<<<<<< HEAD
         if (oldVersion < 4) {
           await _createResidentsTable(database);
           await _seedResidents(database);
         }
+=======
+>>>>>>> origin/main
       },
     );
     return _database!;
@@ -62,6 +77,7 @@ class AppDatabase {
     ''');
   }
 
+<<<<<<< HEAD
   Future<void> _createResidentsTable(Database database) async {
     await database.execute('''
       CREATE TABLE residents (
@@ -100,6 +116,8 @@ class AppDatabase {
     }
   }
 
+=======
+>>>>>>> origin/main
   Future<int> createUser(Map<String, Object?> user) async {
     final database = await this.database;
     return database.insert('users', user);
@@ -116,6 +134,7 @@ class AppDatabase {
 
     return users.isEmpty ? null : users.first;
   }
+<<<<<<< HEAD
 
   Future<int> createResident(ResidentProfile resident) async {
     final database = await this.database;
@@ -166,4 +185,6 @@ class AppDatabase {
       whereArgs: [residentId],
     );
   }
+=======
+>>>>>>> origin/main
 }

@@ -66,11 +66,23 @@ class RequestCard extends StatelessWidget {
                             color: AppColors.muted,
                           ),
                           const SizedBox(width: 4),
+<<<<<<< HEAD
                           Text(
                             'Created ${request.creationDate}',
                             style: const TextStyle(
                               color: AppColors.muted,
                               fontSize: 12,
+=======
+                          Expanded(
+                            child: Text(
+                              'Created ${request.creationDate}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppColors.muted,
+                                fontSize: 12,
+                              ),
+>>>>>>> origin/main
                             ),
                           ),
                         ],
@@ -78,9 +90,19 @@ class RequestCard extends StatelessWidget {
                     ],
                   ),
                 ),
+<<<<<<< HEAD
                 RequestStatusChip(status: request.status),
               ],
             ),
+=======
+              ],
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: RequestStatusChip(status: request.status),
+            ),
+>>>>>>> origin/main
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),

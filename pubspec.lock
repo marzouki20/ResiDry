@@ -33,6 +33,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.3"
+<<<<<<< HEAD
   code_assets:
     dependency: transitive
     description:
@@ -41,6 +42,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.1"
+=======
+>>>>>>> origin/main
   collection:
     dependency: transitive
     description:
@@ -49,6 +52,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
+<<<<<<< HEAD
   crypto:
     dependency: transitive
     description:
@@ -57,6 +61,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
+=======
+>>>>>>> origin/main
   cupertino_icons:
     dependency: "direct main"
     description:
@@ -73,6 +79,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.3"
+<<<<<<< HEAD
   ffi:
     dependency: transitive
     description:
@@ -89,6 +96,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+=======
+>>>>>>> origin/main
   flutter:
     dependency: "direct main"
     description: flutter
@@ -107,6 +116,7 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+<<<<<<< HEAD
   glob:
     dependency: transitive
     description:
@@ -123,6 +133,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.2"
+=======
+>>>>>>> origin/main
   leak_tracker:
     dependency: transitive
     description:
@@ -155,6 +167,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.0"
+<<<<<<< HEAD
   logging:
     dependency: transitive
     description:
@@ -163,6 +176,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.0"
+=======
+>>>>>>> origin/main
   matcher:
     dependency: transitive
     description:
@@ -187,6 +202,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.18.3"
+<<<<<<< HEAD
   native_toolchain_c:
     dependency: transitive
     description:
@@ -195,6 +211,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.19.2"
+=======
+>>>>>>> origin/main
   path:
     dependency: transitive
     description:
@@ -219,6 +237,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
+<<<<<<< HEAD
   pub_semver:
     dependency: transitive
     description:
@@ -235,6 +254,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.0"
+=======
+>>>>>>> origin/main
   sky_engine:
     dependency: transitive
     description: flutter
@@ -272,6 +293,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.5.13+1"
+<<<<<<< HEAD
   sqflite_common_ffi:
     dependency: "direct main"
     description:
@@ -280,6 +302,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.3"
+=======
+>>>>>>> origin/main
   sqflite_darwin:
     dependency: transitive
     description:
@@ -296,6 +320,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.2"
+<<<<<<< HEAD
   sqlite3:
     dependency: transitive
     description:
@@ -304,6 +329,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.5.2"
+=======
+>>>>>>> origin/main
   stack_trace:
     dependency: transitive
     description:
@@ -352,6 +379,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.12"
+<<<<<<< HEAD
   typed_data:
     dependency: transitive
     description:
@@ -360,6 +388,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+=======
+>>>>>>> origin/main
   vector_math:
     dependency: transitive
     description:
@@ -376,6 +406,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "15.3.0"
+<<<<<<< HEAD
   web:
     dependency: transitive
     description:
@@ -392,6 +423,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.4"
+=======
+>>>>>>> origin/main
 sdks:
   dart: ">=3.13.4 <4.0.0"
   flutter: ">=3.44.0"
