@@ -3,7 +3,7 @@
 ## Une base commune, un seul modèle User
 
 Le module utilise `AppDatabase.instance.database` dans `lib/database/database.dart`,
-donc le fichier commun **residry.db**, version **6**. `lib/models/user.dart` est
+donc le fichier commun **residry.db**, version **10**. `lib/models/user.dart` est
 réutilisé sans modification. Aucun compte, table d'utilisateurs, mot de passe ou
 rôle propre au module n'est créé. Les autres tables de l'équipe restent présentes.
 L'ancien helper `lib/database/laundry_database.dart` a été retiré.
@@ -24,11 +24,11 @@ Les trois relations sont des clés étrangères du même fichier SQLite. Une dem
 supprimée entraîne la suppression de son historique. Un compte référencé ne peut
 pas être supprimé directement (`ON DELETE RESTRICT`). Les clés étrangères sont
 activées sur la connexion commune. Les colonnes existantes de `users` restent
-`id`, `name`, `email`, `password`, `role` : aucune n'a été ajoutée ou modifiée.
+`id`, `name`, `email`, `password`, `role`, `phone` : phone provient de main.
 
 ## Conservation des anciennes données
 
-La migration 5 → 6 ajoute seulement les deux tables métier et leurs index. À la
+La migration vers la version 10 conserve les migrations de main et ajoute les tables Laundry absentes. A la
 création d'une base commune neuve, les mêmes tables sont créées directement.
 Si un ancien `laundry.db` existe, il est ouvert **en lecture seule**, sans upgrade.
 Les demandes et événements sont copiés dans la transaction de migration.
@@ -159,18 +159,25 @@ Flutter Web/Chrome n'est pas pris en charge par la persistance actuelle
 (`dart:io`, sqflite natif, aucun adaptateur Web). Les tests ne prouvent pas un
 fonctionnement Web ni un parcours Android complet.
 
-## Résultats exécutés le 16 octobre 2026
+## Validation des conflits - 16 octobre 2026
 
-- Analyse complète `lib test` : aucun problème détecté.
-- Suite Flutter complète : **58 tests réussis**, dont login des quatre rôles,
-  inscription transmettant `users.id` plutôt que `residents.id`, migration réelle
-  de `AppDatabase` 5 → 6, imports anciens 1/2/3, règles métier et interfaces.
-- Tests SQLite Python : **8 tests réussis**.
-- Le test compact préexistant émet encore des avertissements de clics masqués
-  dans l'onboarding et sa dernière étape linge ; ses clics ne prouvent donc pas
-  un parcours complet. Les tests dédiés Laundry vérifient les actions et écritures.
-- L'adaptateur FFI affiche un avertissement lors du choix de la factory SQLite
-  native dans les tests ; aucune factory de production n'est remplacée par un mock.
-- La compilation APK Android n'a pas été exécutée : sa demande d'exécution a été
-  refusée par le système d'approbation. Les parcours manuels Android restent à faire.
-- Aucun commit, push, merge ou staging effectué pour cette intégration.
+- Tests Laundry : **45 tests passes** : comptes, roles, propriete, historique,
+  imports et migrations 5/6/9 vers 10.
+- SQLite Python : **8 tests passes**.
+- Suite complete : neuf echecs, egalement reproduits sur une copie isolee
+  de main (`914c91e`) : formulaire compact et navigation administrateur.
+- Analyse lib/test : aucune erreur ni warning ; 18 remarques de lint
+  preexistantes dans main. Les tests backend sans serveur restent ignores.
+- Compilation APK et parcours Android : non verifies pendant cette resolution.
+- Conflits resolus et indexes localement ; aucun nouveau commit ni push.
+
+## Compatibilite avec main
+
+La version 10 conserve les migrations livreur de main (versions 7 a 9).
+Si les tables linge existent deja (ancienne version 6), elles sont conservees
+sans reimporter les archives. Le login local transmet le User authentifie,
+y compris son ID et son telephone.
+
+Le login backend conserve son fonctionnement existant. Les identifiants serveur
+ne sont jamais assimiles aux identifiants SQLite locaux. Le linge local exige
+un compte local authentifie ; sa synchronisation backend reste a integrer.

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/localized_text.dart';
+
 import '../../../../core/theme/app_theme.dart';
 
 class LockerRecord {
@@ -89,32 +91,32 @@ class PageHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: AppColors.navy,
-                fontSize: 25,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.6,
-              ),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LocalizedText(
+                  title,
+                  style: const TextStyle(
+                    color: AppColors.navy,
+                    fontSize: 25,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                LocalizedText(
+                  subtitle,
+                  style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                ),
+              ],
             ),
-            const SizedBox(height: 5),
-            Text(
-              subtitle,
-              style: const TextStyle(color: AppColors.muted, fontSize: 13),
-            ),
-          ],
-        ),
-      ),
-      ?trailing,
-    ],
-  );
+          ),
+          if (trailing != null) trailing!,
+        ],
+      );
 }
 
 class StatusPill extends StatelessWidget {
@@ -125,31 +127,31 @@ class StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 7,
-          height: 7,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
         ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(
-            color: color,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+            LocalizedText(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 }
 
 class MetricCard extends StatelessWidget {
@@ -170,37 +172,38 @@ class MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: AppColors.line),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: color, size: 21),
-        const SizedBox(height: 13),
-        Text(
-          value,
-          style: const TextStyle(
-            color: AppColors.navy,
-            fontSize: 23,
-            fontWeight: FontWeight.w800,
-          ),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.line),
         ),
-        const SizedBox(height: 3),
-        Text(
-          label,
-          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 21),
+            const SizedBox(height: 13),
+            LocalizedText(
+              value,
+              style: const TextStyle(
+                color: AppColors.navy,
+                fontSize: 23,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 3),
+            LocalizedText(
+              label,
+              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+            ),
+            if (caption != null) ...[
+              const SizedBox(height: 6),
+              LocalizedText(caption!,
+                  style: TextStyle(color: color, fontSize: 10)),
+            ],
+          ],
         ),
-        if (caption != null) ...[
-          const SizedBox(height: 6),
-          Text(caption!, style: TextStyle(color: color, fontSize: 10)),
-        ],
-      ],
-    ),
-  );
+      );
 }
 
 class SectionTitle extends StatelessWidget {
@@ -212,20 +215,21 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-    children: [
-      Expanded(
-        child: Text(
-          title,
-          style: const TextStyle(
-            color: AppColors.navy,
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
+        children: [
+          Expanded(
+            child: LocalizedText(
+              title,
+              style: const TextStyle(
+                color: AppColors.navy,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ),
-        ),
-      ),
-      if (action != null) TextButton(onPressed: onAction, child: Text(action!)),
-    ],
-  );
+          if (action != null)
+            TextButton(onPressed: onAction, child: LocalizedText(action!)),
+        ],
+      );
 }
 
 class DetailTile extends StatelessWidget {
@@ -244,39 +248,40 @@ class DetailTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(13),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: AppColors.line),
-    ),
-    child: Row(
-      children: [
-        Icon(icon, color: color, size: 19),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(color: AppColors.muted, fontSize: 11),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                value,
-                style: const TextStyle(
-                  color: AppColors.navy,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.line),
         ),
-      ],
-    ),
-  );
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 19),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LocalizedText(
+                    label,
+                    style:
+                        const TextStyle(color: AppColors.muted, fontSize: 11),
+                  ),
+                  const SizedBox(height: 3),
+                  LocalizedText(
+                    value,
+                    style: const TextStyle(
+                      color: AppColors.navy,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 class TrendCard extends StatelessWidget {
@@ -287,37 +292,37 @@ class TrendCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: AppColors.line),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.line),
         ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            color: AppColors.navy,
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LocalizedText(
+              title,
+              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+            ),
+            const SizedBox(height: 4),
+            LocalizedText(
+              value,
+              style: const TextStyle(
+                color: AppColors.navy,
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 48,
+              width: double.infinity,
+              child: CustomPaint(painter: _TrendPainter()),
+            ),
+          ],
         ),
-        const SizedBox(height: 14),
-        SizedBox(
-          height: 48,
-          width: double.infinity,
-          child: CustomPaint(painter: _TrendPainter()),
-        ),
-      ],
-    ),
-  );
+      );
 }
 
 class _TrendPainter extends CustomPainter {
@@ -348,9 +353,9 @@ class _TrendPainter extends CustomPainter {
 }
 
 Color lockerStatusColor(String status) => switch (status) {
-  'Anomalie' => const Color(0xFFE77B32),
-  'Maintenance' => const Color(0xFF7457E8),
-  'Hors ligne' => const Color(0xFFE45858),
-  'Disponible' => AppColors.cyan,
-  _ => AppColors.navy,
-};
+      'Anomalie' => const Color(0xFFE77B32),
+      'Maintenance' => const Color(0xFF7457E8),
+      'Hors ligne' => const Color(0xFFE45858),
+      'Disponible' => AppColors.cyan,
+      _ => AppColors.navy,
+    };

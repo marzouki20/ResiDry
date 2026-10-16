@@ -7,6 +7,7 @@ import '../../../laundry/presentation/laundry_page.dart';
 import '../../../laundry_companies/presentation/societes_lavage_page.dart';
 import '../../../orders/presentation/orders_admin_module.dart';
 import '../../../residents/presentation/pages/resident_management_page.dart';
+import '../../../delivery_drivers/presentation/admin_driver_management.dart';
 import '../navigation/admin_navigation_bar.dart';
 import '../widgets/casier_components.dart';
 
@@ -48,6 +49,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
       'Sociétés de lavage',
       'Gestion du linge',
       'Gestion des résidents',
+      'Gestion des livreurs',
     ];
     return Scaffold(
       appBar: AppBar(
@@ -85,6 +87,7 @@ class _AdminInterfaceState extends State<AdminInterface> {
       ),
       body: IndexedStack(
         index: switch (_selectedIndex) {
+          12 => 9,
           9 => 6,
           10 => 7,
           11 => 8,
@@ -112,6 +115,9 @@ class _AdminInterfaceState extends State<AdminInterface> {
             userName: widget.currentUser?.name ?? widget.userName ?? '',
           ),
           const ResidentManagementPage(),
+          AdminDriverManagementView(
+            reviewer: widget.userName ?? 'Administrator',
+          ),
         ],
       ),
       floatingActionButton: _selectedIndex == 1
@@ -129,9 +135,8 @@ class _AdminInterfaceState extends State<AdminInterface> {
   Widget _dashboard() {
     final connected = _lockers.where((locker) => locker.connected).length;
     final offline = _lockers.length - connected;
-    final maintenance = _lockers
-        .where((locker) => locker.status == 'Maintenance')
-        .length;
+    final maintenance =
+        _lockers.where((locker) => locker.status == 'Maintenance').length;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       children: [
@@ -270,8 +275,8 @@ class _AdminInterfaceState extends State<AdminInterface> {
     final lockers = _lockers.where((locker) {
       final matchesQuery =
           locker.id.toLowerCase().contains(_query.toLowerCase()) ||
-          locker.resident.toLowerCase().contains(_query.toLowerCase()) ||
-          locker.apartment.toLowerCase().contains(_query.toLowerCase());
+              locker.resident.toLowerCase().contains(_query.toLowerCase()) ||
+              locker.apartment.toLowerCase().contains(_query.toLowerCase());
       final matchesFilter = switch (_filter) {
         'Connectés' => locker.connected,
         'Anomalies' => locker.status == 'Anomalie',
@@ -326,15 +331,13 @@ class _AdminInterfaceState extends State<AdminInterface> {
                     onSelected: (_) => setState(() => _filter = filter),
                     selectedColor: AppColors.cyan.withValues(alpha: 0.18),
                     labelStyle: TextStyle(
-                      color: _filter == filter
-                          ? AppColors.navy
-                          : AppColors.muted,
+                      color:
+                          _filter == filter ? AppColors.navy : AppColors.muted,
                       fontWeight: FontWeight.w600,
                     ),
                     side: BorderSide(
-                      color: _filter == filter
-                          ? AppColors.cyan
-                          : AppColors.line,
+                      color:
+                          _filter == filter ? AppColors.cyan : AppColors.line,
                     ),
                   ),
                 ),
@@ -358,187 +361,190 @@ class _AdminInterfaceState extends State<AdminInterface> {
   }
 
   Widget _lockerCard(LockerRecord locker) => Card(
-    margin: const EdgeInsets.only(bottom: 13),
-    color: Colors.white,
-    elevation: 0,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(18),
-      side: const BorderSide(color: AppColors.line),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Row(
+        margin: const EdgeInsets.only(bottom: 13),
+        color: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: AppColors.line),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
             children: [
-              Container(
-                padding: const EdgeInsets.all(11),
-                decoration: BoxDecoration(
-                  color: AppColors.cyan.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: const Icon(
-                  Icons.door_front_door_outlined,
-                  color: AppColors.navy,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      locker.id,
-                      style: const TextStyle(
-                        color: AppColors.navy,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(11),
+                    decoration: BoxDecoration(
+                      color: AppColors.cyan.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(13),
                     ),
-                    Text(
-                      '${locker.resident} · ${locker.apartment}',
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 12,
-                      ),
+                    child: const Icon(
+                      Icons.door_front_door_outlined,
+                      color: AppColors.navy,
                     ),
-                  ],
-                ),
-              ),
-              PopupMenuButton<String>(
-                onSelected: (action) => _lockerAction(action, locker),
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: 'details', child: Text('Voir détails')),
-                  PopupMenuItem(value: 'edit', child: Text('Modifier')),
-                  PopupMenuItem(
-                    value: 'assign',
-                    child: Text('Attribuer résident'),
                   ),
-                  PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          locker.id,
+                          style: const TextStyle(
+                            color: AppColors.navy,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          '${locker.resident} · ${locker.apartment}',
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    onSelected: (action) => _lockerAction(action, locker),
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(
+                          value: 'details', child: Text('Voir détails')),
+                      PopupMenuItem(value: 'edit', child: Text('Modifier')),
+                      PopupMenuItem(
+                        value: 'assign',
+                        child: Text('Attribuer résident'),
+                      ),
+                      PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+                    ],
+                  ),
                 ],
               ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(child: _miniValue('Poids', '${locker.weight} kg')),
-              Expanded(
-                child: _miniValue(
-                  'Porte',
-                  locker.doorOpen ? 'Ouverte' : 'Fermée',
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(child: _miniValue('Poids', '${locker.weight} kg')),
+                  Expanded(
+                    child: _miniValue(
+                      'Porte',
+                      locker.doorOpen ? 'Ouverte' : 'Fermée',
+                    ),
+                  ),
+                  Expanded(
+                    child: _miniValue(
+                      'Verrou',
+                      locker.locked ? 'Verrouillé' : 'Ouvert',
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 22, color: AppColors.line),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'IoT ${locker.connected ? 'connecté' : 'hors ligne'} · ${locker.temperature}°C · ${locker.humidity}%',
+                      style:
+                          const TextStyle(color: AppColors.muted, fontSize: 11),
+                    ),
+                  ),
+                  StatusPill(
+                    locker.status,
+                    color: lockerStatusColor(locker.status),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => _openDetails(locker),
+                  child: const Text('Voir le suivi IoT'),
                 ),
               ),
-              Expanded(
-                child: _miniValue(
-                  'Verrou',
-                  locker.locked ? 'Verrouillé' : 'Ouvert',
-                ),
-              ),
             ],
           ),
-          const Divider(height: 22, color: AppColors.line),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'IoT ${locker.connected ? 'connecté' : 'hors ligne'} · ${locker.temperature}°C · ${locker.humidity}%',
-                  style: const TextStyle(color: AppColors.muted, fontSize: 11),
-                ),
-              ),
-              StatusPill(
-                locker.status,
-                color: lockerStatusColor(locker.status),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => _openDetails(locker),
-              child: const Text('Voir le suivi IoT'),
+        ),
+      );
+
+  Widget _miniValue(String label, String value) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: const TextStyle(color: AppColors.muted, fontSize: 10)),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppColors.navy,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
-      ),
-    ),
-  );
-
-  Widget _miniValue(String label, String value) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 10)),
-      const SizedBox(height: 4),
-      Text(
-        value,
-        style: const TextStyle(
-          color: AppColors.navy,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    ],
-  );
+      );
 
   Widget _anomaliesPage() => ListView(
-    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-    children: [
-      const PageHeading(
-        title: 'Anomalies & alertes',
-        subtitle: 'Détection intelligente et suivi des événements.',
-      ),
-      const SizedBox(height: 16),
-      MetricCard(
-        label: 'À traiter',
-        value: '${5 - _handledAnomalies.length}',
-        icon: Icons.notification_important_outlined,
-        color: Color(0xFFE77B32),
-        caption: '2 critiques · 1 modérée',
-      ),
-      const SizedBox(height: 12),
-      if (!_handledAnomalies.contains('C-024'))
-        _anomalyTile(
-          'C-024',
-          'Porte laissée ouverte',
-          'Aujourd’hui · 13:02',
-          'Élevée',
-          const Color(0xFFE77B32),
-        ),
-      if (!_handledAnomalies.contains('C-031'))
-        _anomalyTile(
-          'C-031',
-          'Humidité anormale · 71%',
-          'Aujourd’hui · 12:48',
-          'Modérée',
-          const Color(0xFFE77B32),
-        ),
-      if (!_handledAnomalies.contains('C-017'))
-        _anomalyTile(
-          'C-017',
-          'Déconnexion du module IoT',
-          'Aujourd’hui · 12:35',
-          'Critique',
-          const Color(0xFFE45858),
-        ),
-      if (!_handledAnomalies.contains('C-009'))
-        _anomalyTile(
-          'C-009',
-          'Tentatives d’accès répétées',
-          'Hier · 19:24',
-          'Critique',
-          const Color(0xFFE45858),
-        ),
-      if (!_handledAnomalies.contains('C-042'))
-        _anomalyTile(
-          'C-042',
-          'Variation inhabituelle du poids',
-          'Hier · 16:10',
-          'Modérée',
-          const Color(0xFFE77B32),
-        ),
-    ],
-  );
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        children: [
+          const PageHeading(
+            title: 'Anomalies & alertes',
+            subtitle: 'Détection intelligente et suivi des événements.',
+          ),
+          const SizedBox(height: 16),
+          MetricCard(
+            label: 'À traiter',
+            value: '${5 - _handledAnomalies.length}',
+            icon: Icons.notification_important_outlined,
+            color: Color(0xFFE77B32),
+            caption: '2 critiques · 1 modérée',
+          ),
+          const SizedBox(height: 12),
+          if (!_handledAnomalies.contains('C-024'))
+            _anomalyTile(
+              'C-024',
+              'Porte laissée ouverte',
+              'Aujourd’hui · 13:02',
+              'Élevée',
+              const Color(0xFFE77B32),
+            ),
+          if (!_handledAnomalies.contains('C-031'))
+            _anomalyTile(
+              'C-031',
+              'Humidité anormale · 71%',
+              'Aujourd’hui · 12:48',
+              'Modérée',
+              const Color(0xFFE77B32),
+            ),
+          if (!_handledAnomalies.contains('C-017'))
+            _anomalyTile(
+              'C-017',
+              'Déconnexion du module IoT',
+              'Aujourd’hui · 12:35',
+              'Critique',
+              const Color(0xFFE45858),
+            ),
+          if (!_handledAnomalies.contains('C-009'))
+            _anomalyTile(
+              'C-009',
+              'Tentatives d’accès répétées',
+              'Hier · 19:24',
+              'Critique',
+              const Color(0xFFE45858),
+            ),
+          if (!_handledAnomalies.contains('C-042'))
+            _anomalyTile(
+              'C-042',
+              'Variation inhabituelle du poids',
+              'Hier · 16:10',
+              'Modérée',
+              const Color(0xFFE77B32),
+            ),
+        ],
+      );
 
   Widget _anomalyTile(
     String id,
@@ -546,74 +552,75 @@ class _AdminInterfaceState extends State<AdminInterface> {
     String time,
     String severity,
     Color color,
-  ) => Card(
-    margin: const EdgeInsets.only(top: 11),
-    elevation: 0,
-    color: Colors.white,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(17),
-      side: const BorderSide(color: AppColors.line),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+  ) =>
+      Card(
+        margin: const EdgeInsets.only(top: 11),
+        elevation: 0,
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(17),
+          side: const BorderSide(color: AppColors.line),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  'Casier $id',
-                  style: const TextStyle(
-                    color: AppColors.navy,
-                    fontWeight: FontWeight.w800,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Casier $id',
+                      style: const TextStyle(
+                        color: AppColors.navy,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
-                ),
+                  StatusPill(severity, color: color),
+                ],
               ),
-              StatusPill(severity, color: color),
+              const SizedBox(height: 6),
+              Text(title, style: const TextStyle(color: AppColors.ink)),
+              const SizedBox(height: 4),
+              Text(
+                time,
+                style: const TextStyle(color: AppColors.muted, fontSize: 11),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        setState(() => _handledAnomalies.add(id));
+                        _showMessage('Anomalie $id marquée comme résolue.');
+                      },
+                      child: const Text('Résoudre'),
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: FilledButton.tonal(
+                      onPressed: () {
+                        final locker = _lockers.where((item) => item.id == id);
+                        setState(() {
+                          _handledAnomalies.add(id);
+                          if (locker.isNotEmpty) {
+                            locker.first.status = 'Maintenance';
+                          }
+                        });
+                        _showMessage('Casier $id marqué en maintenance.');
+                      },
+                      child: const Text('Maintenance'),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(title, style: const TextStyle(color: AppColors.ink)),
-          const SizedBox(height: 4),
-          Text(
-            time,
-            style: const TextStyle(color: AppColors.muted, fontSize: 11),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    setState(() => _handledAnomalies.add(id));
-                    _showMessage('Anomalie $id marquée comme résolue.');
-                  },
-                  child: const Text('Résoudre'),
-                ),
-              ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: FilledButton.tonal(
-                  onPressed: () {
-                    final locker = _lockers.where((item) => item.id == id);
-                    setState(() {
-                      _handledAnomalies.add(id);
-                      if (locker.isNotEmpty) {
-                        locker.first.status = 'Maintenance';
-                      }
-                    });
-                    _showMessage('Casier $id marqué en maintenance.');
-                  },
-                  child: const Text('Maintenance'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 
   Widget _maintenancePage() {
     final lockers = _lockers.where((locker) => locker.status == 'Maintenance');
@@ -656,54 +663,54 @@ class _AdminInterfaceState extends State<AdminInterface> {
   }
 
   Widget _profilePage() => ListView(
-    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-    children: [
-      const PageHeading(
-        title: 'Profil administrateur',
-        subtitle: 'Gestion de la résidence et des équipements.',
-      ),
-      const SizedBox(height: 24),
-      const CircleAvatar(
-        radius: 38,
-        backgroundColor: AppColors.navy,
-        child: Icon(
-          Icons.admin_panel_settings_outlined,
-          color: Colors.white,
-          size: 35,
-        ),
-      ),
-      const SizedBox(height: 12),
-      Center(
-        child: Text(
-          widget.userName ?? 'Administrateur',
-          style: const TextStyle(
-            color: AppColors.navy,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        children: [
+          const PageHeading(
+            title: 'Profil administrateur',
+            subtitle: 'Gestion de la résidence et des équipements.',
           ),
-        ),
-      ),
-      const Center(
-        child: Text(
-          'Gestionnaire ResiDry',
-          style: TextStyle(color: AppColors.muted),
-        ),
-      ),
-      const SizedBox(height: 24),
-      const DetailTile(
-        label: 'Résidence',
-        value: 'Résidence universitaire',
-        icon: Icons.apartment_rounded,
-      ),
-      const SizedBox(height: 10),
-      const DetailTile(
-        label: 'Réseau',
-        value: 'Passerelle IoT opérationnelle',
-        icon: Icons.hub_outlined,
-        color: AppColors.cyan,
-      ),
-    ],
-  );
+          const SizedBox(height: 24),
+          const CircleAvatar(
+            radius: 38,
+            backgroundColor: AppColors.navy,
+            child: Icon(
+              Icons.admin_panel_settings_outlined,
+              color: Colors.white,
+              size: 35,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: Text(
+              widget.userName ?? 'Administrateur',
+              style: const TextStyle(
+                color: AppColors.navy,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const Center(
+            child: Text(
+              'Gestionnaire ResiDry',
+              style: TextStyle(color: AppColors.muted),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const DetailTile(
+            label: 'Résidence',
+            value: 'Résidence universitaire',
+            icon: Icons.apartment_rounded,
+          ),
+          const SizedBox(height: 10),
+          const DetailTile(
+            label: 'Réseau',
+            value: 'Passerelle IoT opérationnelle',
+            icon: Icons.hub_outlined,
+            color: AppColors.cyan,
+          ),
+        ],
+      );
 
   Widget _alertTile(
     String locker,
@@ -711,45 +718,47 @@ class _AdminInterfaceState extends State<AdminInterface> {
     IconData icon,
     Color color,
     String time,
-  ) => Container(
-    margin: const EdgeInsets.only(top: 9),
-    padding: const EdgeInsets.all(13),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: AppColors.line),
-    ),
-    child: Row(
-      children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(width: 11),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Casier $locker',
-                style: const TextStyle(
-                  color: AppColors.navy,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                message,
-                style: const TextStyle(color: AppColors.muted, fontSize: 11),
-              ),
-            ],
-          ),
+  ) =>
+      Container(
+        margin: const EdgeInsets.only(top: 9),
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: AppColors.line),
         ),
-        Text(
-          time,
-          style: const TextStyle(color: AppColors.muted, fontSize: 10),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Casier $locker',
+                    style: const TextStyle(
+                      color: AppColors.navy,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    message,
+                    style:
+                        const TextStyle(color: AppColors.muted, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              time,
+              style: const TextStyle(color: AppColors.muted, fontSize: 10),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 
   void _lockerAction(String action, LockerRecord locker) {
     switch (action) {
@@ -805,9 +814,8 @@ class _AdminInterfaceState extends State<AdminInterface> {
     if (formData == null || !mounted) return;
 
     setState(() {
-      final resident = formData.resident.isEmpty
-          ? 'Non attribué'
-          : formData.resident;
+      final resident =
+          formData.resident.isEmpty ? 'Non attribué' : formData.resident;
       if (locker == null) {
         _lockers.insert(
           0,
@@ -839,8 +847,8 @@ class _AdminInterfaceState extends State<AdminInterface> {
           ..status = formData.resident.isEmpty
               ? 'Disponible'
               : locker.status == 'Disponible'
-              ? 'Normal'
-              : locker.status;
+                  ? 'Normal'
+                  : locker.status;
       }
     });
     _showMessage(locker == null ? 'Casier créé.' : 'Casier mis à jour.');
@@ -954,115 +962,118 @@ class _LockerFormDialogState extends State<_LockerFormDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(
-      widget.locker == null ? 'Nouveau casier' : 'Modifier le casier',
-    ),
-    content: SizedBox(
-      width: 420,
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _formField(
-                _idController,
-                'Identifiant du casier',
-                validator: (value) {
-                  final id = value?.trim() ?? '';
-                  if (id.isEmpty) {
-                    return 'L’identifiant du casier est obligatoire.';
-                  }
-                  return widget.isIdTaken(id)
-                      ? 'Cet identifiant est déjà utilisé.'
-                      : null;
-                },
-              ),
-              _formField(
-                _residentController,
-                'Résident (optionnel)',
-                validator: (_) => null,
-              ),
-              _formField(_apartmentController, 'Appartement'),
-              _formField(
-                _weightController,
-                'Poids maximal (kg)',
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  final weight = double.tryParse(value ?? '');
-                  return weight == null || !weight.isFinite || weight <= 0
-                      ? 'Saisissez un poids valide'
-                      : null;
-                },
-              ),
-              DropdownButtonFormField<String>(
-                initialValue: _type,
-                decoration: const InputDecoration(labelText: 'Type'),
-                items: const [
-                  DropdownMenuItem(value: 'Standard', child: Text('Standard')),
-                  DropdownMenuItem(value: 'Grand', child: Text('Grand')),
-                  DropdownMenuItem(value: 'Réfrigéré', child: Text('Contrôlé')),
+        title: Text(
+          widget.locker == null ? 'Nouveau casier' : 'Modifier le casier',
+        ),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _formField(
+                    _idController,
+                    'Identifiant du casier',
+                    validator: (value) {
+                      final id = value?.trim() ?? '';
+                      if (id.isEmpty) {
+                        return 'L’identifiant du casier est obligatoire.';
+                      }
+                      return widget.isIdTaken(id)
+                          ? 'Cet identifiant est déjà utilisé.'
+                          : null;
+                    },
+                  ),
+                  _formField(
+                    _residentController,
+                    'Résident (optionnel)',
+                    validator: (_) => null,
+                  ),
+                  _formField(_apartmentController, 'Appartement'),
+                  _formField(
+                    _weightController,
+                    'Poids maximal (kg)',
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      final weight = double.tryParse(value ?? '');
+                      return weight == null || !weight.isFinite || weight <= 0
+                          ? 'Saisissez un poids valide'
+                          : null;
+                    },
+                  ),
+                  DropdownButtonFormField<String>(
+                    initialValue: _type,
+                    decoration: const InputDecoration(labelText: 'Type'),
+                    items: const [
+                      DropdownMenuItem(
+                          value: 'Standard', child: Text('Standard')),
+                      DropdownMenuItem(value: 'Grand', child: Text('Grand')),
+                      DropdownMenuItem(
+                          value: 'Réfrigéré', child: Text('Contrôlé')),
+                    ],
+                    onChanged: (value) =>
+                        setState(() => _type = value ?? 'Standard'),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Appareil IoT activé'),
+                    value: _iotEnabled,
+                    onChanged: (value) => setState(() => _iotEnabled = value),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Suivi température / humidité'),
+                    value: _climateMonitoring,
+                    onChanged: (value) =>
+                        setState(() => _climateMonitoring = value),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('RFID / NFC'),
+                    value: _rfidEnabled,
+                    onChanged: (value) => setState(() => _rfidEnabled = value),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Verrou électronique'),
+                    value: _electronicLock,
+                    onChanged: (value) =>
+                        setState(() => _electronicLock = value),
+                  ),
                 ],
-                onChanged: (value) =>
-                    setState(() => _type = value ?? 'Standard'),
               ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Appareil IoT activé'),
-                value: _iotEnabled,
-                onChanged: (value) => setState(() => _iotEnabled = value),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Suivi température / humidité'),
-                value: _climateMonitoring,
-                onChanged: (value) =>
-                    setState(() => _climateMonitoring = value),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('RFID / NFC'),
-                value: _rfidEnabled,
-                onChanged: (value) => setState(() => _rfidEnabled = value),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Verrou électronique'),
-                value: _electronicLock,
-                onChanged: (value) => setState(() => _electronicLock = value),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: const Text('Annuler'),
-      ),
-      FilledButton(onPressed: _submit, child: const Text('Enregistrer')),
-    ],
-  );
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(onPressed: _submit, child: const Text('Enregistrer')),
+        ],
+      );
 
   Widget _formField(
     TextEditingController controller,
     String label, {
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
-  }) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(labelText: label),
-      validator:
-          validator ??
-          (value) => value == null || value.trim().isEmpty
-              ? 'Champ obligatoire'
-              : null,
-    ),
-  );
+  }) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          decoration: InputDecoration(labelText: label),
+          validator: validator ??
+              (value) => value == null || value.trim().isEmpty
+                  ? 'Champ obligatoire'
+                  : null,
+        ),
+      );
 }
 
 class _LockerDetailsPage extends StatelessWidget {
@@ -1072,133 +1083,135 @@ class _LockerDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text('Casier ${locker.id}')),
-    body: ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Row(
+        appBar: AppBar(title: Text('Casier ${locker.id}')),
+        body: ListView(
+          padding: const EdgeInsets.all(20),
           children: [
-            Expanded(
-              child: Text(
-                locker.id,
-                style: const TextStyle(
-                  color: AppColors.navy,
-                  fontSize: 27,
-                  fontWeight: FontWeight.w800,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    locker.id,
+                    style: const TextStyle(
+                      color: AppColors.navy,
+                      fontSize: 27,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
-              ),
+                StatusPill(locker.status,
+                    color: lockerStatusColor(locker.status)),
+              ],
             ),
-            StatusPill(locker.status, color: lockerStatusColor(locker.status)),
-          ],
-        ),
-        const SizedBox(height: 5),
-        Text(
-          '${locker.resident} · ${locker.apartment}',
-          style: const TextStyle(color: AppColors.muted),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          '${locker.lockerType} · Charge max. ${locker.maxWeight} kg · RFID/NFC ${locker.rfidEnabled ? 'activé' : 'désactivé'}',
-          style: const TextStyle(color: AppColors.muted, fontSize: 12),
-        ),
-        const SizedBox(height: 20),
-        GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          childAspectRatio: 2.1,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          children: [
-            DetailTile(
-              label: 'Connexion IoT',
-              value: locker.connected ? 'Connecté' : 'Hors ligne',
-              icon: Icons.wifi_rounded,
-              color: locker.connected ? AppColors.cyan : Colors.red,
+            const SizedBox(height: 5),
+            Text(
+              '${locker.resident} · ${locker.apartment}',
+              style: const TextStyle(color: AppColors.muted),
             ),
-            DetailTile(
-              label: 'Porte',
-              value: locker.doorOpen ? 'Ouverte' : 'Fermée',
-              icon: Icons.door_front_door_outlined,
+            const SizedBox(height: 6),
+            Text(
+              '${locker.lockerType} · Charge max. ${locker.maxWeight} kg · RFID/NFC ${locker.rfidEnabled ? 'activé' : 'désactivé'}',
+              style: const TextStyle(color: AppColors.muted, fontSize: 12),
             ),
-            DetailTile(
-              label: 'Verrou',
-              value: locker.locked ? 'Verrouillé' : 'Déverrouillé',
-              icon: Icons.lock_outline_rounded,
-            ),
-            DetailTile(
-              label: 'Poids actuel',
-              value: '${locker.weight} kg',
-              icon: Icons.scale_outlined,
-              color: AppColors.cyan,
-            ),
-            DetailTile(
-              label: 'Température',
-              value: '${locker.temperature}°C',
-              icon: Icons.thermostat_rounded,
-            ),
-            DetailTile(
-              label: 'Humidité',
-              value: '${locker.humidity}%',
-              icon: Icons.water_drop_outlined,
-            ),
-          ],
-        ),
-        const SizedBox(height: 13),
-        const DetailTile(
-          label: 'Dernière activité',
-          value: 'Aujourd’hui à 13:14',
-          icon: Icons.schedule_rounded,
-        ),
-        const SizedBox(height: 24),
-        const SectionTitle('Surveillance IoT'),
-        const SizedBox(height: 10),
-        const TrendCard(title: 'Historique du poids', value: '5.2 kg'),
-        const SizedBox(height: 10),
-        const TrendCard(title: 'Température', value: '24°C'),
-        const SizedBox(height: 10),
-        const TrendCard(title: 'Humidité', value: '48%'),
-        const SizedBox(height: 10),
-        const TrendCard(title: 'Activité de la porte', value: '4 ouvertures'),
-        const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: locker.status == 'Anomalie'
-                ? const Color(0xFFFFF1E8)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.line),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Détection IA des anomalies',
-                style: TextStyle(
-                  color: AppColors.navy,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
+            const SizedBox(height: 20),
+            GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 2.1,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                DetailTile(
+                  label: 'Connexion IoT',
+                  value: locker.connected ? 'Connecté' : 'Hors ligne',
+                  icon: Icons.wifi_rounded,
+                  color: locker.connected ? AppColors.cyan : Colors.red,
                 ),
-              ),
-              const SizedBox(height: 10),
-              StatusPill(
-                locker.status == 'Anomalie'
-                    ? 'Comportement anormal détecté'
-                    : 'Aucune anomalie détectée',
+                DetailTile(
+                  label: 'Porte',
+                  value: locker.doorOpen ? 'Ouverte' : 'Fermée',
+                  icon: Icons.door_front_door_outlined,
+                ),
+                DetailTile(
+                  label: 'Verrou',
+                  value: locker.locked ? 'Verrouillé' : 'Déverrouillé',
+                  icon: Icons.lock_outline_rounded,
+                ),
+                DetailTile(
+                  label: 'Poids actuel',
+                  value: '${locker.weight} kg',
+                  icon: Icons.scale_outlined,
+                  color: AppColors.cyan,
+                ),
+                DetailTile(
+                  label: 'Température',
+                  value: '${locker.temperature}°C',
+                  icon: Icons.thermostat_rounded,
+                ),
+                DetailTile(
+                  label: 'Humidité',
+                  value: '${locker.humidity}%',
+                  icon: Icons.water_drop_outlined,
+                ),
+              ],
+            ),
+            const SizedBox(height: 13),
+            const DetailTile(
+              label: 'Dernière activité',
+              value: 'Aujourd’hui à 13:14',
+              icon: Icons.schedule_rounded,
+            ),
+            const SizedBox(height: 24),
+            const SectionTitle('Surveillance IoT'),
+            const SizedBox(height: 10),
+            const TrendCard(title: 'Historique du poids', value: '5.2 kg'),
+            const SizedBox(height: 10),
+            const TrendCard(title: 'Température', value: '24°C'),
+            const SizedBox(height: 10),
+            const TrendCard(title: 'Humidité', value: '48%'),
+            const SizedBox(height: 10),
+            const TrendCard(
+                title: 'Activité de la porte', value: '4 ouvertures'),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
                 color: locker.status == 'Anomalie'
-                    ? const Color(0xFFE77B32)
-                    : AppColors.cyan,
+                    ? const Color(0xFFFFF1E8)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.line),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Confiance du modèle · 96%',
-                style: TextStyle(color: AppColors.muted, fontSize: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Détection IA des anomalies',
+                    style: TextStyle(
+                      color: AppColors.navy,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  StatusPill(
+                    locker.status == 'Anomalie'
+                        ? 'Comportement anormal détecté'
+                        : 'Aucune anomalie détectée',
+                    color: locker.status == 'Anomalie'
+                        ? const Color(0xFFE77B32)
+                        : AppColors.cyan,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Confiance du modèle · 96%',
+                    style: TextStyle(color: AppColors.muted, fontSize: 12),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 }

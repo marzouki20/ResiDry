@@ -46,3 +46,13 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Private user-provided document examples
+/server/document_references/
+
+# Local OCR environment and reports (reports may contain identity data)
+/.venv-ocr/
+/private-ocr-*.json
+/server/private-ocr-*.json
+/server/private_ocr/
+/server/verification-status.json

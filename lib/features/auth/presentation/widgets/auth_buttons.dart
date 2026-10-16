@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/app_locale.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class PrimaryAuthButton extends StatelessWidget {
@@ -50,10 +51,10 @@ class GoogleAuthButton extends StatelessWidget {
           ),
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
+            const Text(
               'G',
               style: TextStyle(
                 color: AppColors.navy,
@@ -61,13 +62,17 @@ class GoogleAuthButton extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
             ),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Flexible(
               child: Text(
-                'Continue with Google',
+                context.tr(
+                  en: 'Continue with Google',
+                  fr: 'Continuer avec Google',
+                  ar: 'المتابعة باستخدام Google',
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: AppColors.navy),
+                style: const TextStyle(color: AppColors.navy),
               ),
             ),
           ],

@@ -1,0 +1,6 @@
+{$RESIDRY_DOMAIN} {
+    request_body {
+        max_size 45MB
+    }
+    reverse_proxy backend:8766
+}

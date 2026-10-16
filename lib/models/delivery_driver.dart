@@ -9,6 +9,10 @@ class DeliveryDriver {
     this.rating = 4.9,
     this.assignedZone = 'Résidence Les Palmiers',
     this.deliveriesCompleted = 42,
+    this.capacityKg,
+    this.capacityAssessment = 'reviewRequired',
+    this.applicationSubmittedAt,
+    this.applicationReviewStatus,
   });
 
   final String id;
@@ -20,6 +24,12 @@ class DeliveryDriver {
   double rating;
   String assignedZone;
   int deliveriesCompleted;
+  final double? capacityKg;
+  final String capacityAssessment;
+  final DateTime? applicationSubmittedAt;
+  final String? applicationReviewStatus;
+  bool get hasPendingApplication =>
+      applicationSubmittedAt != null && applicationReviewStatus == 'pending';
 
   factory DeliveryDriver.fromMap(Map<String, dynamic> map) {
     return DeliveryDriver(
@@ -27,11 +37,21 @@ class DeliveryDriver {
       name: map['name'] as String,
       email: map['email'] as String,
       phone: map['phone'] as String,
+      capacityKg: (map['capacity_kg'] as num?)?.toDouble(),
+      applicationSubmittedAt:
+          DateTime.tryParse(map['application_submitted_at'] as String? ?? ''),
+      applicationReviewStatus: map['application_review_status'] as String?,
+      capacityAssessment:
+          map['capacity_assessment'] as String? ?? 'reviewRequired',
       status: map['status'] as String? ?? 'En service',
-      vehicleType: map['vehicleType'] as String? ?? 'Scooter',
+      vehicleType:
+          (map['vehicle_type'] ?? map['vehicleType']) as String? ?? 'Scooter',
       rating: (map['rating'] as num?)?.toDouble() ?? 4.9,
-      assignedZone: map['assignedZone'] as String? ?? 'Résidence Les Palmiers',
-      deliveriesCompleted: map['deliveriesCompleted'] as int? ?? 0,
+      assignedZone: (map['assigned_zone'] ?? map['assignedZone']) as String? ??
+          'Résidence Les Palmiers',
+      deliveriesCompleted:
+          (map['deliveries_completed'] ?? map['deliveriesCompleted']) as int? ??
+              0,
     );
   }
 

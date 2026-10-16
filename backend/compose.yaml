@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: residry
+      POSTGRES_USER: residry
+      POSTGRES_PASSWORD: ${RESIDRY_DB_PASSWORD:?Set RESIDRY_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - residry_postgres:/var/lib/postgresql/data
+volumes:
+  residry_postgres:

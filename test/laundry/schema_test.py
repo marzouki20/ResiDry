@@ -33,10 +33,10 @@ class LaundrySchemaTest(unittest.TestCase):
 
     def test_shared_database_contains_one_users_table_and_two_laundry_tables(self):
         tables = {r[0] for r in self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
-        self.assertEqual(tables, {'users', 'residents', 'societes', 'machines', 'laundry_items', 'laundry_status_history'})
+        self.assertTrue({'users', 'residents', 'societes', 'machines', 'laundry_items', 'laundry_status_history'} <= tables)
         self.assertEqual(len(LAUNDRY), 2)
-        self.assertEqual([r[1] for r in self.db.execute('PRAGMA table_info(users)')], ['id', 'name', 'email', 'password', 'role'])
-        self.assertIn('version: 6', SOURCE)
+        self.assertEqual([r[1] for r in self.db.execute('PRAGMA table_info(users)')], ['id', 'name', 'email', 'password', 'role', 'phone'])
+        self.assertIn('version: 10', SOURCE)
 
     def test_defaults_and_reopen_persistence(self):
         self.db.close()

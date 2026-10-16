@@ -76,7 +76,7 @@ void main() {
 
     final common = await AppDatabase.instance.database;
     opened = common;
-    expect(await common.getVersion(), 6);
+    expect(await common.getVersion(), 10);
     expect(await common.query('users', orderBy: 'id'), originalUsers);
     expect((await common.query('laundry_items')).single['resident_id'], isNull);
     expect(
@@ -99,9 +99,90 @@ void main() {
     expect(await File(legacyPath).readAsBytes(), originalArchive);
     await common.close();
     opened = await databaseFactoryFfi.openDatabase(commonPath);
-    expect(await opened.getVersion(), 6);
+    expect(await opened.getVersion(), 10);
     expect((await opened.query('laundry_items')).length, 1);
     expect((await opened.query('laundry_status_history')).length, 1);
     expect(await opened.query('users', orderBy: 'id'), originalUsers);
   });
+  for (final version in [6, 9]) {
+    test(
+      'v$version Laundry migration is repeatable and preserves linked data',
+      () async {
+        sqfliteFfiInit();
+        final directory = await Directory.systemTemp.createTemp(
+          'residry-merge-',
+        );
+        final path = paths.join(directory.path, 'shared.db');
+        final db = await databaseFactoryFfi.openDatabase(
+          path,
+          options: OpenDatabaseOptions(
+            version: version,
+            onCreate: (db, _) async {
+              await db.execute('CREATE TABLE users(id INTEGER PRIMARY KEY)');
+              await db.insert('users', {'id': 1});
+              if (version == 6) {
+                await AppDatabase.createLaundryTables(db);
+                await db.insert('laundry_items', {
+                  'id': 'EXISTING',
+                  'resident_id': 1,
+                  'resident_name': 'Snapshot',
+                  'service_type': 'Lavage',
+                  'created_at': '2026-10-16',
+                });
+                await db.insert('laundry_status_history', {
+                  'laundry_id': 'EXISTING',
+                  'new_status': 'deposited',
+                  'changed_by_user_id': 1,
+                  'changed_at': '2026-10-16',
+                });
+              }
+            },
+          ),
+        );
+        await db.close();
+        final upgraded = await databaseFactoryFfi.openDatabase(
+          path,
+          options: OpenDatabaseOptions(
+            version: 10,
+            onUpgrade: (db, _, _) async {
+              await AppDatabase.ensureLaundrySchema(
+                db,
+                paths.join(directory.path, 'absent.db'),
+              );
+            },
+          ),
+        );
+        try {
+          await AppDatabase.ensureLaundrySchema(
+            upgraded,
+            paths.join(directory.path, 'absent.db'),
+          );
+          expect(await upgraded.getVersion(), 10);
+          expect(
+            (await upgraded.query('laundry_items')).length,
+            version == 6 ? 1 : 0,
+          );
+          expect(
+            (await upgraded.query('laundry_status_history')).length,
+            version == 6 ? 1 : 0,
+          );
+          if (version == 6) {
+            expect(
+              (await upgraded.query('laundry_items')).single['resident_id'],
+              1,
+            );
+            expect(
+              (await upgraded.query('laundry_status_history'))
+                  .single['changed_by_user_id'],
+              1,
+            );
+          }
+          expect(await upgraded.rawQuery('PRAGMA foreign_key_check'), isEmpty);
+        } finally {
+          await upgraded.close();
+          await directory.delete(recursive: true);
+        }
+      },
+    );
+  }
 }

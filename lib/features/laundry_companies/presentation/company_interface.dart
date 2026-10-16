@@ -1505,7 +1505,7 @@ class _SocieteInterfaceState extends State<SocieteInterface> {
     const String telephoneLivreur = '+21698765432';
 
     // Message logistique complet
-    final String message = 
+    final String message =
         '🚚 *ALERTE COLLECTE LINGE - RESIDRY*\n\n'
         'Bonjour Livreur 👋,\n'
         'Une commande vient d\'être traitée par l\'atelier *${_currentSociete.nom}* et attend votre ramassage :\n\n'

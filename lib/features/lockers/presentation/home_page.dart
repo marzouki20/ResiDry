@@ -1,4 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../../core/navigation/app_back_button.dart';
+
+import '../../../core/localization/localized_text.dart';
+import '../../../core/localization/app_locale.dart';
+
+import '../../auth/presentation/widgets/sign_out_button.dart';
+
+import '../../../core/localization/language_picker_button.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key, this.userName, this.userRole});
@@ -11,22 +19,32 @@ class HomePage extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('ResiDry'), centerTitle: false),
+      appBar: AppBar(
+        leading: AppBackButton(onPressed: () => confirmSignOut(context)),
+        title: const LocalizedText('ResiDry'),
+        centerTitle: false,
+        actions: const [LanguagePickerButton(), SizedBox(width: 8)],
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            Text(
+            const SignOutButton(),
+            LocalizedText(
               userName == null ? 'Welcome home' : 'Welcome, $userName',
-              style: Theme.of(context).textTheme.headlineMedium
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineMedium
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text(
+            LocalizedText(
               userRole == null
                   ? 'Manage your laundry lockers in one place.'
-                  : '$userRole account · Manage your laundry lockers here.',
-              style: Theme.of(context).textTheme.bodyLarge
+                  : '${context.localize(userRole!)} account · Manage your laundry lockers here.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyLarge
                   ?.copyWith(color: colors.onSurfaceVariant),
             ),
             const SizedBox(height: 28),
@@ -42,15 +60,19 @@ class HomePage extends StatelessWidget {
                       color: colors.primary,
                     ),
                     const SizedBox(height: 16),
-                    Text(
+                    LocalizedText(
                       'Your lockers',
-                      style: Theme.of(context).textTheme.titleLarge
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
-                    Text(
+                    LocalizedText(
                       'Your locker information will appear here.',
-                      style: Theme.of(context).textTheme.bodyMedium
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
                           ?.copyWith(color: colors.onSurfaceVariant),
                     ),
                   ],

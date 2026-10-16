@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/app_locale.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class AuthDivider extends StatelessWidget {
@@ -7,17 +8,20 @@ class AuthDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
-        Expanded(child: Divider(color: AppColors.line)),
+        const Expanded(child: Divider(color: AppColors.line)),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Text(
-            'or continue with',
-            style: TextStyle(color: AppColors.muted, fontSize: 12),
+            context.tr(
+                en: 'or continue with',
+                fr: 'ou continuer avec',
+                ar: 'أو المتابعة باستخدام'),
+            style: const TextStyle(color: AppColors.muted, fontSize: 12),
           ),
         ),
-        Expanded(child: Divider(color: AppColors.line)),
+        const Expanded(child: Divider(color: AppColors.line)),
       ],
     );
   }
