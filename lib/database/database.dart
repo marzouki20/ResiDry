@@ -30,7 +30,7 @@ class AppDatabase {
 
     _database = await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onConfigure: (database) => database.execute('PRAGMA foreign_keys = ON'),
       onCreate: (database, _) async {
         await _createUsersTable(database);
@@ -44,6 +44,7 @@ class AppDatabase {
         await createDriverProfileSchema(database);
         await createCapacityEvidenceSchema(database);
         await createRegistrationCertificateSchema(database);
+        await _createCommandesTables(database);
       },
       onUpgrade: (database, oldVersion, _) async {
         if (oldVersion < 2) {
@@ -70,6 +71,9 @@ class AppDatabase {
         await createDriverProfileSchema(database);
         await createCapacityEvidenceSchema(database);
         await createRegistrationCertificateSchema(database);
+        if (oldVersion < 10) {
+          await _createCommandesTables(database);
+        }
       },
     );
     return _database!;
@@ -546,5 +550,315 @@ class AppDatabase {
     );
 
     return users.isEmpty ? null : users.first;
+  }
+
+  static Future<void> _createCommandesTables(Database database) async {
+    await database.execute('''
+      CREATE TABLE IF NOT EXISTS commandes (
+        id TEXT PRIMARY KEY,
+        nom_resident TEXT NOT NULL,
+        appartement TEXT NOT NULL,
+        casier TEXT NOT NULL,
+        societe_lavage TEXT NOT NULL,
+        statut TEXT NOT NULL,
+        type_linge TEXT NOT NULL,
+        quantite INTEGER NOT NULL,
+        poids REAL NOT NULL,
+        date_creation TEXT NOT NULL,
+        date_collecte TEXT NOT NULL,
+        date_livraison TEXT NOT NULL,
+        prix REAL NOT NULL,
+        nom_livreur TEXT,
+        notes TEXT NOT NULL DEFAULT '',
+        date_collecte_terminee TEXT,
+        date_depart TEXT,
+        porte_fermee INTEGER NOT NULL DEFAULT 1,
+        iot_connecte INTEGER NOT NULL DEFAULT 1,
+        derniere_synchronisation TEXT NOT NULL
+      )
+    ''');
+
+    await database.execute('''
+      CREATE TABLE IF NOT EXISTS garments (
+        id TEXT PRIMARY KEY,
+        commande_id TEXT NOT NULL,
+        resident_id TEXT,
+        type_vetement TEXT NOT NULL,
+        taille TEXT,
+        couleur TEXT,
+        rfid_tag_id TEXT,
+        statut TEXT NOT NULL DEFAULT 'En attente',
+        date_enregistrement TEXT NOT NULL,
+        FOREIGN KEY (commande_id) REFERENCES commandes (id) ON DELETE CASCADE,
+        FOREIGN KEY (resident_id) REFERENCES residents (id)
+      )
+    ''');
+
+    await database.execute('''
+      CREATE TABLE IF NOT EXISTS rfid_tags (
+        tag_id TEXT PRIMARY KEY,
+        garment_id TEXT,
+        commande_id TEXT,
+        resident_id TEXT,
+        actif INTEGER NOT NULL DEFAULT 1,
+        date_enregistrement TEXT NOT NULL,
+        FOREIGN KEY (garment_id) REFERENCES garments (id),
+        FOREIGN KEY (commande_id) REFERENCES commandes (id) ON DELETE CASCADE,
+        FOREIGN KEY (resident_id) REFERENCES residents (id)
+      )
+    ''');
+
+    await database.execute('''
+      CREATE TABLE IF NOT EXISTS rfid_read_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tag_id TEXT NOT NULL,
+        lecteur_id TEXT NOT NULL,
+        type_lecteur TEXT NOT NULL,
+        localisation TEXT NOT NULL,
+        latitude REAL,
+        longitude REAL,
+        type_evenement TEXT NOT NULL,
+        lu_le TEXT NOT NULL,
+        FOREIGN KEY (tag_id) REFERENCES rfid_tags (tag_id)
+      )
+    ''');
+
+    await database.execute('''
+      CREATE TABLE IF NOT EXISTS alertes_commandes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        commande_id TEXT NOT NULL,
+        titre TEXT NOT NULL,
+        description TEXT NOT NULL,
+        gravite TEXT NOT NULL CHECK (gravite IN ('Élevée', 'Moyenne', 'Faible')),
+        est_lue INTEGER NOT NULL DEFAULT 0,
+        date_creation TEXT NOT NULL,
+        FOREIGN KEY (commande_id) REFERENCES commandes (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await database.execute('''
+      CREATE INDEX IF NOT EXISTS idx_commandes_statut ON commandes (statut);
+    ''');
+    await database.execute('''
+      CREATE INDEX IF NOT EXISTS idx_commandes_livreur ON commandes (nom_livreur);
+    ''');
+    await database.execute('''
+      CREATE INDEX IF NOT EXISTS idx_garments_commande ON garments (commande_id);
+    ''');
+    await database.execute('''
+      CREATE INDEX IF NOT EXISTS idx_garments_rfid ON garments (rfid_tag_id);
+    ''');
+    await database.execute('''
+      CREATE INDEX IF NOT EXISTS idx_rfid_tags_actif ON rfid_tags (actif);
+    ''');
+    await database.execute('''
+      CREATE INDEX IF NOT EXISTS idx_rfid_events_tag ON rfid_read_events (tag_id);
+    ''');
+    await database.execute('''
+      CREATE INDEX IF NOT EXISTS idx_rfid_events_commande ON rfid_read_events (tag_id);
+    ''');
+    await database.execute('''
+      CREATE INDEX IF NOT EXISTS idx_alertes_commande ON alertes_commandes (commande_id);
+    ''');
+    await database.execute('''
+      CREATE INDEX IF NOT EXISTS idx_alertes_lue ON alertes_commandes (est_lue);
+    ''');
+  }
+
+  Future<List<Map<String, Object?>>> getAllCommandes() async {
+    final db = await database;
+    return db.query('commandes', orderBy: 'date_creation DESC');
+  }
+
+  Future<Map<String, Object?>?> getCommandeById(String id) async {
+    final db = await database;
+    final rows = await db.query(
+      'commandes',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  Future<int> insertCommande(Map<String, Object?> commande) async {
+    final db = await database;
+    return db.insert(
+      'commandes',
+      commande,
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
+  Future<int> updateCommande(Map<String, Object?> commande, String id) async {
+    final db = await database;
+    return db.update(
+      'commandes',
+      commande,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> deleteCommande(String id) async {
+    final db = await database;
+    return db.delete('commandes', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<List<Map<String, Object?>>> getGarmentsByCommande(String commandeId) async {
+    final db = await database;
+    return db.query(
+      'garments',
+      where: 'commande_id = ?',
+      whereArgs: [commandeId],
+    );
+  }
+
+  Future<Map<String, Object?>?> getGarmentById(String id) async {
+    final db = await database;
+    final rows = await db.query(
+      'garments',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  Future<int> insertGarment(Map<String, Object?> garment) async {
+    final db = await database;
+    return db.insert('garments', garment);
+  }
+
+  Future<int> updateGarment(Map<String, Object?> garment, String id) async {
+    final db = await database;
+    return db.update(
+      'garments',
+      garment,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> deleteGarment(String id) async {
+    final db = await database;
+    return db.delete('garments', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<List<Map<String, Object?>>> getRfidTagsByCommande(String commandeId) async {
+    final db = await database;
+    return db.query(
+      'rfid_tags',
+      where: 'commande_id = ?',
+      whereArgs: [commandeId],
+    );
+  }
+
+  Future<Map<String, Object?>?> getRfidTagById(String tagId) async {
+    final db = await database;
+    final rows = await db.query(
+      'rfid_tags',
+      where: 'tag_id = ?',
+      whereArgs: [tagId],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  Future<int> insertRfidTag(Map<String, Object?> tag) async {
+    final db = await database;
+    return db.insert(
+      'rfid_tags',
+      tag,
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
+  Future<int> updateRfidTag(Map<String, Object?> tag, String tagId) async {
+    final db = await database;
+    return db.update(
+      'rfid_tags',
+      tag,
+      where: 'tag_id = ?',
+      whereArgs: [tagId],
+    );
+  }
+
+  Future<List<Map<String, Object?>>> getRfidReadEventsByTag(String tagId) async {
+    final db = await database;
+    return db.query(
+      'rfid_read_events',
+      where: 'tag_id = ?',
+      whereArgs: [tagId],
+      orderBy: 'lu_le DESC',
+    );
+  }
+
+  Future<List<Map<String, Object?>>> getRfidReadEventsByCommande(
+    String commandeId,
+  ) async {
+    final db = await database;
+    return db.rawQuery('''
+      SELECT r.* FROM rfid_read_events r
+      JOIN rfid_tags t ON r.tag_id = t.tag_id
+      WHERE t.commande_id = ?
+      ORDER BY r.lu_le DESC
+    ''', [commandeId]);
+  }
+
+  Future<int> insertRfidReadEvent(Map<String, Object?> event) async {
+    final db = await database;
+    return db.insert('rfid_read_events', event);
+  }
+
+  Future<List<Map<String, Object?>>> getUnreadAlerts() async {
+    final db = await database;
+    return db.query(
+      'alertes_commandes',
+      where: 'est_lue = 0',
+      orderBy: 'date_creation DESC',
+    );
+  }
+
+  Future<List<Map<String, Object?>>> getAlertsByCommande(String commandeId) async {
+    final db = await database;
+    return db.query(
+      'alertes_commandes',
+      where: 'commande_id = ?',
+      whereArgs: [commandeId],
+      orderBy: 'date_creation DESC',
+    );
+  }
+
+  Future<int> insertAlerteCommande(Map<String, Object?> alerte) async {
+    final db = await database;
+    return db.insert('alertes_commandes', alerte);
+  }
+
+  Future<int> markAlertRead(int alertId) async {
+    final db = await database;
+    return db.update(
+      'alertes_commandes',
+      {'est_lue': 1},
+      where: 'id = ?',
+      whereArgs: [alertId],
+    );
+  }
+
+  Future<int> deleteAlerteCommande(int alertId) async {
+    final db = await database;
+    return db.delete('alertes_commandes', where: 'id = ?', whereArgs: [alertId]);
+  }
+
+  Future<List<Map<String, Object?>>> getGpsReadEvents() async {
+    final db = await database;
+    return db.rawQuery('''
+      SELECT r.*, c.nom_resident, c.statut AS commande_statut, c.id AS commande_id
+      FROM rfid_read_events r
+      JOIN rfid_tags t ON r.tag_id = t.tag_id
+      JOIN commandes c ON t.commande_id = c.id
+      WHERE r.latitude IS NOT NULL AND r.longitude IS NOT NULL
+      ORDER BY r.lu_le DESC
+    ''');
   }
 }

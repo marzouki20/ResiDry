@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../models/delivery_driver.dart';
+import '../../../database/database.dart';
 import 'order_data.dart';
 import 'order_pages.dart';
 
@@ -22,60 +23,124 @@ class OrdersAdminModule extends StatefulWidget {
 }
 
 class _OrdersAdminModuleState extends State<OrdersAdminModule> {
-  late final List<ManagedOrder> _orders = demoManagedOrders
-      .map(_copyOrder)
-      .toList();
+  late final Future<List<ManagedOrder>> _ordersFuture = _loadOrders();
+  List<ManagedOrder> _orders = [];
   late final List<DeliveryDriver> _drivers = demoDeliveryDrivers
       .map((driver) => DeliveryDriver.fromMap(driver.toMap()))
       .toList();
   final List<OrderHistoryEntry> _history = List.of(orderHistorySeed);
 
-  static ManagedOrder _copyOrder(ManagedOrder order) => ManagedOrder(
-    id: order.id,
-    resident: order.resident,
-    apartment: order.apartment,
-    locker: order.locker,
-    laundryCompany: order.laundryCompany,
-    status: order.status,
-    laundryType: order.laundryType,
-    quantity: order.quantity,
-    weight: order.weight,
-    createdAt: order.createdAt,
-    collectionAt: order.collectionAt,
-    deliveryAt: order.deliveryAt,
-    price: order.price,
-    driverName: order.driverName,
-    notes: order.notes,
-    collectionCompletedAt: order.collectionCompletedAt,
-    departureAt: order.departureAt,
-    doorClosed: order.doorClosed,
-    iotConnected: order.iotConnected,
-    lastSync: order.lastSync,
-  );
+  static List<ManagedOrder> _rowsToOrders(List<Map<String, Object?>> rows) {
+    return rows.map((row) {
+      return ManagedOrder(
+        id: row['id'] as String,
+        resident: row['nom_resident'] as String,
+        apartment: row['appartement'] as String,
+        locker: row['casier'] as String,
+        laundryCompany: row['societe_lavage'] as String,
+        status: row['statut'] as String,
+        laundryType: row['type_linge'] as String,
+        quantity: (row['quantite'] as num).toInt(),
+        weight: (row['poids'] as num).toDouble(),
+        createdAt: DateTime.parse(row['date_creation'] as String),
+        collectionAt: DateTime.parse(row['date_collecte'] as String),
+        deliveryAt: DateTime.parse(row['date_livraison'] as String),
+        price: (row['prix'] as num).toDouble(),
+        driverName: row['nom_livreur'] as String?,
+        notes: row['notes'] as String? ?? '',
+        collectionCompletedAt:
+            row['date_collecte_terminee'] != null
+                ? DateTime.parse(row['date_collecte_terminee'] as String)
+                : null,
+        departureAt: row['date_depart'] != null
+            ? DateTime.parse(row['date_depart'] as String)
+            : null,
+        doorClosed: (row['porte_fermee'] as int) == 1,
+        iotConnected: (row['iot_connecte'] as int) == 1,
+        lastSync: row['derniere_synchronisation'] as String? ?? '',
+      );
+    }).toList(growable: false);
+  }
+
+  static Map<String, Object?> _orderToRow(ManagedOrder order) => <String, Object?>{
+        'id': order.id,
+        'nom_resident': order.resident,
+        'appartement': order.apartment,
+        'casier': order.locker,
+        'societe_lavage': order.laundryCompany,
+        'statut': order.status,
+        'type_linge': order.laundryType,
+        'quantite': order.quantity,
+        'poids': order.weight,
+        'date_creation': order.createdAt.toIso8601String(),
+        'date_collecte': order.collectionAt.toIso8601String(),
+        'date_livraison': order.deliveryAt.toIso8601String(),
+        'prix': order.price,
+        'nom_livreur': order.driverName,
+        'notes': order.notes,
+        'date_collecte_terminee':
+            order.collectionCompletedAt?.toIso8601String(),
+        'date_depart': order.departureAt?.toIso8601String(),
+        'porte_fermee': order.doorClosed ? 1 : 0,
+        'iot_connecte': order.iotConnected ? 1 : 0,
+        'derniere_synchronisation': order.lastSync,
+      };
+
+  Future<List<ManagedOrder>> _loadOrders() async {
+    final rows = await AppDatabase.instance.getAllCommandes();
+    if (rows.isEmpty) {
+      await _seedDemoOrders();
+    }
+    final freshRows = await AppDatabase.instance.getAllCommandes();
+    return _rowsToOrders(freshRows);
+  }
+
+  Future<void> _seedDemoOrders() async {
+    for (final order in demoManagedOrders) {
+      await AppDatabase.instance.insertCommande(_orderToRow(order));
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrders().then((loaded) {
+      if (mounted) setState(() => _orders = loaded);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      DashboardCommandes(
-        orders: _orders,
-        userName: widget.userName ?? 'Administrateur',
-        onOpenOrders: () => widget.onNavigate(1),
-        onOpenDeliveries: () => widget.onNavigate(2),
-        onOpenAlerts: () => widget.onNavigate(3),
-        onOpenStats: _openStatistics,
-        onOpenOrder: _openOrder,
-      ),
-      ListeCommandes(
-        orders: _orders,
-        drivers: _drivers,
-        onOpenOrder: _openOrder,
-        onCreate: _createOrder,
-      ),
-      ListeLivraisons(orders: _orders, onOpenDelivery: _openDelivery),
-      AlertesCommandes(orders: _orders, drivers: _drivers),
-    ];
+    return FutureBuilder<List<ManagedOrder>>(
+      future: _ordersFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        _orders = snapshot.data ?? [];
+        final pages = [
+          DashboardCommandes(
+            orders: _orders,
+            userName: widget.userName ?? 'Administrateur',
+            onOpenOrders: () => widget.onNavigate(1),
+            onOpenDeliveries: () => widget.onNavigate(2),
+            onOpenAlerts: () => widget.onNavigate(3),
+            onOpenStats: _openStatistics,
+            onOpenOrder: _openOrder,
+          ),
+          ListeCommandes(
+            orders: _orders,
+            drivers: _drivers,
+            onOpenOrder: _openOrder,
+            onCreate: _createOrder,
+          ),
+          ListeLivraisons(orders: _orders, onOpenDelivery: _openDelivery),
+          AlertesCommandes(orders: _orders, drivers: _drivers),
+        ];
 
-    return IndexedStack(index: widget.selectedIndex, children: pages);
+        return IndexedStack(index: widget.selectedIndex, children: pages);
+      },
+    );
   }
 
   String _newOrderId() {
@@ -113,6 +178,7 @@ class _OrdersAdminModuleState extends State<OrdersAdminModule> {
         ),
       );
     });
+    await AppDatabase.instance.insertCommande(_orderToRow(order));
     _showMessage('Commande ${order.id} créée avec succès.');
   }
 
@@ -143,6 +209,7 @@ class _OrdersAdminModuleState extends State<OrdersAdminModule> {
         ),
       );
     });
+    await AppDatabase.instance.updateCommande(_orderToRow(updated), updated.id);
     _showMessage('Modifications enregistrées.');
   }
 
@@ -177,6 +244,7 @@ class _OrdersAdminModuleState extends State<OrdersAdminModule> {
         ),
       );
     });
+    await AppDatabase.instance.updateCommande(_orderToRow(order), order.id);
     _showMessage('$driverName affecté à la commande ${order.id}.');
   }
 
@@ -202,6 +270,7 @@ class _OrdersAdminModuleState extends State<OrdersAdminModule> {
         ),
       );
     });
+    await AppDatabase.instance.updateCommande(_orderToRow(order), order.id);
     _showMessage('Commande ${order.id} annulée.');
   }
 

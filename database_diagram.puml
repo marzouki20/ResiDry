@@ -1,0 +1,204 @@
+@startuml
+skinparam monochrome false
+skinparam classAttributeIconSize 0
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 12
+
+package "residry.db (schema v9)" {
+  class users {
+    + int id PK
+    + text name
+    + text email UK
+    + text password
+    + text role
+    + text phone
+  }
+
+  class societes {
+    + text id PK
+    + text nom
+    + text adresse
+    + text telephone
+    + text email
+    + text statut
+    + text datePartenariat
+    + real noteEvaluation
+    + int capaciteMaxKg
+    + int iotHealthScore
+    + text description
+  }
+
+  class machines {
+    + text id PK
+    + text societeId FK
+    + text nom
+    + text type
+    + text statut
+    + real capaciteKg
+    + real progressionCycle
+    + int tempsRestantMinutes
+    + real temperatureC
+    + real vibrationLevel
+    + real consommationKwh
+    + int santeIot
+    + text programmeActuel
+  }
+
+  class residents {
+    + int id PK
+    + text first_name
+    + text last_name
+    + text email UK
+    + text phone
+    + text residence_name
+    + text residence_address
+    + text city
+    + text postal_code
+    + text apartment_number
+    + text floor
+    + text status
+  }
+
+  class delivery_drivers {
+    + text id PK
+    + text name
+    + text email UK
+    + text phone
+    + text status
+    + text vehicle_type
+    + real rating
+    + text assigned_zone
+    + int deliveries_completed
+    + text archived_at
+    + real capacity_kg
+    + text capacity_assessment
+  }
+
+  class delivery_missions {
+    + text id PK
+    + text resident_name
+    + text apartment
+    + text locker_id
+    + text laundry_company
+    + text status
+    + text mission_type
+    + real weight_kg
+    + text scheduled_at
+    + text scheduled_label
+    + text assigned_driver_id FK
+    + text notes
+    + text updated_at
+  }
+
+  class delivery_events {
+    + int id PK
+    + text mission_id FK
+    + text event_type
+    + text details
+    + text occurred_at
+  }
+
+  class driver_service_zones {
+    + text driver_id FK
+    + text governorate_code
+    --
+    {PK} driver_id, governorate_code
+  }
+
+  class vehicle_capacity_checks {
+    + text id PK FK
+    + text brand
+    + text model
+    + text vehicle_year
+    + text photo_path
+    + text photo_source
+    + real payload_kg
+    + real reserve_kg
+    + real declared_kg
+    + int owner_confirmed
+    + text assessment
+    + text recorded_at
+    + text admin_review_status
+    + text reviewed_at
+    + text reviewed_by
+  }
+
+  class vehicle_capacity_review_events {
+    + int id PK
+    + text driver_id FK
+    + text evidence_recorded_at
+    + text photo_path
+    + text reviewed_at
+    + text reviewer
+    + text decision
+    + real payload_kg
+    + real reserve_kg
+  }
+
+  class commandes <<New>> {
+    + text id PK
+    + text nom_resident
+    + text appartement
+    + text casier
+    + text societe_lavage
+    + text statut
+    + text type_linge
+    + int quantite
+    + real poids
+    + timestamp date_creation
+    + timestamp date_collecte
+    + timestamp date_livraison
+    + real prix
+    + text nom_livreur
+    + text notes
+    + timestamp date_collecte_terminee
+    + timestamp date_depart
+    + boolean porte_fermee
+    + boolean iot_connecte
+    + timestamp derniere_synchronisation
+  }
+
+  class alertes_commandes <<New>> {
+    + int id PK
+    + text commande_id FK
+    + text titre
+    + text description
+    + text gravite
+    + boolean est_lue
+    + timestamp date_creation
+  }
+}
+
+package "laundry.db (schema v2)" {
+  class laundry_items {
+    + text id PK
+    + int resident_id
+    + text resident_name
+    + text service_type
+    + text status
+    + real price
+    + int price_confirmed
+    + text created_at
+  }
+
+  class laundry_status_history {
+    + int id PK
+    + text laundry_id FK
+    + text old_status
+    + text new_status
+    + int changed_by_user_id
+    + text changed_at
+  }
+}
+
+societes "1" -- "0..*" machines : possède
+delivery_drivers "1" -- "0..*" delivery_missions : affecté à
+delivery_drivers "1" -- "0..*" driver_service_zones : couvre
+delivery_drivers "1" -- "0..1" vehicle_capacity_checks : a
+delivery_drivers "1" -- "0..*" vehicle_capacity_review_events : historise
+delivery_missions "1" -- "0..*" delivery_events : génère
+commandes "1" -- "0..*" alertes_commandes : génère
+
+laundry_items "1" -- "0..*" laundry_status_history : historise
+
+@enduml
