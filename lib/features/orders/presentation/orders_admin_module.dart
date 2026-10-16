@@ -30,6 +30,27 @@ class _OrdersAdminModuleState extends State<OrdersAdminModule> {
       .toList();
   final List<OrderHistoryEntry> _history = List.of(orderHistorySeed);
 
+  @override
+  void initState() {
+    super.initState();
+    demoManagedOrdersRevision.addListener(_reloadOrders);
+  }
+
+  @override
+  void dispose() {
+    demoManagedOrdersRevision.removeListener(_reloadOrders);
+    super.dispose();
+  }
+
+  void _reloadOrders() {
+    if (!mounted) return;
+    setState(() {
+      _orders
+        ..clear()
+        ..addAll(demoManagedOrders.map(_copyOrder));
+    });
+  }
+
   static ManagedOrder _copyOrder(ManagedOrder order) => ManagedOrder(
     id: order.id,
     resident: order.resident,

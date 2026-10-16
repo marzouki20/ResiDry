@@ -10,6 +10,7 @@ import 'pages/locker_assignment_page.dart';
 import 'pages/notifications_page.dart';
 import 'pages/residence_page.dart';
 import 'pages/resident_profile_page.dart';
+import 'pages/resident_order_page.dart';
 import 'widgets/quick_action_card.dart';
 import 'widgets/request_card.dart';
 import 'widgets/resident_header.dart';
@@ -350,6 +351,11 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
               label: 'Locker',
               onTap: () => setState(() => _selectedIndex = 5),
             ),
+            QuickActionCard(
+              icon: Icons.shopping_cart_outlined,
+              label: 'Nouvelle commande',
+              onTap: _openResidentOrder,
+            ),
           ],
         ),
         const SizedBox(height: 22),
@@ -512,6 +518,19 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
       if (updatedRows > 0) {
         setState(() => _resident = updatedResident);
       }
+    }
+  }
+
+  Future<void> _openResidentOrder() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => ResidentOrderPage(resident: _resident),
+      ),
+    );
+    if (created == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Commande envoyée aux équipes ResiDry.')),
+      );
     }
   }
 

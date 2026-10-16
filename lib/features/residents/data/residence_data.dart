@@ -20,6 +20,16 @@ class Residence {
 
 const availableResidences = <Residence>[
   Residence(
+    id: 'esprit_school_of_engineering',
+    name: 'ESPRIT School of Engineering (ESE)',
+    address:
+        '1, 2 rue André Ampère, Pôle Technologique El Ghazala, 2083 Ariana',
+    city: 'Ariana',
+    latitude: 36.899256,
+    longitude: 10.189198,
+    radius: 300,
+  ),
+  Residence(
     id: 'residence_emna',
     name: 'Résidence Emna',
     latitude: 36.896306,

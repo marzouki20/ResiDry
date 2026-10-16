@@ -204,6 +204,14 @@ final demoManagedOrders = <ManagedOrder>[
   ),
 ];
 
+/// Notifies the order-management screens when a resident creates a command.
+final demoManagedOrdersRevision = ValueNotifier<int>(0);
+
+void addManagedOrder(ManagedOrder order) {
+  demoManagedOrders.insert(0, order);
+  demoManagedOrdersRevision.value++;
+}
+
 final orderHistorySeed = <OrderHistoryEntry>[
   OrderHistoryEntry(
     orderId: 'CMD-1024',
