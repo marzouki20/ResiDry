@@ -11,9 +11,13 @@ class LaundryStatusChange {
   });
 
   final int id;
+
+  /// References laundry_items.id, not users.id.
   final String laundryId;
   final LaundryStatus? oldStatus;
   final LaundryStatus newStatus;
+
+  /// The authenticated actor's existing users.id; null for unassigned history.
   final int? changedByUserId;
   final DateTime changedAt;
 

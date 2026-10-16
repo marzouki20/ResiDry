@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../models/user.dart';
+import '../../laundry/presentation/pages/driver_laundry_page.dart';
 import '../../../core/navigation/app_back_button.dart';
 
 import '../../../core/localization/localized_text.dart';
@@ -20,10 +22,11 @@ import 'widgets/driver_components.dart';
 
 class DriverInterface extends StatefulWidget {
   const DriverInterface(
-      {super.key, this.userName, this.userEmail, this.repository});
+      {super.key, this.userName, this.userEmail, this.currentUser, this.repository});
 
   final String? userName;
   final String? userEmail;
+  final User? currentUser;
   final DeliveryRepository? repository;
 
   @override
@@ -214,6 +217,16 @@ class _DriverInterfaceState extends State<DriverInterface> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       children: [
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.local_laundry_service_outlined),
+            title: const Text('Livraison du linge'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => DriverLaundryPage(currentUser: widget.currentUser),
+            )),
+          ),
+        ),
         PageHeading(
           title: context.tr(
             en: 'Hello${widget.userName == null ? '' : ', ${widget.userName}'}',
@@ -816,6 +829,7 @@ class _DriverInterfaceState extends State<DriverInterface> {
       if (!mounted) return;
       Navigator.of(context).push(MaterialPageRoute<void>(
           builder: (_) => DriverOnboardingPage(
+            currentUser: widget.currentUser,
               userName: _driver.name,
               userEmail: widget.userEmail,
               initialVehicle: ['Moto', 'Voiture', 'Vélo', 'Camionnette']

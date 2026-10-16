@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../database/database.dart';
+import '../../../models/user.dart';
+import '../../laundry/presentation/pages/resident_laundry_page.dart';
 import '../mock/residents_mock_data.dart';
 import 'pages/edit_profile_page.dart';
 import 'pages/laundry_request_details_page.dart';
@@ -15,10 +17,16 @@ import 'widgets/request_card.dart';
 import 'widgets/resident_header.dart';
 
 class ResidentsHomePage extends StatefulWidget {
-  const ResidentsHomePage({super.key, this.userName, this.userEmail});
+  const ResidentsHomePage({
+    super.key,
+    this.userName,
+    this.userEmail,
+    this.currentUser,
+  });
 
   final String? userName;
   final String? userEmail;
+  final User? currentUser;
 
   @override
   State<ResidentsHomePage> createState() => _ResidentsHomePageState();
@@ -351,6 +359,22 @@ class _ResidentsHomePageState extends State<ResidentsHomePage> {
               icon: Icons.lock_outline_rounded,
               label: 'Locker',
               onTap: () => setState(() => _selectedIndex = 5),
+            ),
+            QuickActionCard(
+              icon: Icons.local_laundry_service_outlined,
+              label: 'Mes demandes de linge',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ResidentLaundryPage(
+                      currentUser: widget.currentUser,
+                      residentName:
+                          widget.currentUser?.name ?? widget.userName ?? '',
+                      residentId: widget.currentUser?.id,
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),

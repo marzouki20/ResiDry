@@ -10,9 +10,15 @@ extension LaundryStatusLabel on LaundryStatus {
 }
 
 class LaundryItem {
+  /// Identifies this request, not a user account.
   final String id;
+
+  /// The resident's existing users.id. Null for an unassigned imported request.
   final int? residentId;
   final String residentName;
+
+  /// Historical text stored on the request; residentName may be resolved live.
+  final String residentNameSnapshot;
   final String serviceType;
   final LaundryStatus status;
   final double price;
@@ -23,17 +29,19 @@ class LaundryItem {
     required this.id,
     this.residentId,
     required this.residentName,
+    String? residentNameSnapshot,
     required this.serviceType,
     required this.status,
     required this.price,
     this.priceConfirmed = false,
     DateTime? createdAt,
-  }) : createdAt = createdAt ?? DateTime.now().toUtc();
+  }) : residentNameSnapshot = residentNameSnapshot ?? residentName,
+       createdAt = createdAt ?? DateTime.now().toUtc();
 
   Map<String, Object?> toMap() => {
     'id': id,
     'resident_id': residentId,
-    'resident_name': residentName,
+    'resident_name': residentNameSnapshot,
     'service_type': serviceType,
     'status': status.name,
     'price': price,
@@ -64,6 +72,7 @@ class LaundryItem {
     id: id ?? this.id,
     residentId: residentId ?? this.residentId,
     residentName: residentName ?? this.residentName,
+    residentNameSnapshot: residentNameSnapshot,
     serviceType: serviceType ?? this.serviceType,
     status: status ?? this.status,
     price: price ?? this.price,

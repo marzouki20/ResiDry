@@ -1,12 +1,18 @@
-// Relative imports are required by this module's project instructions.
-// ignore_for_file: avoid_relative_lib_imports
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as paths;
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import '../../lib/models/laundry_item.dart';
-import '../../lib/models/laundry_role.dart';
-import '../../lib/features/laundry/data/repositories/laundry_repository.dart';
-import 'support/memory_database.dart';
+import 'package:ttttttteee/database/database.dart';
+import 'package:ttttttteee/models/laundry_item.dart';
+import 'package:ttttttteee/models/laundry_role.dart';
+import 'package:ttttttteee/models/user.dart';
+import 'package:ttttttteee/features/laundry/data/repositories/laundry_repository.dart';
+import 'package:ttttttteee/features/laundry/data/repositories/laundry_user_directory.dart';
+
+import 'support/sqlite_test_database.dart';
+import 'support/test_accounts.dart';
 
 LaundryItem request({
   String id = 'LD1',
@@ -16,351 +22,499 @@ LaundryItem request({
 }) => LaundryItem(
   id: id,
   residentId: residentId,
-  residentName: 'Ahmed',
+  residentName: 'Untrusted name',
   serviceType: 'Lavage',
   status: status,
   price: price,
 );
 
 void main() {
-  late MemoryDatabase db;
-  late LaundryRepository repository;
-  setUp(() {
-    db = MemoryDatabase();
-    repository = LaundryRepository(databaseProvider: () async => db);
-  });
-
-  test('mapping preserves nullable resident, price and UTC creation date', () {
-    final item = request(residentId: null);
-    final restored = LaundryItem.fromMap(item.toMap()..['price'] = 15);
-    expect(restored.residentId, isNull);
-    expect(restored.price, 15.0);
-    expect(restored.createdAt, item.createdAt);
-    expect(
-      restored.copyWith(serviceType: 'Repassage').createdAt,
-      item.createdAt,
+  late Database db;
+  late LaundryRepository admin;
+  late LaundryRepository resident;
+  late LaundryRepository pressing;
+  late LaundryRepository driver;
+  setUp(() async {
+    db = await openLaundryTestDatabase();
+    admin = LaundryRepository(
+      currentUser: testAdmin,
+      databaseProvider: () async => db,
     );
+    resident = admin.forUser(testResident);
+    pressing = admin.forUser(testPressing);
+    driver = admin.forUser(testDriver);
   });
+  tearDown(() async => db.close());
 
-  test('empty repository has no automatic demo data', () async {
-    expect(await repository.getAll(), isEmpty);
+  test('uses exact stored roles and rejects unknown labels', () {
+    expect(laundryRoleFromUserRole('Résident'), LaundryRole.resident);
+    expect(laundryRoleFromUserRole('Livreur'), LaundryRole.driver);
+    expect(laundryRoleFromUserRole('Société de lavage'), LaundryRole.pressing);
+    expect(laundryRoleFromUserRole('Administrateur'), LaundryRole.admin);
+    expect(laundryRoleFromUserRole('Société de pressing'), isNull);
+    expect(laundryRoleFromUserRole('admin'), isNull);
   });
-
-  test('resident CRUD persists through another repository instance', () async {
-    final item = request();
-    await repository.addForResident(item, residentId: 1);
-    final another = LaundryRepository(databaseProvider: () async => db);
-    expect((await another.getById(item.id))!.price, 0);
-    await repository.updateForResident(
-      item.copyWith(serviceType: 'Repassage', price: 10),
-      residentId: 1,
-    );
-    expect((await another.getById(item.id))!.serviceType, 'Repassage');
-    await repository.deleteForResident(item.id, residentId: 1);
-    expect(await another.getAll(), isEmpty);
-  });
-
-  test('resident list excludes other residents and null IDs', () async {
-    await repository.add(request());
-    await repository.add(request(id: 'LD2', residentId: 2));
-    await repository.add(request(id: 'LD3', residentId: null));
-    expect((await repository.getByResidentId(1)).map((item) => item.id), [
-      'LD1',
-    ]);
-  });
-
-  test('resident read does not disclose the administrator quote', () async {
-    await repository.add(request(price: 75).copyWith(priceConfirmed: true));
-    final residentView = (await repository.getByResidentId(1)).single;
-    expect(residentView.price, 0);
-    expect(residentView.priceConfirmed, isFalse);
-    final administratorView = (await repository.getById('LD1'))!;
-    expect(administratorView.price, 75);
-    expect(administratorView.priceConfirmed, isTrue);
-  });
-
   test(
-    'resident cannot create a request for someone else or beyond deposited',
+    'reads existing central users and resident selector excludes staff',
     () async {
-      expect(
-        () => repository.addForResident(request(residentId: 2), residentId: 1),
+      final directory = LaundryUserDirectory(databaseProvider: () async => db);
+      expect((await directory.getUserById(1))!.name, 'Ahmed');
+      expect(await directory.getUserById(123456), isNull);
+      expect((await admin.getResidents()).map((u) => u.id), [1, 2]);
+      expect(await admin.getAll(), isEmpty);
+      await expectLater(
+        resident.getResidents(),
         throwsA(isA<LaundryException>()),
       );
+    },
+  );
+  test('all entry points require an authenticated account', () async {
+    final anonymous = LaundryRepository(databaseProvider: () async => db);
+    for (final action in <Future<Object?> Function()>[
+      anonymous.getAll,
+      () => anonymous.getById('LD1'),
+      () => anonymous.add(request()),
+      () => anonymous.getByResidentId(1),
+      () => anonymous.delete('LD1'),
+      () => anonymous.getStatusHistory('LD1'),
+    ]) {
+      await expectLater(action(), throwsA(isA<LaundryException>()));
+    }
+  });
+  test(
+    'rejects missing and unknown accounts and ignores a forged role',
+    () async {
+      for (final user in [
+        const User(
+          id: 1234,
+          name: 'Fake',
+          email: '',
+          password: '',
+          role: 'Administrateur',
+        ),
+        testUnknown,
+      ]) {
+        await expectLater(
+          admin.forUser(user).getAll(),
+          throwsA(isA<LaundryException>()),
+        );
+      }
+      const forged = User(
+        id: 1,
+        name: 'Fake admin',
+        email: '',
+        password: '',
+        role: 'Administrateur',
+      );
+      await expectLater(
+        admin.forUser(forged).add(request()),
+        throwsA(isA<LaundryException>()),
+      );
+    },
+  );
+  test(
+    'admin requires a real resident account, never a profile ID or staff ID',
+    () async {
+      for (final id in [null, -1, 501, testDriver.id]) {
+        await expectLater(
+          admin.add(request(residentId: id)),
+          throwsA(isA<LaundryException>()),
+        );
+      }
+      expect(await admin.getAll(), isEmpty);
+    },
+  );
+  test(
+    'resident creation derives name, owner, zero quote and history author',
+    () async {
+      await resident.addForResident(
+        request(price: 999).copyWith(priceConfirmed: true),
+        residentId: 1,
+      );
+      final saved = (await admin.getById('LD1'))!;
+      expect(saved.residentId, 1);
+      expect(saved.residentName, 'Ahmed');
+      expect(saved.price, 0);
+      expect(saved.priceConfirmed, isFalse);
+      expect((await admin.getStatusHistory('LD1')).single.changedByUserId, 1);
       expect(
-        () => repository.addForResident(
+        (await db.query('laundry_items')).single.keys,
+        isNot(contains('password')),
+      );
+    },
+  );
+  test(
+    'resident cannot create for another account or create a later status',
+    () async {
+      await expectLater(
+        resident.addForResident(request(residentId: 2), residentId: 2),
+        throwsA(isA<LaundryException>()),
+      );
+      await expectLater(
+        resident.addForResident(
           request(status: LaundryStatus.ready),
           residentId: 1,
         ),
         throwsA(isA<LaundryException>()),
       );
-      expect(await repository.getAll(), isEmpty);
     },
   );
-
   test(
-    'resident cannot edit/delete/read history of another resident',
+    'ownership applies to lists, single reads, history, edits and deletion',
     () async {
-      final item = request(residentId: 2);
-      await repository.add(item);
-      await expectLater(
-        repository.updateForResident(item, residentId: 1),
-        throwsA(isA<LaundryException>()),
-      );
-      await expectLater(
-        repository.deleteForResident(item.id, residentId: 1),
-        throwsA(isA<LaundryException>()),
-      );
-      await expectLater(
-        repository.getStatusHistory(item.id, residentId: 1),
-        throwsA(isA<LaundryException>()),
-      );
-      expect(await repository.getById(item.id), isNotNull);
+      await admin.add(request(residentId: 2));
+      expect(await resident.getByResidentId(1), isEmpty);
+      for (final action in <Future<Object?> Function()>[
+        () => resident.getByResidentId(2),
+        () => resident.getById('LD1'),
+        () => resident.getStatusHistory('LD1'),
+        () => resident.updateForResident(request(), residentId: 1),
+        () => resident.deleteForResident('LD1', residentId: 1),
+        resident.getAll,
+      ]) {
+        await expectLater(action(), throwsA(isA<LaundryException>()));
+      }
     },
   );
-
-  test('resident edit cannot overwrite identity, status or price', () async {
-    final item = request().copyWith(priceConfirmed: true);
-    await repository.add(item);
-    await repository.updateForResident(
-      item.copyWith(
-        residentName: 'Other',
-        residentId: 9,
+  test('resident CRUD is persistent across repository instances and preserves staff quote', () async {
+    await admin.add(request().copyWith(priceConfirmed: true));
+    final another = LaundryRepository(
+      currentUser: testResident,
+      databaseProvider: () async => db,
+    );
+    expect((await another.getByResidentId(1)).single.price, 0);
+    await another.updateForResident(
+      request().copyWith(
+        residentId: 2,
+        residentName: 'Fake',
+        serviceType: 'Repassage',
         status: LaundryStatus.delivered,
-        price: 20,
+        price: -999,
       ),
       residentId: 1,
     );
-    final saved = (await repository.getById(item.id))!;
+    final saved = (await admin.getById('LD1'))!;
+    expect(saved.serviceType, 'Repassage');
     expect(saved.residentId, 1);
     expect(saved.residentName, 'Ahmed');
     expect(saved.status, LaundryStatus.deposited);
     expect(saved.price, 15);
-    expect(saved.priceConfirmed, isTrue);
+    expect(saved.priceConfirmed, isFalse);
+    await another.deleteForResident('LD1', residentId: 1);
+    expect(await admin.getAll(), isEmpty);
+    expect(await db.query('laundry_status_history'), isEmpty);
   });
-
-  test(
-    'resident creation ignores supplied price and quote confirmation',
-    () async {
-      await repository.addForResident(
-        request(price: 999).copyWith(priceConfirmed: true),
-        residentId: 1,
-      );
-      final saved = (await repository.getById('LD1'))!;
-      expect(saved.price, 0);
-      expect(saved.priceConfirmed, isFalse);
-    },
-  );
-
-  test(
-    'service change invalidates quote without overwriting administrator amount',
-    () async {
-      final quoted = request(price: 25).copyWith(priceConfirmed: true);
-      await repository.add(quoted);
-      await repository.updateForResident(
-        quoted.copyWith(serviceType: 'Repassage', price: 999),
-        residentId: 1,
-      );
-      final saved = (await repository.getById('LD1'))!;
-      expect(saved.serviceType, 'Repassage');
-      expect(saved.price, 25);
-      expect(saved.priceConfirmed, isFalse);
-      expect((await repository.getStatusHistory('LD1')).length, 1);
-    },
-  );
-
-  test('resident cannot confirm an unpriced request through an edit', () async {
-    await repository.addForResident(request(), residentId: 1);
-    final saved = (await repository.getById('LD1'))!;
-    await repository.updateForResident(
-      saved.copyWith(price: 50, priceConfirmed: true),
-      residentId: 1,
-    );
-    final updated = (await repository.getById('LD1'))!;
-    expect(updated.price, 0);
-    expect(updated.priceConfirmed, isFalse);
-  });
-
-  test(
-    'confirmed free service is distinguishable from unpriced request',
-    () async {
-      await repository.add(
-        request(id: 'FREE', price: 0).copyWith(priceConfirmed: true),
-      );
-      await repository.addForResident(request(id: 'PENDING'), residentId: 1);
-      expect((await repository.getById('FREE'))!.priceConfirmed, isTrue);
-      expect((await repository.getById('PENDING'))!.priceConfirmed, isFalse);
-      final restored = LaundryItem.fromMap(
-        (await repository.getById('FREE'))!.toMap(),
-      );
-      expect(restored.price, 0);
-      expect(restored.priceConfirmed, isTrue);
-    },
-  );
-
-  test('stale resident edit/delete is blocked after pressing starts', () async {
-    final stale = request();
-    await repository.add(stale);
-    await repository.transitionStatus(
-      stale.id,
-      expectedStatus: LaundryStatus.deposited,
-      newStatus: LaundryStatus.processing,
-      role: LaundryRole.pressing,
-    );
-    await expectLater(
-      repository.updateForResident(stale, residentId: 1),
-      throwsA(isA<LaundryException>()),
-    );
-    await expectLater(
-      repository.deleteForResident(stale.id, residentId: 1),
-      throwsA(isA<LaundryException>()),
-    );
-  });
-
-  test(
-    'pressing and driver complete workflow with attributed history',
-    () async {
-      await repository.addForResident(request(), residentId: 1);
-      await repository.transitionStatus(
-        'LD1',
-        expectedStatus: LaundryStatus.deposited,
-        newStatus: LaundryStatus.processing,
-        role: LaundryRole.pressing,
-        changedByUserId: 7,
-      );
-      await repository.transitionStatus(
-        'LD1',
-        expectedStatus: LaundryStatus.processing,
-        newStatus: LaundryStatus.ready,
-        role: LaundryRole.pressing,
-        changedByUserId: 7,
-      );
-      await repository.transitionStatus(
-        'LD1',
-        expectedStatus: LaundryStatus.ready,
-        newStatus: LaundryStatus.delivered,
-        role: LaundryRole.driver,
-        changedByUserId: 8,
-      );
-      expect(
-        (await repository.getById('LD1'))!.status,
-        LaundryStatus.delivered,
-      );
-      final history = await repository.getStatusHistory('LD1', residentId: 1);
-      expect(history.map((change) => change.newStatus), LaundryStatus.values);
-      expect(history.map((change) => change.changedByUserId), [1, 7, 7, 8]);
-      expect(history.first.oldStatus, isNull);
-      expect(history.last.oldStatus, LaundryStatus.ready);
-    },
-  );
-
-  test('invalid role, skipping and backward transitions are blocked', () async {
-    await repository.add(request());
-    for (final role in LaundryRole.values) {
-      await expectLater(
-        repository.transitionStatus(
-          'LD1',
-          expectedStatus: LaundryStatus.deposited,
-          newStatus: LaundryStatus.delivered,
-          role: role,
-        ),
-        throwsA(isA<LaundryException>()),
-      );
-    }
-    await expectLater(
-      repository.transitionStatus(
-        'LD1',
-        expectedStatus: LaundryStatus.ready,
-        newStatus: LaundryStatus.processing,
-        role: LaundryRole.pressing,
-      ),
-      throwsA(isA<LaundryException>()),
-    );
-    expect((await repository.getStatusHistory('LD1')).length, 1);
-  });
-
-  test('stale transition cannot create duplicate history', () async {
-    await repository.add(request());
-    await repository.transitionStatus(
+  test('complete workflow records real actors in order', () async {
+    await resident.addForResident(request(), residentId: 1);
+    await pressing.transitionStatus(
       'LD1',
       expectedStatus: LaundryStatus.deposited,
       newStatus: LaundryStatus.processing,
-      role: LaundryRole.pressing,
     );
-    await expectLater(
-      repository.transitionStatus(
-        'LD1',
-        expectedStatus: LaundryStatus.deposited,
-        newStatus: LaundryStatus.processing,
-        role: LaundryRole.pressing,
-      ),
-      throwsA(isA<LaundryException>()),
+    await pressing.transitionStatus(
+      'LD1',
+      expectedStatus: LaundryStatus.processing,
+      newStatus: LaundryStatus.ready,
     );
-    expect((await repository.getStatusHistory('LD1')).length, 2);
+    await driver.transitionStatus(
+      'LD1',
+      expectedStatus: LaundryStatus.ready,
+      newStatus: LaundryStatus.delivered,
+    );
+    final history = await admin.getStatusHistory('LD1');
+    expect(history.map((h) => h.changedByUserId), [1, 7, 7, 8]);
+    expect(history.map((h) => h.newStatus), LaundryStatus.values);
+    expect(history.first.oldStatus, isNull);
+    expect((await admin.getById('LD1'))!.status, LaundryStatus.delivered);
   });
-
   test(
-    'history insertion failure rolls back creation and transition',
+    'wrong roles, forged authors, skipped, backward and stale transitions fail',
     () async {
-      db.failHistory = true;
-      await expectLater(repository.add(request()), throwsStateError);
-      expect(await repository.getAll(), isEmpty);
-      db.failHistory = false;
-      await repository.add(request());
-      db.failHistory = true;
+      await admin.add(request());
       await expectLater(
-        repository.transitionStatus(
+        driver.transitionStatus(
           'LD1',
           expectedStatus: LaundryStatus.deposited,
           newStatus: LaundryStatus.processing,
           role: LaundryRole.pressing,
         ),
-        throwsStateError,
+        throwsA(isA<LaundryException>()),
+      );
+      await expectLater(
+        pressing.transitionStatus(
+          'LD1',
+          expectedStatus: LaundryStatus.deposited,
+          newStatus: LaundryStatus.processing,
+          changedByUserId: 8,
+        ),
+        throwsA(isA<LaundryException>()),
+      );
+      await expectLater(
+        resident.transitionStatus(
+          'LD1',
+          expectedStatus: LaundryStatus.deposited,
+          newStatus: LaundryStatus.processing,
+        ),
+        throwsA(isA<LaundryException>()),
+      );
+      await expectLater(
+        pressing.transitionStatus(
+          'LD1',
+          expectedStatus: LaundryStatus.deposited,
+          newStatus: LaundryStatus.ready,
+        ),
+        throwsA(isA<LaundryException>()),
+      );
+      await pressing.transitionStatus(
+        'LD1',
+        expectedStatus: LaundryStatus.deposited,
+        newStatus: LaundryStatus.processing,
+      );
+      await expectLater(
+        pressing.transitionStatus(
+          'LD1',
+          expectedStatus: LaundryStatus.deposited,
+          newStatus: LaundryStatus.processing,
+        ),
+        throwsA(isA<LaundryException>()),
+      );
+      await expectLater(
+        pressing.transitionStatus(
+          'LD1',
+          expectedStatus: LaundryStatus.processing,
+          newStatus: LaundryStatus.deposited,
+        ),
+        throwsA(isA<LaundryException>()),
+      );
+      expect((await admin.getStatusHistory('LD1')).length, 2);
+    },
+  );
+  test('pressing and driver cannot use administrator CRUD', () async {
+    await admin.add(request());
+    for (final staff in [pressing, driver, resident]) {
+      await expectLater(
+        staff.add(request(id: 'OTHER')),
+        throwsA(isA<LaundryException>()),
+      );
+      await expectLater(
+        staff.update(request()),
+        throwsA(isA<LaundryException>()),
+      );
+      await expectLater(staff.delete('LD1'), throwsA(isA<LaundryException>()));
+    }
+    expect(await driver.getAll(), isEmpty);
+    await expectLater(driver.getById('LD1'), throwsA(isA<LaundryException>()));
+  });
+  test(
+    'stored role changes and deleted accounts revoke access immediately',
+    () async {
+      await admin.add(request());
+      await db.update(
+        'users',
+        {'role': 'unknown'},
+        where: 'id = ?',
+        whereArgs: [7],
+      );
+      await expectLater(
+        pressing.transitionStatus(
+          'LD1',
+          expectedStatus: LaundryStatus.deposited,
+          newStatus: LaundryStatus.processing,
+        ),
+        throwsA(isA<LaundryException>()),
+      );
+      await db.delete('users', where: 'id = ?', whereArgs: [8]);
+      await expectLater(driver.getAll(), throwsA(isA<LaundryException>()));
+    },
+  );
+  test(
+    'old resident form cannot edit or delete after pressing starts',
+    () async {
+      await admin.add(request());
+      await pressing.transitionStatus(
+        'LD1',
+        expectedStatus: LaundryStatus.deposited,
+        newStatus: LaundryStatus.processing,
+      );
+      await expectLater(
+        resident.updateForResident(request(), residentId: 1),
+        throwsA(isA<LaundryException>()),
+      );
+      await expectLater(
+        resident.deleteForResident('LD1', residentId: 1),
+        throwsA(isA<LaundryException>()),
+      );
+    },
+  );
+  test(
+    'live account names resolve without overwriting historical snapshots',
+    () async {
+      await admin.add(request());
+      await db.update(
+        'users',
+        {'name': 'Ahmed Nouveau'},
+        where: 'id = ?',
+        whereArgs: [1],
+      );
+      final item = (await admin.getById('LD1'))!;
+      expect(item.residentName, 'Ahmed Nouveau');
+      expect(item.residentNameSnapshot, 'Ahmed');
+      await admin.update(item.copyWith(serviceType: 'Repassage'));
+      expect(
+        (await db.query('laundry_items')).single['resident_name'],
+        'Ahmed',
       );
       expect(
-        (await repository.getById('LD1'))!.status,
-        LaundryStatus.deposited,
+        (await resident.getByResidentId(1)).single.residentName,
+        'Ahmed Nouveau',
       );
-      expect((await repository.getStatusHistory('LD1')).length, 1);
     },
   );
-
-  test(
-    'administrator CRUD records status change and preserves creation date',
-    () async {
-      final item = request(residentId: null);
-      await repository.add(item);
-      await repository.update(
-        item.copyWith(
-          residentName: 'Sara',
-          price: 25,
-          status: LaundryStatus.ready,
-        ),
-      );
-      final saved = (await repository.getById(item.id))!;
-      expect(saved.residentName, 'Sara');
-      expect(saved.createdAt, item.createdAt);
-      expect((await repository.getStatusHistory(item.id)).length, 2);
-      await repository.update(saved.copyWith(price: 30));
-      expect((await repository.getStatusHistory(item.id)).length, 2);
-      await repository.delete(item.id);
-      expect(db.rows['laundry_status_history'], isEmpty);
-    },
-  );
-
-  test('invalid prices and missing requests are rejected', () async {
+  test('admin can explicitly associate an unassigned legacy request', () async {
+    await db.insert('laundry_items', request(residentId: null).toMap());
+    expect(await resident.getByResidentId(1), isEmpty);
+    await expectLater(
+      resident.getStatusHistory('LD1'),
+      throwsA(isA<LaundryException>()),
+    );
+    final legacy = (await admin.getById('LD1'))!;
+    await admin.update(legacy.copyWith(residentId: 1));
+    expect((await resident.getByResidentId(1)).single.residentName, 'Ahmed');
+    expect(
+      (await admin.getById('LD1'))!.residentNameSnapshot,
+      'Untrusted name',
+    );
+  });
+  test('history insertion failures roll back both creation and transition in real SQLite', () async {
+    await admin.add(request());
+    await db.execute(
+      "CREATE TRIGGER reject_history BEFORE INSERT ON laundry_status_history BEGIN SELECT RAISE(ABORT, 'test failure'); END",
+    );
+    await expectLater(
+      admin.add(request(id: 'FAILED')),
+      throwsA(isA<DatabaseException>()),
+    );
+    expect(await admin.getById('FAILED'), isNull);
+    await expectLater(
+      pressing.transitionStatus(
+        'LD1',
+        expectedStatus: LaundryStatus.deposited,
+        newStatus: LaundryStatus.processing,
+      ),
+      throwsA(isA<DatabaseException>()),
+    );
+    expect((await admin.getById('LD1'))!.status, LaundryStatus.deposited);
+    expect((await admin.getStatusHistory('LD1')).length, 1);
+  });
+  test('admin CRUD preserves creation dates, records status author, validates prices and cascades history', () async {
+    final item = request();
+    await admin.add(item);
+    await admin.update(
+      item.copyWith(
+        price: 0,
+        priceConfirmed: true,
+        status: LaundryStatus.ready,
+      ),
+    );
+    final saved = (await admin.getById(item.id))!;
+    expect(saved.createdAt, item.createdAt);
+    expect(saved.priceConfirmed, isTrue);
+    expect(saved.price, 0);
+    expect((await admin.getStatusHistory(item.id)).last.changedByUserId, 9);
     for (final price in [-1.0, double.nan, double.infinity]) {
       await expectLater(
-        repository.add(request(price: price)),
+        admin.update(saved.copyWith(price: price)),
         throwsA(isA<LaundryException>()),
       );
     }
-    await expectLater(
-      repository.update(request()),
-      throwsA(isA<LaundryException>()),
-    );
-    await expectLater(
-      repository.deleteForResident('missing', residentId: 1),
-      throwsA(isA<LaundryException>()),
-    );
+    await admin.delete(item.id);
+    expect(await db.query('laundry_status_history'), isEmpty);
   });
+  test(
+    'same-database foreign keys protect users and reject missing references',
+    () async {
+      await admin.add(request());
+      await expectLater(
+        db.delete('users', where: 'id = ?', whereArgs: [1]),
+        throwsA(isA<DatabaseException>()),
+      );
+      await expectLater(
+        db.insert(
+          'laundry_items',
+          request(id: 'BAD', residentId: 8888).toMap(),
+        ),
+        throwsA(isA<DatabaseException>()),
+      );
+      expect(await db.rawQuery('PRAGMA foreign_key_check'), isEmpty);
+    },
+  );
+
+  for (final version in [1, 2, 3]) {
+    test(
+      'imports legacy v$version without guessing owners or authors and keeps archive unchanged',
+      () async {
+        databaseFactory = databaseFactoryFfi;
+        final directory = await Directory.systemTemp.createTemp(
+          'residry-legacy-test-',
+        );
+        addTearDown(() => directory.delete(recursive: true));
+        final file = paths.join(directory.path, 'laundry.db');
+        final legacy = await databaseFactoryFfi.openDatabase(file);
+        await legacy.execute(
+          'CREATE TABLE laundry_items(id TEXT PRIMARY KEY,resident_id INTEGER,resident_name TEXT,service_type TEXT,status TEXT,price REAL,created_at TEXT${version >= 2 ? ',price_confirmed INTEGER' : ''}${version >= 3 ? ',resident_link_verified INTEGER' : ''})',
+        );
+        await legacy.execute(
+          'CREATE TABLE laundry_status_history(id INTEGER PRIMARY KEY, laundry_id TEXT, old_status TEXT, new_status TEXT, changed_by_user_id INTEGER, changed_at TEXT${version >= 3 ? ',actor_verified INTEGER' : ''})',
+        );
+        await legacy.insert('laundry_items', {
+          'id': 'OLD',
+          'resident_id': 1,
+          'resident_name': 'Someone else',
+          'service_type': 'Lavage',
+          'status': 'processing',
+          'price': 27.5,
+          'created_at': '2026-10-15T00:00:00Z',
+          if (version >= 2) 'price_confirmed': 1,
+          if (version >= 3) 'resident_link_verified': 1,
+        });
+        await legacy.insert('laundry_status_history', {
+          'id': 12,
+          'laundry_id': 'OLD',
+          'old_status': 'deposited',
+          'new_status': 'processing',
+          'changed_by_user_id': 9,
+          'changed_at': '2026-10-15T00:00:00Z',
+          if (version >= 3) 'actor_verified': 1,
+        });
+        await legacy.close();
+        final original = await File(file).readAsBytes();
+        await db.transaction(
+          (txn) => AppDatabase.importLegacyLaundry(txn, file),
+        );
+        final item = (await admin.getById('OLD'))!;
+        expect(item.residentId, isNull);
+        expect(item.residentName, 'Someone else');
+        expect(item.price, 27.5);
+        expect(item.priceConfirmed, version >= 2);
+        expect(
+          (await admin.getStatusHistory('OLD')).single.changedByUserId,
+          isNull,
+        );
+        expect((await admin.getStatusHistory('OLD')).single.id, 12);
+        expect(await resident.getByResidentId(1), isEmpty);
+        expect(await File(file).readAsBytes(), original);
+        final archive = await databaseFactoryFfi.openDatabase(
+          file,
+          options: OpenDatabaseOptions(readOnly: true),
+        );
+        expect((await archive.query('laundry_items')).single['resident_id'], 1);
+        expect(
+          (await archive.query('laundry_status_history'))
+              .single['changed_by_user_id'],
+          9,
+        );
+        await archive.close();
+      },
+    );
+  }
 }

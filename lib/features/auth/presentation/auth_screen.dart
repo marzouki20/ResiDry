@@ -6,6 +6,7 @@ import '../../../core/localization/app_locale.dart';
 import '../../../core/localization/language_picker_button.dart';
 import '../../../database/database.dart';
 import '../../../models/user.dart';
+import '../../laundry/presentation/widgets/laundry_navigation_access.dart';
 import '../../../core/backend/backend_client.dart';
 import '../../delivery_drivers/presentation/application_status_screen.dart';
 import '../../../core/validation/tunisian_phone.dart';
@@ -13,7 +14,6 @@ import '../../casiers/presentation/admin/admin_interface.dart';
 import '../../delivery_drivers/presentation/driver_interface.dart';
 import '../../delivery_drivers/presentation/driver_onboarding_page.dart';
 import '../../delivery_drivers/data/driver_profile_repository.dart';
-import '../../laundry_companies/data/sample_laundry_data.dart';
 import '../../laundry_companies/presentation/company_interface.dart';
 import '../../residents/presentation/residents_home_page.dart';
 import '../../residents/mock/residents_mock_data.dart';
@@ -265,7 +265,8 @@ class _AuthScreenState extends State<AuthScreen> {
             ? TunisianPhone.toInternational(_phoneController.text)
             : null,
       );
-      await database.createUser(user.toMap());
+      final userId = await database.createUser(user.toMap());
+      final authenticatedUser = User.fromMap({...user.toMap(), 'id': userId});
       if (_selectedRole == 'Résident') {
         final nameParts = name.split(RegExp(r'\s+'));
         await database.createResident(
@@ -290,11 +291,11 @@ class _AuthScreenState extends State<AuthScreen> {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute<void>(
               builder: (_) =>
-                  DriverOnboardingPage(userName: name, userEmail: email),
+                  DriverOnboardingPage(userName: name, userEmail: email, currentUser: authenticatedUser),
             ),
           );
         } else {
-          _openHome(name, _selectedRole, email: email);
+          _openHome(name, _selectedRole, email: email, currentUser: authenticatedUser);
         }
       }
     } on BackendException catch (error) {
@@ -362,11 +363,11 @@ class _AuthScreenState extends State<AuthScreen> {
         if (!mounted) return;
         Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
             builder: (_) => configured
-                ? DriverInterface(userName: user.name, userEmail: user.email)
+                ? DriverInterface(userName: user.name, userEmail: user.email, currentUser: user)
                 : DriverOnboardingPage(
-                    userName: user.name, userEmail: user.email)));
+                    userName: user.name, userEmail: user.email, currentUser: user)));
       } else if (mounted) {
-        _openHome(user.name, user.role, email: user.email);
+        _openHome(user.name, user.role, email: user.email, currentUser: user);
       }
     } on BackendException catch (error) {
       if (mounted) _showBackendError(error);
@@ -438,15 +439,15 @@ class _AuthScreenState extends State<AuthScreen> {
                 ar: 'فشل الطلب. تحقق من بياناتك واتصالك.'));
   }
 
-  void _openHome(String name, String role, {String? email}) {
+  void _openHome(String name, String role, {String? email, User? currentUser}) {
     final homePage = role == 'Livreur'
-        ? DriverOnboardingPage(userName: name, userEmail: email)
+        ? DriverOnboardingPage(userName: name, userEmail: email, currentUser: currentUser)
         : role == 'Administrateur'
-            ? AdminInterface(userName: name)
+            ? AdminInterface(userName: name, currentUser: currentUser)
             : role == 'Résident'
-                ? ResidentsHomePage(userName: name, userEmail: email)
+                ? ResidentsHomePage(userName: name, userEmail: email, currentUser: currentUser)
                 : role == 'Société de lavage'
-                    ? SocieteInterface(userName: name)
+                    ? currentUser == null ? SocieteInterface(userName: name) : LaundryNavigationAccess(currentUser: currentUser, child: SocieteInterface(userName: name))
                     : HomePage(userName: name, userRole: role);
 
     Navigator.of(context).pushReplacement(

@@ -47,7 +47,7 @@ Future<void> showLaundryHistory(
                       child: Text(
                         '${change.oldStatus?.label ?? 'Création'} → ${change.newStatus.label}\n'
                         '${laundryDate(change.changedAt)}'
-                        '${change.changedByUserId == null ? '' : '\nUtilisateur : ${change.changedByUserId}'}',
+                        '${change.changedByUserId == null ? '\nAuteur historique non associé' : '\nUtilisateur : ${change.changedByUserId}'}',
                       ),
                     ),
                 ],

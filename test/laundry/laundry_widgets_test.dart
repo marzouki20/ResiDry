@@ -1,39 +1,46 @@
-// Relative imports are required by this module's project instructions.
-// ignore_for_file: avoid_relative_lib_imports
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../lib/core/theme/app_theme.dart';
-import '../../lib/models/laundry_item.dart';
-import '../../lib/models/laundry_role.dart';
-import '../../lib/features/laundry/data/repositories/laundry_repository.dart';
-import '../../lib/features/laundry/laundry_dev_main.dart';
-import '../../lib/features/laundry/presentation/laundry_page.dart';
-import '../../lib/features/laundry/presentation/navigation/laundry_routes.dart';
-import '../../lib/features/laundry/presentation/pages/driver_laundry_page.dart';
-import '../../lib/features/laundry/presentation/pages/pressing_laundry_page.dart';
-import '../../lib/features/laundry/presentation/pages/resident_laundry_page.dart';
-import '../../lib/features/laundry/presentation/widgets/laundry_admin_dialog.dart';
+import 'package:ttttttteee/core/theme/app_theme.dart';
+import 'package:ttttttteee/models/laundry_item.dart';
+import 'package:ttttttteee/features/laundry/data/repositories/laundry_repository.dart';
+import 'package:ttttttteee/features/laundry/laundry_dev_main.dart';
+import 'package:ttttttteee/features/laundry/presentation/laundry_page.dart';
+import 'package:ttttttteee/features/laundry/presentation/navigation/laundry_routes.dart';
+import 'package:ttttttteee/features/laundry/presentation/pages/driver_laundry_page.dart';
+import 'package:ttttttteee/features/laundry/presentation/pages/pressing_laundry_page.dart';
+import 'package:ttttttteee/features/laundry/presentation/pages/resident_laundry_page.dart';
+import 'package:ttttttteee/features/laundry/presentation/widgets/laundry_admin_dialog.dart';
+import 'package:ttttttteee/features/laundry/presentation/widgets/laundry_navigation_access.dart';
+
 import 'support/memory_database.dart';
+import 'support/test_accounts.dart';
 
 void main() {
-  late LaundryRepository repository;
+  late MemoryDatabase db;
+  late LaundryRepository admin;
   setUp(() {
-    final db = MemoryDatabase();
-    repository = LaundryRepository(databaseProvider: () async => db);
+    db = MemoryDatabase();
+    db.rows['users']!.addAll(testAccounts.map((user) => user.toMap()));
+    admin = LaundryRepository(
+      currentUser: testAdmin,
+      databaseProvider: () async => db,
+    );
   });
-
-  LaundryItem item(String id, LaundryStatus status, {int residentId = 1}) =>
-      LaundryItem(
-        id: id,
-        residentId: residentId,
-        residentName: 'Résident $residentId',
-        serviceType: 'Lavage',
-        status: status,
-        price: 15,
-      );
-
+  LaundryItem item(
+    String id, {
+    int residentId = 1,
+    LaundryStatus status = LaundryStatus.deposited,
+    bool confirmed = false,
+  }) => LaundryItem(
+    id: id,
+    residentId: residentId,
+    residentName: 'Untrusted',
+    serviceType: 'Lavage',
+    status: status,
+    price: 15,
+    priceConfirmed: confirmed,
+  );
   Future<void> open(WidgetTester tester, Widget page) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -44,36 +51,36 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('standalone administrator page has working navigation shell', (
+  testWidgets(
+    'standalone admin fits compact screen and opens account selector',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: LaundryPage(repository: admin),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(Scaffold), findsOneWidget);
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      expect(find.text('Compte résident'), findsOneWidget);
+      expect(find.byType(TextFormField), findsNWidgets(2));
+      await tester.tap(find.text('Annuler'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets('embedded admin uses its parent scaffold and app bar', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(360, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light,
-        home: LaundryPage(repository: repository),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.byType(Scaffold), findsOneWidget);
-    expect(find.byType(AppBar), findsOneWidget);
-    await tester.tap(find.byType(FloatingActionButton));
-    await tester.pumpAndSettle();
-    expect(find.byType(LaundryAdminDialog), findsOneWidget);
-    await tester.tap(find.text('Annuler'));
-    await tester.pumpAndSettle();
-  });
-
-  testWidgets('embedded administrator page uses its parent navigation shell', (
-    tester,
-  ) async {
-    await open(tester, LaundryPage(repository: repository, showAppBar: false));
+    await open(tester, LaundryPage(repository: admin, showAppBar: false));
     expect(find.byType(Scaffold), findsOneWidget);
     expect(find.byType(AppBar), findsNothing);
-    expect(find.byType(FloatingActionButton), findsNothing);
     await tester.tap(find.text('Ajouter'));
     await tester.pumpAndSettle();
     expect(find.byType(LaundryAdminDialog), findsOneWidget);
@@ -81,139 +88,232 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
-
-  testWidgets('resident sees only own requests and deposited edit controls', (
+  testWidgets(
+    'admin creates from existing resident account and confirms free service',
+    (tester) async {
+      await open(tester, LaundryPage(repository: admin));
+      await tester.tap(find.text('Ajouter'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sélectionnez un compte résident.'), findsOneWidget);
+      await tester.tap(find.text('Compte résident'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Pressing'), findsNothing);
+      await tester.tap(find.text('Ahmed · #1').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Résident : Ahmed'), findsOneWidget);
+      await tester.enterText(find.byType(TextFormField).at(0), 'Repassage');
+      await tester.enterText(find.byType(TextFormField).at(1), '0');
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+      final saved = (await admin.getAll()).single;
+      expect(saved.residentId, 1);
+      expect(saved.residentName, 'Ahmed');
+      expect(saved.priceConfirmed, isTrue);
+      expect(saved.price, 0);
+      expect(
+        (await admin.getStatusHistory(saved.id)).single.changedByUserId,
+        9,
+      );
+    },
+  );
+  testWidgets(
+    'resident ignores identity constructor fields and sees only own requests without prices',
+    (tester) async {
+      await admin.add(item('OWN', confirmed: true));
+      await admin.add(item('OTHER', residentId: 2));
+      await open(
+        tester,
+        ResidentLaundryPage(
+          currentUser: testResident,
+          residentId: 2,
+          residentName: 'Fake',
+          repository: admin,
+        ),
+      );
+      expect(find.text('Bienvenue, Ahmed'), findsOneWidget);
+      expect(find.text('#OWN'), findsOneWidget);
+      expect(find.text('#OTHER'), findsNothing);
+      expect(find.textContaining('DT'), findsNothing);
+      await tester.ensureVisible(find.text('Modifier'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Modifier'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'Repassage');
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+      expect((await admin.getById('OWN'))!.serviceType, 'Repassage');
+      expect((await admin.getById('OWN'))!.price, 15);
+      expect((await admin.getById('OWN'))!.priceConfirmed, isFalse);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets('resident creates service only, opens history, then deletes', (
     tester,
   ) async {
-    await repository.add(item('OWN', LaundryStatus.deposited));
-    await repository.add(item('OTHER', LaundryStatus.deposited, residentId: 2));
     await open(
       tester,
-      ResidentLaundryPage(
-        residentId: 1,
-        residentName: 'Ahmed',
-        repository: repository,
-      ),
-    );
-    expect(find.text('#OWN'), findsOneWidget);
-    expect(find.text('#OTHER'), findsNothing);
-    expect(find.text('Modifier'), findsOneWidget);
-    await tester.ensureVisible(find.text('Modifier'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Modifier'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).first, 'Repassage');
-    await tester.tap(find.text('Enregistrer'));
-    await tester.pumpAndSettle();
-    expect((await repository.getById('OWN'))!.price, 15);
-    expect(find.textContaining('DT'), findsNothing);
-    expect(find.text('Service : Repassage'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('resident dialog validates input and disposes on cancellation', (
-    tester,
-  ) async {
-    await open(
-      tester,
-      ResidentLaundryPage(
-        residentId: 1,
-        residentName: 'Ahmed',
-        repository: repository,
-      ),
+      ResidentLaundryPage(currentUser: testResident, repository: admin),
     );
     await tester.tap(find.text('Nouvelle demande'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Enregistrer'));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsOneWidget);
-    await tester.tap(find.text('Annuler'));
+    await tester.enterText(find.byType(TextField), 'Lavage');
+    await tester.tap(find.text('Enregistrer'));
     await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    expect(await repository.getAll(), isEmpty);
-  });
-
-  testWidgets('driver sees ready/delivered only and can complete delivery', (
-    tester,
-  ) async {
-    await repository.add(item('READY', LaundryStatus.ready));
-    await repository.add(item('HIDDEN', LaundryStatus.deposited));
-    await open(tester, DriverLaundryPage(repository: repository, userId: 8));
-    expect(find.text('Commande #READY'), findsOneWidget);
-    expect(find.text('Commande #HIDDEN'), findsNothing);
-    expect(find.text('Ajouter'), findsNothing);
-    expect(find.text('Modifier'), findsNothing);
-    expect(find.text('Supprimer'), findsNothing);
+    final saved = (await admin.getAll()).single;
+    expect(saved.residentId, 1);
+    expect(saved.residentName, 'Ahmed');
     expect(find.textContaining('DT'), findsNothing);
-    await tester.ensureVisible(find.text('Marquer comme livré'));
+    await tester.ensureVisible(find.text('Historique'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Marquer comme livré'));
+    await tester.tap(find.text('Historique'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Confirmer la livraison'));
+    expect(find.textContaining('Utilisateur : 1'), findsOneWidget);
+    await tester.tap(find.text('Fermer'));
     await tester.pumpAndSettle();
-    expect(
-      (await repository.getById('READY'))!.status,
-      LaundryStatus.delivered,
-    );
-    expect(find.text('Marquer comme livré'), findsNothing);
-    expect(find.text('Statut : Livré'), findsOneWidget);
-  });
-
-  testWidgets('pressing starts and completes treatment without CRUD controls', (
-    tester,
-  ) async {
-    await repository.add(item('PRESS', LaundryStatus.deposited));
-    await open(tester, PressingLaundryPage(repository: repository, userId: 7));
-    expect(find.text('Modifier'), findsNothing);
-    expect(find.text('Supprimer'), findsNothing);
-    await tester.ensureVisible(find.text('Commencer le traitement'));
+    await tester.ensureVisible(find.text('Supprimer'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Commencer le traitement'));
+    await tester.tap(find.text('Supprimer'));
     await tester.pumpAndSettle();
-    expect(
-      (await repository.getById('PRESS'))!.status,
-      LaundryStatus.processing,
-    );
-    await tester.ensureVisible(find.text('Marquer comme prêt'));
+    await tester.tap(find.text('Supprimer').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Marquer comme prêt'));
-    await tester.pumpAndSettle();
-    expect((await repository.getById('PRESS'))!.status, LaundryStatus.ready);
-    expect(find.text('Marquer comme livré'), findsNothing);
-  });
-
-  testWidgets('administrator uses injected repository and filters statuses', (
-    tester,
-  ) async {
-    await repository.add(item('ADMIN', LaundryStatus.deposited));
-    await open(tester, LaundryPage(repository: repository));
-    expect(find.text('#ADMIN'), findsOneWidget);
-    expect(find.text('Ajouter'), findsOneWidget);
-    await tester.ensureVisible(find.widgetWithText(ChoiceChip, 'Prêt'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Prêt'));
-    await tester.pumpAndSettle();
-    expect(find.text('#ADMIN'), findsNothing);
-    await tester.tap(find.text('Ajouter'));
-    await tester.pumpAndSettle();
-    expect(find.byType(LaundryAdminDialog), findsOneWidget);
-    await tester.tap(find.text('Annuler'));
-    await tester.pumpAndSettle();
+    expect(await admin.getAll(), isEmpty);
     expect(tester.takeException(), isNull);
   });
-
-  testWidgets('all four route builders open the correct screen', (
+  testWidgets(
+    'resident cannot change a processed request or see unassigned legacy requests',
+    (tester) async {
+      await admin.add(item('PROCESS', status: LaundryStatus.processing));
+      await db.insert(
+        'laundry_items',
+        LaundryItem(
+          id: 'LEGACY',
+          residentName: 'Ancien',
+          serviceType: 'Lavage',
+          status: LaundryStatus.deposited,
+          price: 17,
+        ).toMap(),
+      );
+      await open(
+        tester,
+        ResidentLaundryPage(currentUser: testResident, repository: admin),
+      );
+      expect(find.text('#PROCESS'), findsOneWidget);
+      expect(find.text('#LEGACY'), findsNothing);
+      expect(find.text('Modifier'), findsNothing);
+      expect(find.text('Supprimer'), findsNothing);
+    },
+  );
+  testWidgets(
+    'pressing performs its workflow with real actor and no CRUD controls',
+    (tester) async {
+      await admin.add(item('PRESS'));
+      await open(
+        tester,
+        PressingLaundryPage(currentUser: testPressing, repository: admin),
+      );
+      expect(find.text('Modifier'), findsNothing);
+      expect(find.text('Supprimer'), findsNothing);
+      await tester.ensureVisible(find.text('Commencer le traitement'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Commencer le traitement'));
+      await tester.pumpAndSettle();
+      expect((await admin.getById('PRESS'))!.status, LaundryStatus.processing);
+      await tester.ensureVisible(find.text('Marquer comme prêt'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Marquer comme prêt'));
+      await tester.pumpAndSettle();
+      expect((await admin.getById('PRESS'))!.status, LaundryStatus.ready);
+      expect(
+        (await admin.getStatusHistory('PRESS')).map((h) => h.changedByUserId),
+        [9, 7, 7],
+      );
+    },
+  );
+  testWidgets(
+    'driver can cancel then confirm delivery without prices or admin controls',
+    (tester) async {
+      await admin.add(item('READY', status: LaundryStatus.ready));
+      await admin.add(item('HIDDEN'));
+      await open(
+        tester,
+        DriverLaundryPage(
+          currentUser: testDriver,
+          userId: 9999,
+          repository: admin,
+        ),
+      );
+      expect(find.text('Commande #READY'), findsOneWidget);
+      expect(find.text('Commande #HIDDEN'), findsNothing);
+      expect(find.textContaining('DT'), findsNothing);
+      expect(find.text('Ajouter'), findsNothing);
+      expect(find.text('Modifier'), findsNothing);
+      await tester.ensureVisible(find.text('Marquer comme livré'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Marquer comme livré'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Annuler'));
+      await tester.pumpAndSettle();
+      expect((await admin.getById('READY'))!.status, LaundryStatus.ready);
+      await tester.tap(find.text('Marquer comme livré'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Confirmer la livraison'));
+      await tester.pumpAndSettle();
+      expect((await admin.getById('READY'))!.status, LaundryStatus.delivered);
+      expect((await admin.getStatusHistory('READY')).last.changedByUserId, 8);
+    },
+  );
+  testWidgets('admin totals and filters use only confirmed prices', (
     tester,
   ) async {
-    final routes = [
-      () => LaundryRoutes.residentPage(
+    await admin.add(item('CONFIRMED', confirmed: true));
+    await admin.add(item('PENDING'));
+    await open(tester, LaundryPage(repository: admin));
+    expect(find.text('Total des tarifs validés : 15.00 DT'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilterChip, 'Tarifs à valider'));
+    await tester.pumpAndSettle();
+    expect(find.text('#PENDING'), findsOneWidget);
+    expect(find.text('#CONFIRMED'), findsNothing);
+  });
+  testWidgets('unknown and absent accounts cannot obtain Laundry controls', (
+    tester,
+  ) async {
+    await open(
+      tester,
+      LaundryPage(currentUser: testUnknown, repository: admin),
+    );
+    expect(find.text('Impossible de charger les demandes.'), findsOneWidget);
+    expect(find.text('Ajouter'), findsNothing);
+    await open(
+      tester,
+      ResidentLaundryPage(
+        repository: LaundryRepository(databaseProvider: () async => db),
         residentId: 1,
-        residentName: 'Ahmed',
-        repository: repository,
       ),
-      () => LaundryRoutes.driverPage(repository: repository),
-      () => LaundryRoutes.pressingPage(repository: repository),
-      () => LaundryRoutes.adminPage(repository: repository),
+    );
+    expect(find.text('Impossible de charger les demandes.'), findsOneWidget);
+    expect(find.text('Nouvelle demande'), findsNothing);
+  });
+  testWidgets('all four routes retain account identity and a single scaffold', (
+    tester,
+  ) async {
+    final builders = [
+      () => LaundryRoutes.residentPage(
+        currentUser: testResident,
+        repository: admin,
+      ),
+      () =>
+          LaundryRoutes.driverPage(currentUser: testDriver, repository: admin),
+      () => LaundryRoutes.pressingPage(
+        currentUser: testPressing,
+        repository: admin,
+      ),
+      () => LaundryRoutes.adminPage(currentUser: testAdmin, repository: admin),
     ];
     final types = [
       ResidentLaundryPage,
@@ -221,224 +321,97 @@ void main() {
       PressingLaundryPage,
       LaundryPage,
     ];
-    for (var i = 0; i < routes.length; i++) {
-      final navigator = GlobalKey<NavigatorState>();
+    for (var i = 0; i < builders.length; i++) {
       await tester.pumpWidget(
         MaterialApp(
-          key: UniqueKey(),
-          navigatorKey: navigator,
-          home: const Scaffold(),
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.of(context).push(builders[i]()),
+              child: const Text('Ouvrir'),
+            ),
+          ),
         ),
       );
-      navigator.currentState!.push(routes[i]());
+      await tester.tap(find.text('Ouvrir'));
       await tester.pumpAndSettle();
       expect(find.byType(types[i]), findsOneWidget);
-      expect(tester.takeException(), isNull);
+      expect(find.byType(Scaffold), findsOneWidget);
+      expect(find.text('Impossible de charger les demandes.'), findsNothing);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
     }
   });
   testWidgets(
-    'development dropdown opens all four roles without nested scaffolds',
+    'company wrapper preserves teammate screen and opens Laundry with its user',
     (tester) async {
-      await tester.pumpWidget(LaundryDevApp(repository: repository));
-      await tester.pumpAndSettle();
-      final types = {
-        LaundryRole.resident: ResidentLaundryPage,
-        LaundryRole.driver: DriverLaundryPage,
-        LaundryRole.pressing: PressingLaundryPage,
-        LaundryRole.admin: LaundryPage,
-      };
-      for (final entry in types.entries) {
-        await tester.tap(find.byType(DropdownButtonFormField<LaundryRole>));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text(entry.key.label).last);
-        await tester.pumpAndSettle();
-        expect(find.byType(entry.value), findsOneWidget);
-        expect(find.byType(Scaffold), findsOneWidget);
-        expect(tester.takeException(), isNull);
-      }
-    },
-  );
-
-  testWidgets('resident creates, reviews history and deletes a request', (
-    tester,
-  ) async {
-    await open(
-      tester,
-      ResidentLaundryPage(
-        residentId: 1,
-        residentName: 'Ahmed',
-        repository: repository,
-      ),
-    );
-    await tester.tap(find.text('Nouvelle demande'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).first, 'Lavage');
-    await tester.tap(find.text('Enregistrer'));
-    await tester.pumpAndSettle();
-    final saved = (await repository.getAll()).single;
-    expect(saved.residentId, 1);
-    expect(saved.price, 0);
-    expect(saved.priceConfirmed, isFalse);
-    expect(find.textContaining('DT'), findsNothing);
-    await tester.ensureVisible(find.text('Historique'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Historique'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Création → Déposé'), findsOneWidget);
-    await tester.tap(find.text('Fermer'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Supprimer'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Supprimer'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Supprimer'));
-    await tester.pumpAndSettle();
-    expect(await repository.getAll(), isEmpty);
-    expect(find.textContaining('aucune demande'), findsOneWidget);
-  });
-
-  testWidgets(
-    'resident never sees an administrator quote, including in dialogs and history',
-    (tester) async {
-      await repository.add(
-        item(
-          'QUOTED',
-          LaundryStatus.deposited,
-        ).copyWith(price: 87.65, priceConfirmed: true),
-      );
+      // Use the test repository for the destination separately in route tests;
+      // this verifies the non-invasive access control and host preservation.
       await open(
         tester,
-        ResidentLaundryPage(
-          residentId: 1,
-          residentName: 'Ahmed',
-          repository: repository,
+        const LaundryNavigationAccess(
+          currentUser: testPressing,
+          child: Text('Atelier existant'),
         ),
       );
-      expect(find.textContaining('DT'), findsNothing);
-      expect(find.textContaining('87.65'), findsNothing);
-      await tester.ensureVisible(find.text('Modifier'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Modifier'));
-      await tester.pumpAndSettle();
-      expect(find.byType(TextField), findsOneWidget);
-      expect(find.text('Prix'), findsNothing);
-      expect(find.textContaining('DT'), findsNothing);
-      await tester.tap(find.text('Annuler'));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Historique'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Historique'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('DT'), findsNothing);
-      expect(find.textContaining('87.65'), findsNothing);
+      expect(find.text('Atelier existant'), findsOneWidget);
+      expect(find.byTooltip('Gestion du linge'), findsOneWidget);
+      await open(
+        tester,
+        const LaundryNavigationAccess(
+          currentUser: testUnknown,
+          child: Text('Atelier existant'),
+        ),
+      );
+      expect(find.byTooltip('Gestion du linge'), findsNothing);
     },
   );
-
-  testWidgets('administrator can explicitly confirm a free service', (
+  testWidgets(
+    'standalone launcher uses real login without development identities',
+    (tester) async {
+      await tester.pumpWidget(const LaundryDevApp());
+      await tester.pumpAndSettle();
+      expect(find.text('Welcome back'), findsOneWidget);
+      expect(find.text('Choisir un utilisateur'), findsNothing);
+      expect(find.text('Ahmed'), findsNothing);
+    },
+  );
+  testWidgets('authenticated dev repositories open each corresponding role', (
     tester,
   ) async {
-    await repository.addForResident(
-      item('FREE', LaundryStatus.deposited),
-      residentId: 1,
-    );
-    await open(tester, LaundryPage(repository: repository));
-    expect(find.text('À tarifer'), findsOneWidget);
-    await tester.ensureVisible(find.text('Modifier'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Modifier'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField).at(3), '0');
-    await tester.tap(find.text('Enregistrer'));
-    await tester.pumpAndSettle();
-    final saved = (await repository.getById('FREE'))!;
-    expect(saved.price, 0);
-    expect(saved.priceConfirmed, isTrue);
-    expect(find.text('0.00 DT'), findsOneWidget);
-  });
-
-  testWidgets('driver can cancel delivery and keep the ready request', (
-    tester,
-  ) async {
-    await repository.add(item('READY', LaundryStatus.ready));
-    await open(tester, DriverLaundryPage(repository: repository));
-    await tester.ensureVisible(find.text('Marquer comme livré'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Marquer comme livré'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Annuler'));
-    await tester.pumpAndSettle();
-    expect((await repository.getById('READY'))!.status, LaundryStatus.ready);
-    expect((await repository.getStatusHistory('READY')).length, 1);
-  });
-
-  testWidgets(
-    'pressing prioritizes older deposits and search narrows the queue',
-    (tester) async {
-      await repository.add(
-        LaundryItem(
-          id: 'NEW',
-          residentName: 'Ahmed',
-          serviceType: 'Lavage',
-          status: LaundryStatus.deposited,
-          price: 0,
-          createdAt: DateTime.utc(2026, 10, 15),
-        ),
+    final users = [testResident, testDriver, testPressing, testAdmin];
+    final types = [
+      ResidentLaundryPage,
+      DriverLaundryPage,
+      PressingLaundryPage,
+      LaundryPage,
+    ];
+    for (var i = 0; i < users.length; i++) {
+      await tester.pumpWidget(
+        LaundryDevApp(key: ValueKey(i), repository: admin.forUser(users[i])),
       );
-      await repository.add(
-        LaundryItem(
-          id: 'OLD',
-          residentName: 'Sara',
-          serviceType: 'Repassage',
-          status: LaundryStatus.deposited,
-          price: 0,
-          createdAt: DateTime.utc(2026, 10, 14),
-        ),
-      );
-      await open(tester, PressingLaundryPage(repository: repository));
-      expect(find.text('Commande #OLD'), findsOneWidget);
-      await tester.enterText(find.byType(TextField), 'sara');
       await tester.pumpAndSettle();
-      expect(find.text('Commande #OLD'), findsOneWidget);
-      expect(find.text('Commande #NEW'), findsNothing);
+      expect(find.byType(types[i]), findsOneWidget);
+      expect(find.text('Impossible de charger les demandes.'), findsNothing);
+    }
+  });
+  testWidgets(
+    'database failure shows retry and recovers using same authenticated user',
+    (tester) async {
+      var fail = true;
+      final recoverable = LaundryRepository(
+        currentUser: testDriver,
+        databaseProvider: () async {
+          if (fail) throw StateError('Unavailable');
+          return db;
+        },
+      );
+      await open(tester, DriverLaundryPage(repository: recoverable));
+      expect(find.text('Impossible de charger les demandes.'), findsOneWidget);
+      fail = false;
+      await tester.tap(find.text('Réessayer'));
+      await tester.pumpAndSettle();
+      expect(find.text('Aucune demande trouvée.'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     },
   );
-
-  testWidgets(
-    'administrator excludes unconfirmed amounts from totals and can filter them',
-    (tester) async {
-      await repository.add(
-        item(
-          'CONFIRMED',
-          LaundryStatus.deposited,
-        ).copyWith(price: 25, priceConfirmed: true),
-      );
-      await repository.add(
-        item('PENDING', LaundryStatus.deposited).copyWith(price: 100),
-      );
-      await open(tester, LaundryPage(repository: repository));
-      expect(find.text('Total des tarifs validés : 25.00 DT'), findsOneWidget);
-      await tester.tap(find.widgetWithText(FilterChip, 'Tarifs à valider'));
-      await tester.pumpAndSettle();
-      expect(find.text('#PENDING'), findsOneWidget);
-      expect(find.text('#CONFIRMED'), findsNothing);
-    },
-  );
-
-  testWidgets('database failure shows retry and recovers', (tester) async {
-    final db = MemoryDatabase();
-    var fail = true;
-    final recoverable = LaundryRepository(
-      databaseProvider: () async {
-        if (fail) throw StateError('Unavailable database');
-        return db;
-      },
-    );
-    await open(tester, DriverLaundryPage(repository: recoverable));
-    expect(find.text('Impossible de charger les demandes.'), findsOneWidget);
-    fail = false;
-    await tester.tap(find.text('Réessayer'));
-    await tester.pumpAndSettle();
-    expect(find.text('Aucune demande trouvée.'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
 }

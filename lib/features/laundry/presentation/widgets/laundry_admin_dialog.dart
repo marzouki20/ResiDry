@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../../../../models/laundry_item.dart';
+import '../../../../models/user.dart';
 
 /// Dialog owns its controllers until its widget is disposed.
 class LaundryAdminDialog extends StatefulWidget {
-  const LaundryAdminDialog({super.key, this.item});
+  const LaundryAdminDialog({super.key, this.item, this.residents = const []});
   final LaundryItem? item;
+  final List<User> residents;
   @override
   State<LaundryAdminDialog> createState() => _LaundryAdminDialogState();
 }
 
 class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _name;
-  late final TextEditingController _residentId;
+  User? _resident;
   late final TextEditingController _service;
   late final TextEditingController _price;
   late LaundryStatus _status;
@@ -21,10 +22,9 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
   @override
   void initState() {
     super.initState();
-    _name = TextEditingController(text: widget.item?.residentName ?? '');
-    _residentId = TextEditingController(
-      text: widget.item?.residentId?.toString() ?? '',
-    );
+    for (final user in widget.residents) {
+      if (user.id == widget.item?.residentId) _resident = user;
+    }
     _service = TextEditingController(text: widget.item?.serviceType ?? '');
     _price = TextEditingController(
       text: widget.item?.priceConfirmed == true
@@ -36,8 +36,6 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
 
   @override
   void dispose() {
-    _name.dispose();
-    _residentId.dispose();
     _service.dispose();
     _price.dispose();
     super.dispose();
@@ -50,8 +48,9 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
     if (!_formKey.currentState!.validate()) return;
     final item = LaundryItem(
       id: widget.item?.id ?? 'LD${DateTime.now().microsecondsSinceEpoch}',
-      residentId: int.tryParse(_residentId.text.trim()),
-      residentName: _name.text.trim(),
+      residentId: _resident?.id ?? widget.item?.residentId,
+      residentName: _resident?.name ?? widget.item?.residentNameSnapshot ?? '',
+      residentNameSnapshot: widget.item?.residentNameSnapshot,
       serviceType: _service.text.trim(),
       status: _status,
       price: _price.text.trim().isEmpty
@@ -76,26 +75,32 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextFormField(
-                controller: _name,
-                validator: _required,
-                decoration: const InputDecoration(labelText: 'Nom du résident'),
+              DropdownButtonFormField<User>(
+                initialValue: _resident,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Compte résident'),
+                items: [
+                  for (final user in widget.residents)
+                    DropdownMenuItem(
+                      value: user,
+                      child: Text(
+                        '${user.name} · #${user.id}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: (user) => setState(() => _resident = user),
+                validator: (user) =>
+                    user == null &&
+                        (widget.item == null || widget.item!.residentId != null)
+                    ? 'Sélectionnez un compte résident.'
+                    : null,
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _residentId,
-                keyboardType: TextInputType.number,
-                readOnly: widget.item?.residentId != null,
-                decoration: const InputDecoration(
-                  labelText: 'Identifiant du résident (facultatif)',
-                  helperText: 'Nécessaire pour apparaître dans son espace.',
+              if (_resident != null) Text('Résident : ${_resident!.name}'),
+              if (widget.item != null && widget.item!.residentId == null)
+                Text(
+                  'Demande ancienne non associée. Ancien nom : ${widget.item!.residentNameSnapshot}. Sélectionner un compte établit une nouvelle association.',
                 ),
-                validator: (value) =>
-                    value!.trim().isEmpty ||
-                        (int.tryParse(value.trim()) ?? 0) > 0
-                    ? null
-                    : 'Identifiant entier positif attendu',
-              ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _service,

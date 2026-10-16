@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../models/user.dart';
 
 import '../../../core/localization/localized_text.dart';
 import 'package:flutter/services.dart';
@@ -22,6 +23,7 @@ class DriverOnboardingPage extends StatefulWidget {
       {super.key,
       required this.userName,
       this.userEmail,
+      this.currentUser,
       this.profileRepository,
       this.initialVehicle = 'Moto',
       this.initialCapacity = 40,
@@ -30,6 +32,7 @@ class DriverOnboardingPage extends StatefulWidget {
 
   final String userName;
   final String? userEmail;
+  final User? currentUser;
   final DriverProfileRepository? profileRepository;
   final String initialVehicle;
   final double initialCapacity;
@@ -240,6 +243,7 @@ class _DriverOnboardingPageState extends State<DriverOnboardingPage> {
       Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute<void>(
               builder: (_) => DriverInterface(
+                  currentUser: widget.currentUser,
                   userName: widget.userName, userEmail: widget.userEmail)),
           (_) => false);
     } catch (_) {

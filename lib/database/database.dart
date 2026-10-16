@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:path/path.dart' as paths;
 
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -30,7 +31,7 @@ class AppDatabase {
 
     _database = await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onConfigure: (database) => database.execute('PRAGMA foreign_keys = ON'),
       onCreate: (database, _) async {
         await _createUsersTable(database);
@@ -44,6 +45,7 @@ class AppDatabase {
         await createDriverProfileSchema(database);
         await createCapacityEvidenceSchema(database);
         await createRegistrationCertificateSchema(database);
+        await ensureLaundrySchema(database, paths.join(databasePath, 'laundry.db'));
       },
       onUpgrade: (database, oldVersion, _) async {
         if (oldVersion < 2) {
@@ -70,11 +72,122 @@ class AppDatabase {
         await createDriverProfileSchema(database);
         await createCapacityEvidenceSchema(database);
         await createRegistrationCertificateSchema(database);
+        await ensureLaundrySchema(database, paths.join(databasePath, 'laundry.db'));
       },
     );
     return _database!;
   }
 
+  /// Supports both the team's v9 and Laundry's earlier v6 database.
+  /// Import the archive only when adding Laundry for the first time.
+  static Future<void> ensureLaundrySchema(
+    DatabaseExecutor database,
+    String legacyPath,
+  ) async {
+    final existing = await database.query(
+      'sqlite_master',
+      columns: ['name'],
+      where: 'type = ? AND name = ?',
+      whereArgs: ['table', 'laundry_items'],
+    );
+    if (existing.isNotEmpty) return;
+    await createLaundryTables(database);
+    await importLegacyLaundry(database, legacyPath);
+  }
+
+  static Future<void> createLaundryTables(DatabaseExecutor database) async {
+    await database.execute('''
+      CREATE TABLE laundry_items (
+        id TEXT PRIMARY KEY,
+        resident_id INTEGER,
+        resident_name TEXT NOT NULL,
+        service_type TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'deposited',
+        price REAL NOT NULL DEFAULT 0,
+        price_confirmed INTEGER NOT NULL DEFAULT 0 CHECK (price_confirmed IN (0, 1)),
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (resident_id) REFERENCES users(id) ON DELETE RESTRICT
+      )
+    ''');
+    await database.execute('''
+      CREATE TABLE laundry_status_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        laundry_id TEXT NOT NULL,
+        old_status TEXT,
+        new_status TEXT NOT NULL,
+        changed_by_user_id INTEGER,
+        changed_at TEXT NOT NULL,
+        FOREIGN KEY (laundry_id) REFERENCES laundry_items(id) ON DELETE CASCADE,
+        FOREIGN KEY (changed_by_user_id) REFERENCES users(id) ON DELETE RESTRICT
+      )
+    ''');
+    await database.execute(
+      'CREATE INDEX idx_laundry_resident ON laundry_items(resident_id)',
+    );
+    await database.execute(
+      'CREATE INDEX idx_laundry_status ON laundry_items(status)',
+    );
+    await database.execute(
+      'CREATE INDEX idx_laundry_history ON laundry_status_history(laundry_id, id)',
+    );
+  }
+
+  /// Called inside the version-6 creation/upgrade transaction. Never changes or
+  /// deletes laundry.db. Old numeric IDs are not evidence of account ownership.
+  /// Original resident/author IDs remain available in that read-only archive.
+  static Future<void> importLegacyLaundry(
+    DatabaseExecutor database,
+    String legacyPath,
+  ) async {
+    if (!await databaseExists(legacyPath)) return;
+    final legacy = await openDatabase(
+      legacyPath,
+      readOnly: true,
+      singleInstance: false,
+    );
+    try {
+      final tables = (await legacy.query(
+        'sqlite_master',
+        columns: ['name'],
+        where: 'type = ?',
+        whereArgs: ['table'],
+      )).map((row) => row['name']).toSet();
+      if (!tables.contains('laundry_items')) return;
+      for (final row in await legacy.query('laundry_items')) {
+        await database.insert('laundry_items', {
+          'id': row['id'],
+          'resident_id': null,
+          'resident_name': row['resident_name'],
+          'service_type': row['service_type'],
+          'status': row['status'],
+          'price': row['price'],
+          'price_confirmed': row['price_confirmed'] ?? 0,
+          'created_at': row['created_at'],
+        });
+      }
+      if (tables.contains('laundry_status_history')) {
+        for (final row in await legacy.query(
+          'laundry_status_history',
+          orderBy: 'id ASC',
+        )) {
+          await database.insert('laundry_status_history', {
+            'id': row['id'],
+            'laundry_id': row['laundry_id'],
+            'old_status': row['old_status'],
+            'new_status': row['new_status'],
+            'changed_by_user_id': null,
+            'changed_at': row['changed_at'],
+          });
+        }
+      }
+    } finally {
+      await legacy.close();
+    }
+  }
+
+  // -------------------------------------------------------------
+  // USERS CRUD
+  // -------------------------------------------------------------
   static Future<void> createUserPhoneSchema(DatabaseExecutor database) async {
     if (!await _hasColumn(database, 'users', 'phone')) {
       await database.execute('ALTER TABLE users ADD COLUMN phone TEXT');

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../models/laundry_item.dart';
 import '../../../../models/laundry_role.dart';
+import '../../../../models/user.dart';
 import '../../data/repositories/laundry_repository.dart';
 import '../widgets/laundry_async_state.dart';
 import '../widgets/laundry_history_dialog.dart';
@@ -12,15 +13,17 @@ import '../widgets/laundry_insights.dart';
 class ResidentLaundryPage extends StatefulWidget {
   const ResidentLaundryPage({
     super.key,
-    required this.residentId,
-    required this.residentName,
-    required this.repository,
+    this.residentId,
+    this.residentName,
+    this.currentUser,
+    this.repository,
     this.embedded = false,
   });
 
-  final int residentId;
-  final String residentName;
-  final LaundryRepository repository;
+  final int? residentId;
+  final String? residentName;
+  final User? currentUser;
+  final LaundryRepository? repository;
   final bool embedded;
 
   @override
@@ -30,6 +33,13 @@ class ResidentLaundryPage extends StatefulWidget {
 class _ResidentLaundryPageState extends State<ResidentLaundryPage>
     with LaundryAsyncState<ResidentLaundryPage> {
   bool _showDelivered = false;
+  User? _account;
+
+  int get _residentId => _account?.id ?? 0;
+  String get _residentName => _account?.name ?? '';
+  LaundryRepository get _repository =>
+      (widget.repository ?? LaundryRepository()).forUser(widget.currentUser);
+
   @override
   Widget build(BuildContext context) {
     // Read only this resident's requests.
@@ -39,7 +49,7 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            'Bienvenue, ${widget.residentName}',
+            'Bienvenue, $_residentName',
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -166,9 +176,9 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
             TextButton.icon(
               onPressed: () => showLaundryHistory(
                 context,
-                widget.repository,
+                _repository,
                 item,
-                residentId: widget.residentId,
+                residentId: _residentId,
               ),
               icon: const Icon(Icons.history),
               label: const Text('Historique'),
@@ -232,36 +242,44 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
 
     await perform(() async {
       if (item == null) {
-        await widget.repository.addForResident(
+        await _repository.addForResident(
           LaundryItem(
             id: 'LD${DateTime.now().microsecondsSinceEpoch}',
-            residentId: widget.residentId,
-            residentName: widget.residentName,
+            residentId: _residentId,
+            residentName: _residentName,
             serviceType: service,
             price: 0,
             status: LaundryStatus.deposited,
           ),
-          residentId: widget.residentId,
+          residentId: _residentId,
         );
       } else {
-        await widget.repository.updateForResident(
+        await _repository.updateForResident(
           item.copyWith(serviceType: service),
-          residentId: widget.residentId,
+          residentId: _residentId,
         );
       }
     });
   }
 
   @override
-  Future<List<LaundryItem>> fetchItems() =>
-      widget.repository.getByResidentId(widget.residentId);
+  Future<List<LaundryItem>> fetchItems() async {
+    final account = await _repository.getCurrentUser();
+    if (laundryRoleFromUserRole(account.role) != LaundryRole.resident) {
+      throw const LaundryException('Cet espace est réservé aux résidents.');
+    }
+    _account = account;
+    return _repository.getByResidentId(account.id!);
+  }
 
   @override
   void didUpdateWidget(covariant ResidentLaundryPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.residentId != widget.residentId ||
+        oldWidget.currentUser != widget.currentUser ||
         oldWidget.repository != widget.repository) {
       items = [];
+      _account = null;
       reload();
     }
   }
@@ -294,10 +312,7 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
     if (confirmed != true || !mounted) return;
 
     await perform(() async {
-      await widget.repository.deleteForResident(
-        item.id,
-        residentId: widget.residentId,
-      );
+      await _repository.deleteForResident(item.id, residentId: _residentId);
     });
   }
 }
