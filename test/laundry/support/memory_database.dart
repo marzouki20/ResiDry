@@ -6,6 +6,7 @@ class MemoryDatabase extends MemoryExecutor implements Database {
     : super(<String, List<Map<String, Object?>>>{
         'laundry_items': [],
         'laundry_status_history': [],
+        'users': [],
       });
   bool failHistory = false;
   int transactions = 0;
@@ -56,12 +57,19 @@ class MemoryExecutor implements DatabaseExecutor {
 
   bool matches(Map<String, Object?> row, String? where, List<Object?>? args) {
     if (where == null) return true;
-    final columns = where
-        .split(' AND ')
-        .map((clause) => clause.split(' = ').first)
-        .toList();
-    for (var i = 0; i < columns.length; i++) {
-      if (row[columns[i]] != args![i]) return false;
+    final clauses = where.split(' AND ');
+    var argIndex = 0;
+    for (final clause in clauses) {
+      final parts = clause.split(' = ');
+      final col = parts[0].trim();
+      final val = parts[1].trim();
+      if (val == '?') {
+        if (argIndex >= (args?.length ?? 0)) return false;
+        if (row[col] != args![argIndex++]) return false;
+      } else {
+        final literal = int.tryParse(val) ?? val.replaceAll("'", "");
+        if (row[col] != literal) return false;
+      }
     }
     return true;
   }
@@ -93,7 +101,9 @@ class MemoryExecutor implements DatabaseExecutor {
     ConflictAlgorithm? conflictAlgorithm,
   }) async {
     final row = Map<String, Object?>.from(values);
-    if (table == 'laundry_status_history') row['id'] = rows[table]!.length + 1;
+    if (table == 'laundry_status_history') {
+      row['id'] = rows[table]!.length + 1;
+    }
     if (rows[table]!.any((existing) => existing['id'] == row['id'])) {
       throw StateError('Duplicate primary key');
     }

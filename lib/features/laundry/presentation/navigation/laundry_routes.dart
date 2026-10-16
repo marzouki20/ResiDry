@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../models/user.dart';
 import '../../data/repositories/laundry_repository.dart';
 import '../laundry_page.dart';
 import '../pages/driver_laundry_page.dart';
@@ -15,50 +16,69 @@ class LaundryRoutes {
   static const String admin = '/laundry/admin';
 
   static Route<void> residentPage({
-    required int residentId,
-    required String residentName,
-    required LaundryRepository repository,
+    int? residentId,
+    String? residentName,
+    User? currentUser,
+    LaundryRepository? repository,
   }) {
     return MaterialPageRoute<void>(
       settings: const RouteSettings(name: resident),
       builder: (_) => ResidentLaundryPage(
-        residentId: residentId,
-        residentName: residentName,
+        residentId: currentUser?.id ?? residentId ?? 0,
+        residentName: currentUser?.name ?? residentName ?? '',
+        currentUser: currentUser,
         repository: repository,
       ),
     );
   }
 
   static Route<void> driverPage({
-    required LaundryRepository repository,
+    LaundryRepository? repository,
     int? userId,
+    User? currentUser,
   }) => MaterialPageRoute<void>(
     settings: const RouteSettings(name: driver),
     builder: (_) => Scaffold(
       appBar: AppBar(title: const Text('Livraison du linge')),
-      body: DriverLaundryPage(repository: repository, userId: userId),
+      body: DriverLaundryPage(
+        repository: repository,
+        userId: currentUser?.id ?? userId,
+        currentUser: currentUser,
+      ),
     ),
   );
 
   static Route<void> pressingPage({
-    required LaundryRepository repository,
+    LaundryRepository? repository,
     int? userId,
+    User? currentUser,
   }) {
     return MaterialPageRoute<void>(
       settings: const RouteSettings(name: pressing),
       builder: (_) => Scaffold(
         appBar: AppBar(title: const Text('Société de pressing')),
-        body: PressingLaundryPage(repository: repository, userId: userId),
+        body: PressingLaundryPage(
+          repository: repository,
+          userId: currentUser?.id ?? userId,
+          currentUser: currentUser,
+        ),
       ),
     );
   }
 
-  static Route<void> adminPage({required LaundryRepository repository}) {
+  static Route<void> adminPage({
+    LaundryRepository? repository,
+    User? currentUser,
+  }) {
     return MaterialPageRoute<void>(
       settings: const RouteSettings(name: admin),
       builder: (_) => Scaffold(
         appBar: AppBar(title: const Text('Gestion du linge')),
-        body: LaundryPage(repository: repository, showAppBar: false),
+        body: LaundryPage(
+          repository: repository,
+          currentUser: currentUser,
+          showAppBar: false,
+        ),
       ),
     );
   }

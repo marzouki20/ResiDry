@@ -3,15 +3,18 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../models/delivery_driver.dart';
 import '../../../../models/delivery_order.dart';
+import '../../../models/user.dart';
 import '../../auth/presentation/auth_screen.dart';
 import '../../casiers/presentation/widgets/casier_components.dart';
+import '../../laundry/presentation/pages/driver_laundry_page.dart';
 import 'navigation/driver_navigation_bar.dart';
 import 'widgets/driver_components.dart';
 
 class DriverInterface extends StatefulWidget {
-  const DriverInterface({super.key, this.userName});
+  const DriverInterface({super.key, this.userName, this.currentUser});
 
   final String? userName;
+  final User? currentUser;
 
   @override
   State<DriverInterface> createState() => _DriverInterfaceState();
@@ -38,8 +41,9 @@ class _DriverInterfaceState extends State<DriverInterface> {
     ),
   );
 
-  late final List<DeliveryOrder> _orders =
-      List<DeliveryOrder>.of(demoDeliveryOrders);
+  late final List<DeliveryOrder> _orders = List<DeliveryOrder>.of(
+    demoDeliveryOrders,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -99,12 +103,13 @@ class _DriverInterfaceState extends State<DriverInterface> {
   }
 
   Widget _dashboard() {
-    final pendingCount =
-        _orders.where((o) => o.status == 'À récupérer').length;
-    final inTransitCount =
-        _orders.where((o) => o.status.contains('transit')).length;
-    final completedCount =
-        _orders.where((o) => o.status == 'Déposé au casier' || o.status == 'Livré').length;
+    final pendingCount = _orders.where((o) => o.status == 'À récupérer').length;
+    final inTransitCount = _orders
+        .where((o) => o.status.contains('transit'))
+        .length;
+    final completedCount = _orders
+        .where((o) => o.status == 'Déposé au casier' || o.status == 'Livré')
+        .length;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -131,7 +136,9 @@ class _DriverInterfaceState extends State<DriverInterface> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: _isOnDuty ? const Color(0xFFE6F8F6) : const Color(0xFFFFF0F0),
+            color: _isOnDuty
+                ? const Color(0xFFE6F8F6)
+                : const Color(0xFFFFF0F0),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: _isOnDuty ? AppColors.cyan : const Color(0xFFFF8B8B),
@@ -151,9 +158,13 @@ class _DriverInterfaceState extends State<DriverInterface> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _isOnDuty ? 'Statut : En Service' : 'Statut : Hors Service',
+                      _isOnDuty
+                          ? 'Statut : En Service'
+                          : 'Statut : Hors Service',
                       style: TextStyle(
-                        color: _isOnDuty ? AppColors.navy : const Color(0xFFE45858),
+                        color: _isOnDuty
+                            ? AppColors.navy
+                            : const Color(0xFFE45858),
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
                       ),
@@ -162,7 +173,10 @@ class _DriverInterfaceState extends State<DriverInterface> {
                       _isOnDuty
                           ? 'Prêt à recevoir des notifications de livraison'
                           : 'Mode pause activé',
-                      style: const TextStyle(color: AppColors.muted, fontSize: 11),
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -173,7 +187,9 @@ class _DriverInterfaceState extends State<DriverInterface> {
                 onChanged: (value) {
                   setState(() => _isOnDuty = value);
                   _showMessage(
-                    value ? 'Vous êtes maintenant en service' : 'Vous êtes hors service',
+                    value
+                        ? 'Vous êtes maintenant en service'
+                        : 'Vous êtes hors service',
                   );
                 },
               ),
@@ -270,6 +286,81 @@ class _DriverInterfaceState extends State<DriverInterface> {
             ],
           ),
         ),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.line),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.cyan.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.local_shipping_outlined,
+                  color: AppColors.navy,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Livraison du linge',
+                      style: TextStyle(
+                        color: AppColors.navy,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Confirmer la livraison du linge propre',
+                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => Scaffold(
+                        appBar: AppBar(
+                          title: const Text('Livraison du linge'),
+                          backgroundColor: AppColors.cream,
+                        ),
+                        body: DriverLaundryPage(
+                          currentUser: widget.currentUser,
+                          driverName:
+                              widget.currentUser?.name ??
+                              widget.userName ??
+                              'Livreur',
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.navy,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Ouvrir'),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 22),
         SectionTitle(
           'Missions récentes',
@@ -335,7 +426,12 @@ class _DriverInterfaceState extends State<DriverInterface> {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              for (final cat in ['Toutes', 'À récupérer', 'En transit', 'Livrées'])
+              for (final cat in [
+                'Toutes',
+                'À récupérer',
+                'En transit',
+                'Livrées',
+              ])
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: ChoiceChip(
@@ -436,36 +532,36 @@ class _DriverInterfaceState extends State<DriverInterface> {
   }
 
   Widget _notificationsPage() => ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        children: [
-          const PageHeading(
-            title: 'Notifications',
-            subtitle: 'Alertes de livraison et dépôts casiers.',
-          ),
-          const SizedBox(height: 16),
-          _notifItem(
-            'Nouvelle mission assignée : CMD-101',
-            'Récupération linge Casier C-024 (A-204)',
-            'Il y a 10 min',
-            Icons.assignment_ind_outlined,
-            AppColors.cyan,
-          ),
-          _notifItem(
-            'Casier C-031 verrouillé par livreur',
-            'Dépôt de linge propre confirmé',
-            'Aujourd’hui · 11:30',
-            Icons.lock_rounded,
-            AppColors.navy,
-          ),
-          _notifItem(
-            'Rappel : Récupération EcoClean Laundry',
-            '3 sacs de linge prêts pour livraison retour',
-            'Aujourd’hui · 09:15',
-            Icons.local_laundry_service_outlined,
-            const Color(0xFFE77B32),
-          ),
-        ],
-      );
+    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+    children: [
+      const PageHeading(
+        title: 'Notifications',
+        subtitle: 'Alertes de livraison et dépôts casiers.',
+      ),
+      const SizedBox(height: 16),
+      _notifItem(
+        'Nouvelle mission assignée : CMD-101',
+        'Récupération linge Casier C-024 (A-204)',
+        'Il y a 10 min',
+        Icons.assignment_ind_outlined,
+        AppColors.cyan,
+      ),
+      _notifItem(
+        'Casier C-031 verrouillé par livreur',
+        'Dépôt de linge propre confirmé',
+        'Aujourd’hui · 11:30',
+        Icons.lock_rounded,
+        AppColors.navy,
+      ),
+      _notifItem(
+        'Rappel : Récupération EcoClean Laundry',
+        '3 sacs de linge prêts pour livraison retour',
+        'Aujourd’hui · 09:15',
+        Icons.local_laundry_service_outlined,
+        const Color(0xFFE77B32),
+      ),
+    ],
+  );
 
   Widget _notifItem(
     String title,
@@ -473,127 +569,124 @@ class _DriverInterfaceState extends State<DriverInterface> {
     String time,
     IconData icon,
     Color color,
-  ) =>
-      Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.line),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: AppColors.navy,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    desc,
-                    style:
-                        const TextStyle(color: AppColors.muted, fontSize: 12),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    time,
-                    style:
-                        const TextStyle(color: AppColors.muted, fontSize: 10),
-                  ),
-                ],
+  ) => Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.all(15),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.line),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.navy,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 3),
+              Text(
+                desc,
+                style: const TextStyle(color: AppColors.muted, fontSize: 12),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                time,
+                style: const TextStyle(color: AppColors.muted, fontSize: 10),
+              ),
+            ],
+          ),
         ),
-      );
+      ],
+    ),
+  );
 
   Widget _profilePage() => ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        children: [
-          const PageHeading(
-            title: 'Mon profil livreur',
-            subtitle: 'Informations professionnelles et zone de service.',
+    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+    children: [
+      const PageHeading(
+        title: 'Mon profil livreur',
+        subtitle: 'Informations professionnelles et zone de service.',
+      ),
+      const SizedBox(height: 24),
+      const CircleAvatar(
+        radius: 38,
+        backgroundColor: AppColors.navy,
+        child: Icon(
+          Icons.local_shipping_rounded,
+          color: Colors.white,
+          size: 36,
+        ),
+      ),
+      const SizedBox(height: 12),
+      Center(
+        child: Text(
+          _driver.name,
+          style: const TextStyle(
+            color: AppColors.navy,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
           ),
-          const SizedBox(height: 24),
-          const CircleAvatar(
-            radius: 38,
-            backgroundColor: AppColors.navy,
-            child: Icon(
-              Icons.local_shipping_rounded,
-              color: Colors.white,
-              size: 36,
-            ),
+        ),
+      ),
+      Center(
+        child: Text(
+          'Livreur ResiDry · ${_driver.id}',
+          style: const TextStyle(color: AppColors.muted),
+        ),
+      ),
+      const SizedBox(height: 20),
+      DetailTile(
+        label: 'Véhicule',
+        value: _driver.vehicleType,
+        icon: Icons.two_wheeler_rounded,
+      ),
+      const SizedBox(height: 10),
+      DetailTile(
+        label: 'Zone assignée',
+        value: _driver.assignedZone,
+        icon: Icons.apartment_rounded,
+      ),
+      const SizedBox(height: 10),
+      DetailTile(
+        label: 'Note de service',
+        value: '${_driver.rating} / 5.0 ⭐',
+        icon: Icons.star_outline_rounded,
+        color: AppColors.cyan,
+      ),
+      const SizedBox(height: 10),
+      DetailTile(
+        label: 'Courses effectuées',
+        value: '${_driver.deliveriesCompleted} livraisons',
+        icon: Icons.task_alt_rounded,
+      ),
+      const SizedBox(height: 24),
+      OutlinedButton.icon(
+        onPressed: _logout,
+        icon: const Icon(Icons.logout_rounded, color: Colors.red),
+        label: const Text(
+          'Se déconnecter',
+          style: TextStyle(color: Colors.red, fontWeight: FontWeight.w700),
+        ),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: const BorderSide(color: Colors.red),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
-          const SizedBox(height: 12),
-          Center(
-            child: Text(
-              _driver.name,
-              style: const TextStyle(
-                color: AppColors.navy,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          Center(
-            child: Text(
-              'Livreur ResiDry · ${_driver.id}',
-              style: const TextStyle(color: AppColors.muted),
-            ),
-          ),
-          const SizedBox(height: 20),
-          DetailTile(
-            label: 'Véhicule',
-            value: _driver.vehicleType,
-            icon: Icons.two_wheeler_rounded,
-          ),
-          const SizedBox(height: 10),
-          DetailTile(
-            label: 'Zone assignée',
-            value: _driver.assignedZone,
-            icon: Icons.apartment_rounded,
-          ),
-          const SizedBox(height: 10),
-          DetailTile(
-            label: 'Note de service',
-            value: '${_driver.rating} / 5.0 ⭐',
-            icon: Icons.star_outline_rounded,
-            color: AppColors.cyan,
-          ),
-          const SizedBox(height: 10),
-          DetailTile(
-            label: 'Courses effectuées',
-            value: '${_driver.deliveriesCompleted} livraisons',
-            icon: Icons.task_alt_rounded,
-          ),
-          const SizedBox(height: 24),
-          OutlinedButton.icon(
-            onPressed: _logout,
-            icon: const Icon(Icons.logout_rounded, color: Colors.red),
-            label: const Text(
-              'Se déconnecter',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w700),
-            ),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              side: const BorderSide(color: Colors.red),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-          ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 
   Future<void> _logout() async {
     final confirm = await showDialog<bool>(
@@ -636,7 +729,9 @@ class _DriverInterfaceState extends State<DriverInterface> {
         _ => 'Livré',
       };
     });
-    _showMessage('Statut de la commande ${order.id} mis à jour : ${order.status}');
+    _showMessage(
+      'Statut de la commande ${order.id} mis à jour : ${order.status}',
+    );
   }
 
   Future<void> _showUnlockDialog(String lockerId) async {

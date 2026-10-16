@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../models/laundry_item.dart';
 import '../../../../models/laundry_role.dart';
+import '../../../../models/user.dart';
 import '../../data/repositories/laundry_repository.dart';
 import '../widgets/laundry_async_state.dart';
 import '../widgets/laundry_history_dialog.dart';
@@ -257,6 +258,12 @@ class _LaundryWorkflowViewState extends State<LaundryWorkflowView>
 
   @override
   Future<List<LaundryItem>> fetchItems() async {
+    final account = await widget.repository.getCurrentUser();
+    if (laundryRoleFromUserRole(account.role) != widget.role) {
+      throw const LaundryException(
+        'Votre rôle ne permet pas l’accès à cet espace.',
+      );
+    }
     final all = await widget.repository.getAll();
     return widget.role == LaundryRole.driver
         ? all
@@ -297,8 +304,6 @@ class _LaundryWorkflowViewState extends State<LaundryWorkflowView>
         item.id,
         expectedStatus: item.status,
         newStatus: newStatus,
-        role: widget.role,
-        changedByUserId: widget.userId,
       );
       if (mounted && widget.role == LaundryRole.driver) {
         setState(() => selectedStatus = LaundryStatus.delivered);
@@ -326,14 +331,21 @@ class _LaundryWorkflowViewState extends State<LaundryWorkflowView>
 
 /// Public pressing screen retained for existing callers.
 class PressingLaundryPage extends StatelessWidget {
-  const PressingLaundryPage({super.key, required this.repository, this.userId});
-  final LaundryRepository repository;
+  const PressingLaundryPage({
+    super.key,
+    this.repository,
+    this.userId,
+    this.currentUser,
+  });
+
+  final LaundryRepository? repository;
   final int? userId;
+  final User? currentUser;
 
   @override
   Widget build(BuildContext context) => LaundryWorkflowView(
-    repository: repository,
+    repository: (repository ?? LaundryRepository()).forUser(currentUser),
     role: LaundryRole.pressing,
-    userId: userId,
+    userId: currentUser?.id ?? userId,
   );
 }

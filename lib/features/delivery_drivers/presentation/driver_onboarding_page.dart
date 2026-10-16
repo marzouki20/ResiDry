@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../models/user.dart';
 import 'driver_interface.dart';
 
 class DriverOnboardingPage extends StatefulWidget {
-  const DriverOnboardingPage({super.key, required this.userName});
+  const DriverOnboardingPage({
+    super.key,
+    required this.userName,
+    this.currentUser,
+  });
 
   final String userName;
+  final User? currentUser;
 
   @override
   State<DriverOnboardingPage> createState() => _DriverOnboardingPageState();
@@ -84,7 +90,10 @@ class _DriverOnboardingPageState extends State<DriverOnboardingPage> {
     setState(() => _isSubmitting = false);
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (_) => DriverInterface(userName: widget.userName),
+        builder: (_) => DriverInterface(
+          userName: widget.userName,
+          currentUser: widget.currentUser,
+        ),
       ),
     );
   }

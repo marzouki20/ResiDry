@@ -3,9 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ttttttteee/features/casiers/presentation/admin/admin_interface.dart';
 import 'package:ttttttteee/features/casiers/presentation/resident/resident_interface.dart';
 import 'package:ttttttteee/models/laundry_item.dart';
+import 'package:ttttttteee/models/user.dart';
 import 'package:ttttttteee/features/laundry/data/repositories/laundry_repository.dart';
 
 import 'laundry/support/memory_database.dart';
+import 'laundry/support/test_accounts.dart';
 
 Future<void> _selectDrawerDestination(
   WidgetTester tester,
@@ -93,7 +95,11 @@ void main() {
     WidgetTester tester,
   ) async {
     final database = MemoryDatabase();
+    for (final user in testAccounts) {
+      await database.insert('users', user.toMap());
+    }
     final repository = LaundryRepository(
+      currentUser: User.fromMap(testAdmin.toMap()),
       databaseProvider: () async => database,
     );
     await repository.add(

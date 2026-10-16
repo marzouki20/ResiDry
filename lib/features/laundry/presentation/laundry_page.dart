@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/laundry_item.dart';
 import '../../../models/laundry_role.dart';
+import '../../../models/user.dart';
 import '../../casiers/presentation/widgets/casier_components.dart';
 import '../data/repositories/laundry_repository.dart';
 import 'widgets/laundry_admin_dialog.dart';
@@ -15,12 +16,14 @@ class LaundryPage extends StatefulWidget {
     super.key,
     this.role = LaundryRole.admin,
     this.userName = '',
+    this.currentUser,
     this.repository,
     this.showAppBar = true,
   });
 
   final LaundryRole role;
   final String userName;
+  final User? currentUser;
   final LaundryRepository? repository;
   final bool showAppBar;
 
@@ -31,7 +34,7 @@ class LaundryPage extends StatefulWidget {
 class _LaundryPageState extends State<LaundryPage>
     with LaundryAsyncState<LaundryPage> {
   late final LaundryRepository _repository =
-      widget.repository ?? LaundryRepository();
+      (widget.repository ?? LaundryRepository()).forUser(widget.currentUser);
 
   LaundryStatus? _selectedStatus;
   bool _onlyUnpriced = false;
@@ -128,7 +131,7 @@ class _LaundryPageState extends State<LaundryPage>
       body: body,
       floatingActionButton: FloatingActionButton(
         heroTag: 'laundry-create',
-        onPressed: busy || loading ? null : _showAddDialog,
+        onPressed: busy || loading || loadError != null ? null : _showAddDialog,
         backgroundColor: AppColors.navy,
         foregroundColor: Colors.white,
         child: const Icon(Icons.add),
@@ -389,15 +392,31 @@ class _LaundryPageState extends State<LaundryPage>
   // ------------------------------------------------------------
 
   @override
-  Future<List<LaundryItem>> fetchItems() => _repository.getAll();
+  Future<List<LaundryItem>> fetchItems() async {
+    final account = await _repository.getCurrentUser();
+    if (laundryRoleFromUserRole(account.role) != LaundryRole.admin) {
+      throw const LaundryException(
+        'Cet espace est réservé aux administrateurs.',
+      );
+    }
+    return _repository.getAll();
+  }
 
   void _showAddDialog() => _openAdminForm();
   void _showEditDialog(LaundryItem item) => _openAdminForm(item);
 
   Future<void> _openAdminForm([LaundryItem? item]) async {
+    List<User> residents;
+    try {
+      residents = await _repository.getResidents();
+    } catch (_) {
+      if (mounted) message('Impossible de charger les comptes résidents.');
+      return;
+    }
+    if (!mounted) return;
     final result = await showDialog<LaundryItem>(
       context: context,
-      builder: (_) => LaundryAdminDialog(item: item),
+      builder: (_) => LaundryAdminDialog(item: item, residents: residents),
     );
     if (result == null || !mounted) return;
     await perform(() async {

@@ -1,9 +1,11 @@
 import 'package:sqflite/sqflite.dart';
 
-import '../../../../database/laundry_database.dart';
+import '../../../../database/database.dart';
 import '../../../../models/laundry_item.dart';
 import '../../../../models/laundry_role.dart';
 import '../../../../models/laundry_status_change.dart';
+import '../../../../models/user.dart';
+import 'laundry_user_directory.dart';
 
 class LaundryException implements Exception {
   const LaundryException(this.message);
@@ -12,38 +14,143 @@ class LaundryException implements Exception {
   String toString() => message;
 }
 
+/// Bound to an authenticated account; rechecks the stored role on every operation.
 class LaundryRepository {
-  LaundryRepository({Future<Database> Function()? databaseProvider})
-    : _databaseProvider =
-          databaseProvider ?? (() => LaundryDatabase.instance.database);
-
+  LaundryRepository({
+    this.currentUser,
+    Future<Database> Function()? databaseProvider,
+    LaundryUserDirectory? userDirectory,
+  }) : _databaseProvider =
+           databaseProvider ?? (() => AppDatabase.instance.database),
+       _users =
+           userDirectory ??
+           LaundryUserDirectory(databaseProvider: databaseProvider);
+  final User? currentUser;
   final Future<Database> Function() _databaseProvider;
+  final LaundryUserDirectory _users;
 
-  Future<List<LaundryItem>> getAll() async {
+  LaundryRepository forUser(User? user) => user == null
+      ? this
+      : LaundryRepository(
+          currentUser: user,
+          databaseProvider: _databaseProvider,
+          userDirectory: _users,
+        );
+  static const _staff = {
+    LaundryRole.admin,
+    LaundryRole.pressing,
+    LaundryRole.driver,
+  };
+  static const _allRoles = {..._staff, LaundryRole.resident};
+
+  Future<T> _authorized<T>(
+    Set<LaundryRole> roles,
+    Future<T> Function(Transaction db, User actor, LaundryRole role) action,
+  ) async {
+    if (currentUser?.id == null) {
+      throw const LaundryException('Connectez-vous pour accéder au linge.');
+    }
     final db = await _databaseProvider();
-    return (await db.query(
-      'laundry_items',
-      orderBy: 'created_at DESC, id DESC',
-    )).map(LaundryItem.fromMap).toList();
+    return db.transaction((txn) async {
+      final actor = await _users.getUserById(currentUser!.id!, executor: txn);
+      final role = actor == null ? null : laundryRoleFromUserRole(actor.role);
+      if (actor == null || role == null || !roles.contains(role)) {
+        throw const LaundryException(
+          'Votre compte ne permet pas cette opération.',
+        );
+      }
+      return action(txn, actor, role);
+    });
   }
 
-  Future<List<LaundryItem>> getByResidentId(int residentId) async {
-    final db = await _databaseProvider();
-    return (await db.query(
+  Future<List<User>> getResidents() => _authorized({
+    LaundryRole.admin,
+  }, (db, actor, role) => _users.getResidents(executor: db));
+  Future<User> getCurrentUser() =>
+      _authorized(_allRoles, (db, actor, role) async => actor);
+
+  Future<List<LaundryItem>> _resolve(
+    DatabaseExecutor db,
+    List<Map<String, Object?>> rows, {
+    bool hidePrices = false,
+  }) async {
+    final names = <int, String>{};
+    final result = <LaundryItem>[];
+    for (final row in rows) {
+      var item = LaundryItem.fromMap(row);
+      if (item.residentId != null) {
+        final id = item.residentId!;
+        if (!names.containsKey(id)) {
+          names[id] =
+              (await _users.getUserById(id, executor: db))?.name ??
+              'Compte indisponible';
+        }
+        item = item.copyWith(residentName: names[id]);
+      }
+      result.add(
+        hidePrices ? item.copyWith(price: 0, priceConfirmed: false) : item,
+      );
+    }
+    return result;
+  }
+
+  Future<List<LaundryItem>> getAll() =>
+      _authorized(_staff, (db, actor, role) async {
+        var rows = await db.query(
           'laundry_items',
-          where: 'resident_id = ?',
-          whereArgs: [residentId],
           orderBy: 'created_at DESC, id DESC',
-        ))
-        .map(LaundryItem.fromMap)
-        // Keep the existing model type, but exclude financial values from this
-        // resident-facing read. Staff use getAll()/getById() for full records.
-        .map((item) => item.copyWith(price: 0, priceConfirmed: false))
-        .toList();
+        );
+        if (role == LaundryRole.driver) {
+          rows = rows
+              .where(
+                (row) =>
+                    row['status'] == 'ready' || row['status'] == 'delivered',
+              )
+              .toList();
+        }
+        return _resolve(db, rows, hidePrices: role == LaundryRole.driver);
+      });
+
+  Future<List<LaundryItem>> getByResidentId(int residentId) =>
+      _authorized({LaundryRole.resident}, (db, actor, role) async {
+        if (residentId != actor.id) {
+          throw const LaundryException('Cette demande ne vous appartient pas.');
+        }
+        return _resolve(
+          db,
+          await db.query(
+            'laundry_items',
+            where: 'resident_id = ?',
+            whereArgs: [actor.id],
+            orderBy: 'created_at DESC, id DESC',
+          ),
+          hidePrices: true,
+        );
+      });
+
+  void _checkRead(LaundryItem item, User actor, LaundryRole role) {
+    if ((role == LaundryRole.resident && item.residentId != actor.id) ||
+        (role == LaundryRole.driver &&
+            item.status != LaundryStatus.ready &&
+            item.status != LaundryStatus.delivered)) {
+      throw const LaundryException('Cette demande ne vous est pas accessible.');
+    }
   }
 
-  Future<LaundryItem?> getById(String id) async =>
-      _find(await _databaseProvider(), id);
+  Future<LaundryItem?> getById(String id) => _authorized(_allRoles, (
+    db,
+    actor,
+    role,
+  ) async {
+    final item = await _find(db, id);
+    if (item == null) return null;
+    _checkRead(item, actor, role);
+    return (await _resolve(
+      db,
+      [item.toMap()],
+      hidePrices: role == LaundryRole.resident || role == LaundryRole.driver,
+    )).single;
+  });
 
   Future<LaundryItem?> _find(DatabaseExecutor db, String id) async {
     final rows = await db.query(
@@ -54,9 +161,24 @@ class LaundryRepository {
     return rows.isEmpty ? null : LaundryItem.fromMap(rows.single);
   }
 
+  Future<LaundryItem> _require(DatabaseExecutor db, String id) async {
+    final item = await _find(db, id);
+    if (item == null) {
+      throw const LaundryException('Cette demande n’existe plus.');
+    }
+    return item;
+  }
+
+  Future<User> _resident(DatabaseExecutor db, int? id) async {
+    final user = id == null ? null : await _users.getUserById(id, executor: db);
+    if (user == null || user.role != 'Résident') {
+      throw const LaundryException('Sélectionnez un compte résident existant.');
+    }
+    return user;
+  }
+
   void _validate(LaundryItem item) {
     if (item.id.trim().isEmpty ||
-        item.residentName.trim().isEmpty ||
         item.serviceType.trim().isEmpty ||
         !item.price.isFinite ||
         item.price < 0) {
@@ -64,184 +186,183 @@ class LaundryRepository {
     }
   }
 
-  Future<int> add(LaundryItem item, {int? changedByUserId}) async {
-    _validate(item);
-    final db = await _databaseProvider();
-    return db.transaction((txn) async {
-      final result = await txn.insert('laundry_items', item.toMap());
-      await _record(txn, item.id, null, item.status, changedByUserId);
-      return result;
-    });
-  }
-
-  Future<int> addForResident(LaundryItem item, {required int residentId}) {
-    if (item.residentId != residentId ||
-        item.status != LaundryStatus.deposited) {
-      throw const LaundryException('Création de demande non autorisée.');
+  void _checkAuthor(User actor, int? changedByUserId) {
+    if (changedByUserId != null && changedByUserId != actor.id) {
+      throw const LaundryException('L’auteur doit être le compte connecté.');
     }
-    // A resident supplies a service, never a quote. Ignore any supplied amount.
-    return add(
-      item.copyWith(price: 0, priceConfirmed: false),
-      changedByUserId: residentId,
-    );
   }
 
-  /// Administrator CRUD. Resident and operational screens use restricted methods.
-  Future<int> update(LaundryItem item, {int? changedByUserId}) async {
+  Future<int> add(LaundryItem item, {int? changedByUserId}) =>
+      _authorized({LaundryRole.admin}, (db, actor, role) async {
+        _checkAuthor(actor, changedByUserId);
+        return _insert(db, item, await _resident(db, item.residentId), actor);
+      });
+  Future<int> _insert(
+    Transaction db,
+    LaundryItem item,
+    User resident,
+    User actor,
+  ) async {
     _validate(item);
-    final db = await _databaseProvider();
-    return db.transaction((txn) async {
-      final current = await _require(txn, item.id);
-      final result = await txn.update(
+    final row = item.toMap()
+      ..['resident_id'] = resident.id
+      ..['resident_name'] = resident.name;
+    final result = await db.insert('laundry_items', row);
+    await _record(db, item.id, null, item.status, actor.id!);
+    return result;
+  }
+
+  Future<int> addForResident(LaundryItem item, {required int residentId}) =>
+      _authorized({LaundryRole.resident}, (db, actor, role) async {
+        if (residentId != actor.id ||
+            (item.residentId != null && item.residentId != actor.id) ||
+            item.status != LaundryStatus.deposited) {
+          throw const LaundryException('Création de demande non autorisée.');
+        }
+        return _insert(
+          db,
+          item.copyWith(price: 0, priceConfirmed: false),
+          actor,
+          actor,
+        );
+      });
+  Future<int> update(LaundryItem item, {int? changedByUserId}) => _authorized(
+    {LaundryRole.admin},
+    (db, actor, role) async {
+      _checkAuthor(actor, changedByUserId);
+      _validate(item);
+      final current = await _require(db, item.id);
+      if (item.residentId != null) await _resident(db, item.residentId);
+      if (current.residentId != null && item.residentId == null) {
+        throw const LaundryException('Un compte résident doit rester associé.');
+      }
+      final row = item.toMap()
+        ..['resident_name'] = current.residentNameSnapshot
+        ..['created_at'] = current.createdAt.toUtc().toIso8601String();
+      final result = await db.update(
         'laundry_items',
-        item.copyWith().toMap()
-          ..['created_at'] = current.createdAt.toUtc().toIso8601String(),
+        row,
         where: 'id = ?',
         whereArgs: [item.id],
       );
-      if (current.status != item.status) {
-        await _record(
-          txn,
-          item.id,
-          current.status,
-          item.status,
-          changedByUserId,
-        );
+      if (item.status != current.status) {
+        await _record(db, item.id, current.status, item.status, actor.id!);
       }
       return result;
-    });
-  }
-
-  Future<int> updateForResident(
-    LaundryItem item, {
-    required int residentId,
-  }) async {
-    // Validate the editable resident input without trusting any supplied price.
-    _validate(item.copyWith(price: 0));
-    final db = await _databaseProvider();
-    return db.transaction((txn) async {
-      final current = await _require(txn, item.id);
-      _checkResident(current, residentId);
-      // A different service needs a new quote. Preserve the previous amount for
-      // administrator review; the resident cannot alter it or confirm it.
-      return txn.update(
-        'laundry_items',
-        {
-          'service_type': item.serviceType,
-          if (item.serviceType != current.serviceType) 'price_confirmed': 0,
-        },
-        where: 'id = ? AND resident_id = ? AND status = ?',
-        whereArgs: [item.id, residentId, LaundryStatus.deposited.name],
-      );
-    });
-  }
-
-  Future<int> delete(String id) async {
-    final db = await _databaseProvider();
-    return db.delete('laundry_items', where: 'id = ?', whereArgs: [id]);
-  }
-
-  Future<int> deleteForResident(String id, {required int residentId}) async {
-    final db = await _databaseProvider();
-    return db.transaction((txn) async {
-      _checkResident(await _require(txn, id), residentId);
-      return txn.delete(
-        'laundry_items',
-        where: 'id = ? AND resident_id = ? AND status = ?',
-        whereArgs: [id, residentId, LaundryStatus.deposited.name],
-      );
-    });
-  }
-
-  void _checkResident(LaundryItem item, int residentId) {
-    if (item.residentId != residentId ||
-        item.status != LaundryStatus.deposited) {
+    },
+  );
+  void _checkResident(LaundryItem item, User actor) {
+    if (item.residentId != actor.id || item.status != LaundryStatus.deposited) {
       throw const LaundryException(
         'Seules vos demandes déposées peuvent être modifiées ou supprimées.',
       );
     }
   }
 
-  Future<LaundryItem> _require(DatabaseExecutor txn, String id) async {
-    final item = await _find(txn, id);
-    if (item == null) {
-      throw const LaundryException('Cette demande n’existe plus.');
-    }
-    return item;
-  }
-
-  /// Check the persisted status inside the SAME transaction as the write/history.
+  Future<int> updateForResident(LaundryItem item, {required int residentId}) =>
+      _authorized({LaundryRole.resident}, (db, actor, role) async {
+        if (residentId != actor.id) {
+          throw const LaundryException('Compte résident non autorisé.');
+        }
+        _validate(item.copyWith(price: 0));
+        final current = await _require(db, item.id);
+        _checkResident(current, actor);
+        return db.update(
+          'laundry_items',
+          {
+            'service_type': item.serviceType,
+            if (item.serviceType != current.serviceType) 'price_confirmed': 0,
+          },
+          where: 'id = ? AND resident_id = ? AND status = ?',
+          whereArgs: [item.id, actor.id, 'deposited'],
+        );
+      });
+  Future<int> delete(String id) => _authorized(
+    {LaundryRole.admin},
+    (db, actor, role) =>
+        db.delete('laundry_items', where: 'id = ?', whereArgs: [id]),
+  );
+  Future<int> deleteForResident(String id, {required int residentId}) =>
+      _authorized({LaundryRole.resident}, (db, actor, role) async {
+        if (residentId != actor.id) {
+          throw const LaundryException('Compte résident non autorisé.');
+        }
+        _checkResident(await _require(db, id), actor);
+        return db.delete(
+          'laundry_items',
+          where: 'id = ? AND resident_id = ? AND status = ?',
+          whereArgs: [id, actor.id, 'deposited'],
+        );
+      });
   Future<void> transitionStatus(
     String id, {
     required LaundryStatus expectedStatus,
     required LaundryStatus newStatus,
-    required LaundryRole role,
+    LaundryRole? role,
     int? changedByUserId,
-  }) async {
-    final allowed = switch (role) {
-      LaundryRole.pressing =>
-        (expectedStatus == LaundryStatus.deposited &&
-                newStatus == LaundryStatus.processing) ||
-            (expectedStatus == LaundryStatus.processing &&
-                newStatus == LaundryStatus.ready),
-      LaundryRole.driver =>
-        expectedStatus == LaundryStatus.ready &&
-            newStatus == LaundryStatus.delivered,
-      _ => false,
-    };
+  }) => _authorized({LaundryRole.pressing, LaundryRole.driver}, (
+    db,
+    actor,
+    actualRole,
+  ) async {
+    _checkAuthor(actor, changedByUserId);
+    if (role != null && role != actualRole) {
+      throw const LaundryException('Rôle non autorisé.');
+    }
+    final allowed = actualRole == LaundryRole.pressing
+        ? (expectedStatus == LaundryStatus.deposited &&
+                  newStatus == LaundryStatus.processing) ||
+              (expectedStatus == LaundryStatus.processing &&
+                  newStatus == LaundryStatus.ready)
+        : expectedStatus == LaundryStatus.ready &&
+              newStatus == LaundryStatus.delivered;
     if (!allowed) {
       throw const LaundryException('Transition non autorisée pour ce rôle.');
     }
-    final db = await _databaseProvider();
-    await db.transaction((txn) async {
-      final current = await _require(txn, id);
-      if (current.status != expectedStatus) {
-        throw const LaundryException(
-          'Le statut a changé. Actualisez les demandes.',
-        );
-      }
-      final count = await txn.update(
-        'laundry_items',
-        {'status': newStatus.name},
-        where: 'id = ? AND status = ?',
-        whereArgs: [id, expectedStatus.name],
+    final current = await _require(db, id);
+    if (current.status != expectedStatus) {
+      throw const LaundryException(
+        'Le statut a changé. Actualisez les demandes.',
       );
-      if (count != 1) {
-        throw const LaundryException(
-          'Le statut a changé. Actualisez les demandes.',
-        );
-      }
-      await _record(txn, id, current.status, newStatus, changedByUserId);
-    });
-  }
-
+    }
+    final count = await db.update(
+      'laundry_items',
+      {'status': newStatus.name},
+      where: 'id = ? AND status = ?',
+      whereArgs: [id, expectedStatus.name],
+    );
+    if (count != 1) {
+      throw const LaundryException(
+        'Le statut a changé. Actualisez les demandes.',
+      );
+    }
+    await _record(db, id, current.status, newStatus, actor.id!);
+  });
   Future<List<LaundryStatusChange>> getStatusHistory(
     String id, {
     int? residentId,
-  }) async {
-    final db = await _databaseProvider();
-    return db.transaction((txn) async {
-      final current = await _require(txn, id);
-      if (residentId != null && current.residentId != residentId) {
-        throw const LaundryException('Cette demande ne vous appartient pas.');
-      }
-      return (await txn.query(
-        'laundry_status_history',
-        where: 'laundry_id = ?',
-        whereArgs: [id],
-        orderBy: 'id ASC',
-      )).map(LaundryStatusChange.fromMap).toList();
-    });
-  }
-
+  }) => _authorized(_allRoles, (db, actor, role) async {
+    final item = await _require(db, id);
+    _checkRead(item, actor, role);
+    if (residentId != null &&
+        (residentId != actor.id || item.residentId != actor.id)) {
+      throw const LaundryException('Cette demande ne vous appartient pas.');
+    }
+    return (await db.query(
+      'laundry_status_history',
+      where: 'laundry_id = ?',
+      whereArgs: [id],
+      orderBy: 'id ASC',
+    )).map(LaundryStatusChange.fromMap).toList();
+  });
   Future<void> _record(
-    DatabaseExecutor txn,
+    Transaction db,
     String id,
     LaundryStatus? oldStatus,
     LaundryStatus newStatus,
-    int? userId,
+    int userId,
   ) async {
-    await txn.insert('laundry_status_history', {
+    await db.insert('laundry_status_history', {
       'laundry_id': id,
       'old_status': oldStatus?.name,
       'new_status': newStatus.name,

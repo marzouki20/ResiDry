@@ -3,6 +3,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../../database/database.dart';
 import '../../../models/user.dart';
+import '../../laundry/presentation/widgets/laundry_navigation_access.dart';
 import '../../casiers/presentation/admin/admin_interface.dart';
 import '../../delivery_drivers/presentation/driver_onboarding_page.dart';
 import '../../laundry_companies/presentation/company_interface.dart';
@@ -166,7 +167,14 @@ class _AuthScreenState extends State<AuthScreen> {
         password: password,
         role: _selectedRole,
       );
-      await database.createUser(user.toMap());
+      final userId = await database.createUser(user.toMap());
+      final createdUser = User(
+        id: userId,
+        name: name,
+        email: email,
+        password: password,
+        role: _selectedRole,
+      );
       if (_selectedRole == 'Résident') {
         final nameParts = name.split(RegExp(r'\s+'));
         await database.createResident(
@@ -188,7 +196,7 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       }
       if (mounted) {
-        _openHome(name, _selectedRole, email: email);
+        _openHome(createdUser);
       }
     } on DatabaseException {
       if (mounted) {
@@ -225,7 +233,7 @@ class _AuthScreenState extends State<AuthScreen> {
       }
 
       if (mounted) {
-        _openHome(user.name, user.role, email: user.email);
+        _openHome(user);
       }
     } on DatabaseException {
       if (mounted) {
@@ -238,20 +246,26 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  void _openHome(String name, String role, {String? email}) {
-    final homePage = role == 'Livreur'
-        ? DriverOnboardingPage(userName: name)
-        : role == 'Administrateur'
-        ? AdminInterface(userName: name)
-        : role == 'Résident'
-        ? ResidentsHomePage(userName: name, userEmail: email)
-        : role == 'Société de lavage'
-        ? SocieteInterface(userName: name)
-        : HomePage(userName: name, userRole: role);
+  void _openHome(User user) {
+    final homePage = user.role == 'Livreur'
+        ? DriverOnboardingPage(userName: user.name, currentUser: user)
+        : user.role == 'Administrateur'
+        ? AdminInterface(userName: user.name, currentUser: user)
+        : user.role == 'Résident'
+        ? ResidentsHomePage(
+            userName: user.name,
+            userEmail: user.email,
+            currentUser: user,
+          )
+        : user.role == 'Société de lavage'
+        ? LaundryNavigationAccess(
+            currentUser: user,
+            child: SocieteInterface(userName: user.name),
+          )
+        : HomePage(userName: user.name, userRole: user.role);
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => homePage),
-    );
+    Navigator.of(context)
+        .pushReplacement(MaterialPageRoute<void>(builder: (_) => homePage));
   }
 
   void _showMessage(String message) {
