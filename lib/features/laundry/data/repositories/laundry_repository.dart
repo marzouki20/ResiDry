@@ -6,6 +6,10 @@ import '../../../../models/laundry_role.dart';
 import '../../../../models/laundry_status_change.dart';
 import '../../../../models/user.dart';
 import 'laundry_user_directory.dart';
+import '../models/laundry_report.dart';
+import '../../domain/models/laundry_workload.dart';
+import '../../domain/services/planning_service.dart';
+import '../../domain/services/laundry_statistics_service.dart';
 
 class LaundryException implements Exception {
   const LaundryException(this.message);
@@ -68,6 +72,59 @@ class LaundryRepository {
   }, (db, actor, role) => _users.getResidents(executor: db));
   Future<User> getCurrentUser() =>
       _authorized(_allRoles, (db, actor, role) async => actor);
+
+  /// One consistent SQLite snapshot, with the same ownership and financial
+  /// permissions as the lists. Missing planning inputs remain unknown.
+  Future<LaundryReport> getReport({DateTime? evaluatedAt}) => _authorized(
+    _allRoles,
+    (db, actor, role) async {
+      final now = (evaluatedAt ?? DateTime.now()).toUtc();
+      var rows = await db.query(
+        'laundry_items',
+        where: role == LaundryRole.resident ? 'resident_id = ?' : null,
+        whereArgs: role == LaundryRole.resident ? [actor.id] : null,
+        orderBy: 'created_at DESC, id DESC',
+      );
+      if (role == LaundryRole.driver) {
+        rows = rows
+            .where(
+              (row) => row['status'] == 'ready' || row['status'] == 'delivered',
+            )
+            .toList();
+      }
+      final requests = await _resolve(
+        db,
+        rows,
+        hidePrices: role == LaundryRole.resident || role == LaundryRole.driver,
+      );
+      final history = <String, List<LaundryStatusChange>>{};
+      for (final item in requests) {
+        history[item.id] = (await db.query(
+          'laundry_status_history',
+          where: 'laundry_id = ?',
+          whereArgs: [item.id],
+          orderBy: 'id ASC',
+        )).map(LaundryStatusChange.fromMap).toList();
+      }
+      // v10 has no saved deadlines, urgency, weights or duration estimates.
+      // Never borrow demo dates or a delivery mission's unrelated weight.
+      final workloads = requests
+          .map((item) => LaundryWorkload(item: item))
+          .toList();
+      return LaundryReport(
+        workloads: workloads,
+        history: history,
+        priorities: const PlanningService().prioritize(workloads, now: now),
+        statistics: const LaundryStatisticsService().summarize(
+          workloads,
+          now: now,
+          historyByLaundryId: history,
+          includeFinancials: role == LaundryRole.admin,
+        ),
+        evaluatedAt: now,
+      );
+    },
+  );
 
   Future<List<LaundryItem>> _resolve(
     DatabaseExecutor db,

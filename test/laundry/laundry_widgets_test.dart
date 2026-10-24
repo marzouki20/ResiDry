@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:ttttttteee/core/theme/app_theme.dart';
 import 'package:ttttttteee/models/laundry_item.dart';
@@ -44,6 +46,9 @@ void main() {
   Future<void> open(WidgetTester tester, Widget page) async {
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en'), Locale('ar')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         theme: AppTheme.light,
         home: Scaffold(body: page),
       ),
@@ -60,6 +65,9 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(
         MaterialApp(
+          locale: const Locale('fr'),
+          supportedLocales: const [Locale('fr'), Locale('en'), Locale('ar')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
           theme: AppTheme.light,
           home: LaundryPage(repository: admin),
         ),
@@ -275,6 +283,11 @@ void main() {
     await admin.add(item('PENDING'));
     await open(tester, LaundryPage(repository: admin));
     expect(find.text('Total des tarifs validés : 15.00 DT'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.widgetWithText(FilterChip, 'Tarifs à valider'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.widgetWithText(FilterChip, 'Tarifs à valider'));
     await tester.pumpAndSettle();
     expect(find.text('#PENDING'), findsOneWidget);
@@ -375,6 +388,32 @@ void main() {
       expect(find.text('Ahmed'), findsNothing);
     },
   );
+  testWidgets(
+    'standalone language picker supports French and Arabic without changing accounts',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const LaundryDevApp());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Change language'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Français'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Changer de langue'), findsOneWidget);
+      await tester.tap(find.byTooltip('Changer de langue'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('العربية'));
+      await tester.pumpAndSettle();
+      final languageButton = find.byTooltip('تغيير اللغة');
+      expect(languageButton, findsOneWidget);
+      expect(
+        Directionality.of(tester.element(languageButton)),
+        TextDirection.rtl,
+      );
+      expect(find.text('Choisir un utilisateur'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('authenticated dev repositories open each corresponding role', (
     tester,
   ) async {
