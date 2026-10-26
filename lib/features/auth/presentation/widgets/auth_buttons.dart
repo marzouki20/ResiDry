@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class PrimaryAuthButton extends StatelessWidget {
-  const PrimaryAuthButton({
-    super.key,
-    required this.label,
-    this.onPressed,
-  });
+  const PrimaryAuthButton({super.key, required this.label, this.onPressed});
 
   final String label;
   final VoidCallback? onPressed;
@@ -33,14 +29,16 @@ class PrimaryAuthButton extends StatelessWidget {
 }
 
 class GoogleAuthButton extends StatelessWidget {
-  const GoogleAuthButton({super.key});
+  const GoogleAuthButton({super.key, this.onPressed});
+
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 52,
       child: OutlinedButton(
-        onPressed: () {},
+        onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.ink,
           backgroundColor: Colors.white,

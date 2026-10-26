@@ -6,8 +6,17 @@ import '../widgets/auth_heading.dart';
 import '../widgets/auth_text_field.dart';
 
 class ForgotPasswordPage extends StatelessWidget {
-  const ForgotPasswordPage({super.key, required this.onBackToSignIn});
+  const ForgotPasswordPage({
+    super.key,
+    required this.emailController,
+    required this.isSubmitting,
+    required this.onSendResetCode,
+    required this.onBackToSignIn,
+  });
 
+  final TextEditingController emailController;
+  final bool isSubmitting;
+  final VoidCallback onSendResetCode;
   final VoidCallback onBackToSignIn;
 
   @override
@@ -17,18 +26,21 @@ class ForgotPasswordPage extends StatelessWidget {
       children: [
         const AuthHeading(
           title: 'Forgot password?',
-          subtitle:
-              'No worries. Enter your email and we’ll send you a reset link.',
+          subtitle: 'Enter your email and we’ll send you a reset code.',
         ),
         const SizedBox(height: 27),
-        const AuthTextField(
+        AuthTextField(
           label: 'Email address',
           hint: 'you@example.com',
           icon: Icons.mail_outline_rounded,
           keyboardType: TextInputType.emailAddress,
+          controller: emailController,
         ),
         const SizedBox(height: 24),
-        const PrimaryAuthButton(label: 'Send reset link'),
+        PrimaryAuthButton(
+          label: isSubmitting ? 'Sending code...' : 'Send reset code',
+          onPressed: isSubmitting ? null : onSendResetCode,
+        ),
         const SizedBox(height: 18),
         TextButton.icon(
           onPressed: onBackToSignIn,

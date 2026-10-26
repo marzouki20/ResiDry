@@ -17,7 +17,9 @@ class AuthFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (page == AuthPage.forgotPassword) {
+    if (page == AuthPage.forgotPassword ||
+        page == AuthPage.verifyEmail ||
+        page == AuthPage.resetPassword) {
       return const Center(
         child: Text(
           'Your account, your orbit.',

@@ -15,6 +15,9 @@ class SignInPage extends StatelessWidget {
     required this.emailController,
     required this.passwordController,
     required this.onSignIn,
+    required this.onGoogleSignIn,
+    required this.rememberMe,
+    required this.onRememberMeChanged,
     required this.isSubmitting,
   });
 
@@ -24,6 +27,9 @@ class SignInPage extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final VoidCallback onSignIn;
+  final VoidCallback onGoogleSignIn;
+  final bool rememberMe;
+  final ValueChanged<bool> onRememberMeChanged;
   final bool isSubmitting;
 
   @override
@@ -62,17 +68,38 @@ class SignInPage extends StatelessWidget {
             ),
           ),
         ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: onForgotPassword,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.navy,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        Row(
+          children: [
+            SizedBox(
+              height: 40,
+              child: Row(
+                children: [
+                  Checkbox(
+                    value: rememberMe,
+                    onChanged: isSubmitting
+                        ? null
+                        : (value) => onRememberMeChanged(value ?? false),
+                  ),
+                  GestureDetector(
+                    onTap: isSubmitting
+                        ? null
+                        : () => onRememberMeChanged(!rememberMe),
+                    child: const Text('Remember me'),
+                  ),
+                ],
+              ),
             ),
-            child: const Text('Forgot password?'),
-          ),
+            const Spacer(),
+            TextButton(
+              onPressed: onForgotPassword,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.navy,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              child: const Text('Forgot password?'),
+            ),
+          ],
         ),
         const SizedBox(height: 9),
         PrimaryAuthButton(
@@ -82,7 +109,7 @@ class SignInPage extends StatelessWidget {
         const SizedBox(height: 22),
         const AuthDivider(),
         const SizedBox(height: 20),
-        const GoogleAuthButton(),
+        GoogleAuthButton(onPressed: isSubmitting ? null : onGoogleSignIn),
       ],
     );
   }

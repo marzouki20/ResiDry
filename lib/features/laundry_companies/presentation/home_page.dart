@@ -1,31 +1,48 @@
 import 'package:flutter/material.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key, this.userName, this.userRole});
+class LaundryCompanyHomePage extends StatelessWidget {
+  const LaundryCompanyHomePage({
+    super.key,
+    this.userName,
+    this.userRole,
+    this.onLogout,
+  });
 
   final String? userName;
   final String? userRole;
+  final VoidCallback? onLogout;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('ResiDry'), centerTitle: false),
+      appBar: AppBar(
+        title: const Text('ResiDry'),
+        centerTitle: false,
+        actions: [
+          if (onLogout != null)
+            IconButton(
+              tooltip: 'Sign out',
+              onPressed: onLogout,
+              icon: const Icon(Icons.logout_rounded),
+            ),
+        ],
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
             Text(
-              userName == null ? 'Welcome home' : 'Welcome, $userName',
+              userName == null ? 'Welcome' : 'Welcome, $userName',
               style: Theme.of(context).textTheme.headlineMedium
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               userRole == null
-                  ? 'Manage your laundry lockers in one place.'
-                  : '$userRole account · Manage your laundry lockers here.',
+                  ? 'Manage your laundry services here.'
+                  : '$userRole account · Manage your laundry services here.',
               style: Theme.of(context).textTheme.bodyLarge
                   ?.copyWith(color: colors.onSurfaceVariant),
             ),
@@ -43,13 +60,13 @@ class HomePage extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Your lockers',
+                      'Laundry services',
                       style: Theme.of(context).textTheme.titleLarge
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Your locker information will appear here.',
+                      'Your laundry service information will appear here.',
                       style: Theme.of(context).textTheme.bodyMedium
                           ?.copyWith(color: colors.onSurfaceVariant),
                     ),

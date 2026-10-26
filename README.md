@@ -36,6 +36,19 @@ flutter pub get
 flutter run
 ```
 
+For your first local run, copy the example config and fill in `.env`:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Open the root `.env` file and replace the example values. The local `.env`
+already contains this project's Supabase URL and publishable key; enter the
+hCaptcha **site key** and Google web OAuth client ID if you use those features.
+
+`.env` is ignored by Git and bundled into the app. It is for public client-side
+configuration only; anything included in a Flutter app can be extracted.
+
 Run the relevant checks:
 
 ```bash
@@ -51,11 +64,66 @@ account role determines the destination:
 | Résident | Resident smart-locker interface |
 | Administrateur | Administrator smart-locker interface |
 | Livreur | Delivery/order interface |
-| Other roles | Generic locker placeholder |
+| Société de lavage | Laundry-company interface |
 
-Authentication currently uses a local SQLite database. The administrator and
-resident casier screens use in-memory sample records and are intended as a UI
-prototype.
+Email/password and Google sign-in use Supabase Auth. Email signup sends a
+verification code; users must enter it before the app signs them in. Password
+recovery also uses an email code. The app checks email syntax, while successful
+code verification proves the user can receive mail at that address. The
+**Remember me** option controls whether the Supabase session survives an app
+restart. hCaptcha protects signup, password sign-in, Google sign-in, email
+verification, resend, and password recovery.
+
+### Supabase email and hCaptcha setup
+
+1. In **Supabase → Authentication → Sign In / Providers → Email**, enable
+   **Confirm email**.
+2. In **Supabase → Authentication → Email Templates**, update both **Confirm
+   signup** and **Reset password** templates to include the six-digit code:
+
+   ```html
+   <p>Your ResiDry verification code is: <strong>{{ .Token }}</strong></p>
+   ```
+
+   Keep the code private and do not include the Supabase secret key in an email
+   or the app.
+3. Configure a custom SMTP provider in Supabase **Authentication → SMTP
+   Settings** for reliable delivery and higher sending limits. Supabase's
+   built-in mail service is rate-limited and intended for testing.
+4. Create an hCaptcha site and copy its **site key**. Add the hostname passed
+   as `HCAPTCHA_DOMAIN` to that hCaptcha site's allowed domains. The default
+   is `localhost` for development; use a hostname you control for production.
+5. In **Supabase → Authentication → Bot and Abuse Protection**, enable CAPTCHA,
+   select **hCaptcha**, and enter the hCaptcha **secret key**. The secret stays
+   in Supabase and must never be included in the Flutter app.
+6. Put the hCaptcha site key and allowed hostname in the local `.env` file.
+   The site key is public; do not put the hCaptcha secret or SMTP credentials
+   in `.env`.
+7. Copy the Supabase project URL and publishable key into `.env`. These are
+   client-side public values. Never put a Supabase `service_role` or secret key
+   in the app.
+
+Google sign-in additionally requires an OAuth web client ID, Android OAuth
+client registration, and Google as an enabled provider in the Supabase project.
+
+### Google Sign-In setup (Android)
+
+1. In Google Cloud Console, create an Android OAuth client for package
+   `com.example.ttttttteee`, using the SHA-1 certificate fingerprint for your
+   build. For the local debug fingerprint, run `.\gradlew signingReport` from
+   the `android` directory.
+2. Create a separate OAuth client of type **Web application** and copy its
+   client ID.
+3. Run the app with that web client ID:
+
+   ```powershell
+   flutter run -d RFCX10K0JVM
+   ```
+
+The web client ID is not a secret, but do not put private keys or client
+secrets in the app. Add the matching Android OAuth client for each signing
+certificate/build variant. If the Android package name changes, update the
+OAuth registration too.
 
 ---
 
@@ -77,6 +145,9 @@ prototype.
 │   │   └── user.dart
 │   └── features/
 │       ├── auth/
+│       │   ├── data/
+│       │   │   ├── auth_session_store.dart
+│       │   │   └── google_auth_service.dart
 │       │   └── presentation/
 │       │       ├── auth_page.dart
 │       │       ├── auth_screen.dart
@@ -103,7 +174,7 @@ prototype.
 │       │       │   └── resident_interface.dart
 │       │       └── widgets/
 │       │           └── casier_components.dart
-│       ├── lockers/
+│       ├── laundry_companies/
 │       │   └── presentation/
 │       │       └── home_page.dart
 │       └── orders/
@@ -140,9 +211,13 @@ Platform-specific build and native configuration lives in `android/` and
 reset flows. Individual screens are in `presentation/pages/`; shared controls
 and visual elements are in `presentation/widgets/`.
 
-The authentication flow looks up and creates users through
-`lib/database/database.dart`, using the `User` model in `lib/models/user.dart`.
-Role-based routing to the casier screens is handled by `auth_screen.dart`.
+Email/password and Google authentication are handled by Supabase Auth through
+`lib/database/supabase_connection.dart`; the display name and application role
+are stored as Supabase user metadata. Signup email verification and password
+recovery use six-digit codes. hCaptcha tokens are collected in a WebView and
+sent with Supabase Auth requests. **Remember me** controls persistent Supabase
+session storage; without it, the session lasts until the app is closed. Google
+identity tokens are obtained with `google_sign_in` and verified by Supabase.
 
 ### Smart lockers — `lib/features/casiers/`
 
@@ -163,18 +238,18 @@ switches to that role's corresponding page and closes the drawer.
 
 | Folder/file | Current responsibility |
 | --- | --- |
-| `lib/features/lockers/presentation/home_page.dart` | Generic locker landing-page placeholder for roles without a dedicated screen. |
+| `lib/features/laundry_companies/presentation/home_page.dart` | Laundry-company landing page. |
 | `lib/features/orders/presentation/home_page.dart` | Delivery/order landing page used for the `Livreur` role. |
 
-Other modules listed in the team plan (laundry, laundry companies, delivery
-drivers, and residents) have not yet been added to the current `lib/features/`
-tree.
+Both placeholder pages and the administrator/resident casier interfaces
+currently use demonstration data.
 
 ---
 
 ## Data and Prototype Boundaries
 
-- User accounts are stored locally through SQLite.
+- User accounts are managed by Supabase Auth; the app does not store account
+  passwords in a local database.
 - Casier screens currently display sample data defined in
   `presentation/widgets/casier_components.dart`.
 - Administrator edits and deletes affect in-memory sample records only; they
@@ -265,7 +340,7 @@ merging.
 ## Technologies
 
 - Flutter and Dart
-- SQLite for local user data
+- Supabase Auth for account authentication
 - IoT and AI concepts represented in the locker UI prototype
 - Git and GitHub
 

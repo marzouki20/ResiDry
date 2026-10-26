@@ -1,16 +1,28 @@
 import 'package:flutter/material.dart';
 
 class OrdersHomePage extends StatelessWidget {
-  const OrdersHomePage({super.key, this.userName});
+  const OrdersHomePage({super.key, this.userName, this.onLogout});
 
   final String? userName;
+  final VoidCallback? onLogout;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('ResiDry'), centerTitle: false),
+      appBar: AppBar(
+        title: const Text('ResiDry'),
+        centerTitle: false,
+        actions: [
+          if (onLogout != null)
+            IconButton(
+              tooltip: 'Sign out',
+              onPressed: onLogout,
+              icon: const Icon(Icons.logout_rounded),
+            ),
+        ],
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(24),
