@@ -1,6 +1,7 @@
 import 'package:geolocator/geolocator.dart';
 
-import 'residence_data.dart';
+import '../../../../database/database.dart';
+import '../../../models/residence.dart';
 
 class ResidenceLocator {
   const ResidenceLocator._();
@@ -25,7 +26,7 @@ class ResidenceLocator {
 
     Residence? nearest;
     var nearestDistance = double.infinity;
-    for (final residence in availableResidences) {
+    for (final residence in await AppDatabase.instance.listResidences()) {
       final distance = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,

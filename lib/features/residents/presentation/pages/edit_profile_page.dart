@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../mock/residents_mock_data.dart';
-import '../../data/residence_data.dart';
+import '../../../../models/residence.dart';
 import '../../data/residence_locator.dart';
 
 class EditProfilePage extends StatefulWidget {

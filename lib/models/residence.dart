@@ -1,12 +1,13 @@
+/// Représente une résidence enregistrée dans la table SQLite `residences`.
 class Residence {
   const Residence({
     required this.id,
     required this.name,
+    required this.address,
+    required this.city,
     required this.latitude,
     required this.longitude,
     required this.radius,
-    this.address = '',
-    this.city = '',
   });
 
   final String id;
@@ -16,9 +17,30 @@ class Residence {
   final double latitude;
   final double longitude;
   final double radius;
+
+  Map<String, Object> toMap() => {
+    'id': id,
+    'name': name,
+    'address': address,
+    'city': city,
+    'latitude': latitude,
+    'longitude': longitude,
+    'radius': radius,
+  };
+
+  factory Residence.fromMap(Map<String, Object?> map) => Residence(
+    id: map['id']! as String,
+    name: map['name']! as String,
+    address: map['address']! as String,
+    city: map['city']! as String,
+    latitude: (map['latitude']! as num).toDouble(),
+    longitude: (map['longitude']! as num).toDouble(),
+    radius: (map['radius']! as num).toDouble(),
+  );
 }
 
-const availableResidences = <Residence>[
+/// Données initiales insérées une seule fois au premier démarrage.
+const defaultResidences = <Residence>[
   Residence(
     id: 'esprit_school_of_engineering',
     name: 'ESPRIT School of Engineering (ESE)',
@@ -32,6 +54,8 @@ const availableResidences = <Residence>[
   Residence(
     id: 'residence_emna',
     name: 'Résidence Emna',
+    address: '',
+    city: '',
     latitude: 36.896306,
     longitude: 10.178056,
     radius: 300,

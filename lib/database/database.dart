@@ -4,6 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../features/residents/mock/residents_mock_data.dart';
+import '../models/residence.dart';
 
 class AppDatabase {
   AppDatabase._();
@@ -26,11 +27,13 @@ class AppDatabase {
 
     _database = await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: (database, _) async {
         await _createUsersTable(database);
         await _createResidentsTable(database);
+        await _createResidencesTable(database);
         await _seedResidents(database);
+        await _seedResidences(database);
       },
       onUpgrade: (database, oldVersion, _) async {
         if (oldVersion < 2) {
@@ -44,6 +47,10 @@ class AppDatabase {
         if (oldVersion < 4) {
           await _createResidentsTable(database);
           await _seedResidents(database);
+        }
+        if (oldVersion < 5) {
+          await _createResidencesTable(database);
+          await _seedResidences(database);
         }
       },
     );
@@ -81,6 +88,20 @@ class AppDatabase {
     ''');
   }
 
+  Future<void> _createResidencesTable(Database database) async {
+    await database.execute('''
+      CREATE TABLE residences (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        address TEXT NOT NULL,
+        city TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        radius REAL NOT NULL
+      )
+    ''');
+  }
+
   Future<void> _seedResidents(Database database) async {
     final count = Sqflite.firstIntValue(
       await database.rawQuery('SELECT COUNT(*) FROM residents'),
@@ -97,6 +118,19 @@ class AppDatabase {
 
     for (final resident in demoResidents) {
       await database.insert('residents', resident.toMap()..remove('id'));
+    }
+  }
+
+  Future<void> _seedResidences(Database database) async {
+    final count = Sqflite.firstIntValue(
+      await database.rawQuery('SELECT COUNT(*) FROM residences'),
+    );
+    if (count != null && count > 0) {
+      return;
+    }
+
+    for (final residence in defaultResidences) {
+      await database.insert('residences', residence.toMap());
     }
   }
 
@@ -120,6 +154,12 @@ class AppDatabase {
   Future<int> createResident(ResidentProfile resident) async {
     final database = await this.database;
     return database.insert('residents', resident.toMap()..remove('id'));
+  }
+
+  Future<List<Residence>> listResidences() async {
+    final database = await this.database;
+    final rows = await database.query('residences', orderBy: 'name ASC');
+    return rows.map(Residence.fromMap).toList();
   }
 
   Future<List<ResidentProfile>> listResidents() async {
