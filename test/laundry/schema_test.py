@@ -36,7 +36,7 @@ class LaundrySchemaTest(unittest.TestCase):
         self.assertTrue({'users', 'residents', 'societes', 'machines', 'laundry_items', 'laundry_status_history'} <= tables)
         self.assertEqual(len(LAUNDRY), 2)
         self.assertEqual([r[1] for r in self.db.execute('PRAGMA table_info(users)')], ['id', 'name', 'email', 'password', 'role', 'phone'])
-        self.assertIn('version: 10', SOURCE)
+        self.assertIn('version: 11', SOURCE)
 
     def test_defaults_and_reopen_persistence(self):
         self.db.close()
@@ -96,6 +96,43 @@ class LaundrySchemaTest(unittest.TestCase):
     def test_expected_indexes_exist(self):
         names = {r[0] for r in self.db.execute("SELECT name FROM sqlite_master WHERE type='index'")}
         self.assertTrue({'idx_laundry_resident', 'idx_laundry_status', 'idx_laundry_history'} <= names)
+
+
+class AdvancedLaundrySchemaTest(unittest.TestCase):
+    def setUp(self):
+        self.db = sqlite3.connect(':memory:')
+        self.db.execute('PRAGMA foreign_keys=ON')
+        for sql in SHARED + LAUNDRY + INDEXES:
+            self.db.execute(sql)
+        source = Path('lib/features/laundry/data/laundry_schema.dart').read_text(encoding='utf-8')
+        for sql in re.findall(r"await db.execute\('''([\s\S]*?)'''\)", source):
+            self.db.execute(sql)
+        self.db.execute('INSERT INTO users(id,name,email,password,role) VALUES(1,?,?,?,?)',
+                        ('Account', 'account@test.invalid', 'unchanged', 'Administrateur'))
+        self.db.execute("INSERT INTO laundry_service_types VALUES('washing','Lavage','Washing','Laundry',1,'2026-10-24')")
+        self.db.execute("INSERT INTO laundry_items(id,resident_id,resident_name,service_type,created_at) VALUES('LD1',1,'Account','Lavage','2026-10-24')")
+        self.db.commit()
+
+    def tearDown(self):
+        self.db.close()
+
+    def test_rate_requires_real_actor_and_valid_amount(self):
+        sql = 'INSERT INTO laundry_pricing_rules(id,service_id,pricing_basis,unit_price_millimes,created_by_user_id,valid_from,created_at) VALUES(?,?,?,?,?,?,?)'
+        for basis, price, author in [('per_kg', -1, 1), ('invalid', 5000, 1), ('per_kg', 5000, 999)]:
+            with self.assertRaises(sqlite3.IntegrityError):
+                self.db.execute(sql, ('RATE', 'washing', basis, price, author, '2026-10-24', '2026-10-24'))
+        self.db.execute(sql, ('RATE', 'washing', 'per_kg', 5000, 1, '2026-10-24', '2026-10-24'))
+        self.assertEqual(self.db.execute('PRAGMA foreign_key_check').fetchall(), [])
+
+    def test_line_constraints_and_cascade_leave_accounts_intact(self):
+        sql = 'INSERT INTO laundry_request_lines(id,laundry_id,garment_type,service_id,quantity,pricing_basis,created_at) VALUES(?,?,?,?,?,?,?)'
+        for parent, garment, quantity in [('MISSING', 'Chemise', 3), ('LD1', '', 3), ('LD1', 'Chemise', 0)]:
+            with self.assertRaises(sqlite3.IntegrityError):
+                self.db.execute(sql, ('LINE', parent, garment, 'washing', quantity, 'per_kg', '2026-10-24'))
+        self.db.execute(sql, ('LINE', 'LD1', 'Chemise', 'washing', 3, 'per_kg', '2026-10-24'))
+        self.db.execute("DELETE FROM laundry_items WHERE id='LD1'")
+        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM laundry_request_lines').fetchone()[0], 0)
+        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM users').fetchone()[0], 1)
 
 
 if __name__ == '__main__':

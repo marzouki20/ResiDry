@@ -170,7 +170,7 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
-                    'Montant précédent à revalider : ${widget.item!.price.toStringAsFixed(2)} DT',
+                    'Montant précédent à revalider : ${widget.item!.price.toStringAsFixed(3)} DT',
                   ),
                 ),
               const SizedBox(height: 12),

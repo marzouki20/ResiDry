@@ -4,6 +4,18 @@ import '../../../../core/localization/app_locale.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../models/laundry_item.dart';
 
+/// Laundry-only accents. The shared ResiDry theme remains unchanged.
+class LaundryPalette {
+  LaundryPalette._();
+  static const peach = Color(0xFFFFE6DC);
+  static const mint = Color(0xFFE0F3E9);
+  static const lilac = Color(0xFFEFE7FA);
+  static const sky = Color(0xFFDFF3FA);
+  static const teal = Color(0xFF136C58);
+  static const plum = Color(0xFF684099);
+  static const terracotta = Color(0xFFA44832);
+}
+
 InputDecoration laundryFieldDecoration({
   required String label,
   IconData? icon,
@@ -17,7 +29,7 @@ InputDecoration laundryFieldDecoration({
   errorMaxLines: 3,
   suffixText: suffix,
   filled: true,
-  fillColor: AppColors.cream,
+  fillColor: Colors.white,
   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
   enabledBorder: OutlineInputBorder(
@@ -27,6 +39,14 @@ InputDecoration laundryFieldDecoration({
   focusedBorder: OutlineInputBorder(
     borderRadius: BorderRadius.circular(14),
     borderSide: const BorderSide(color: AppColors.cyan, width: 2),
+  ),
+  errorBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(14),
+    borderSide: const BorderSide(color: Color(0xFFB3261E), width: 1.5),
+  ),
+  focusedErrorBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(14),
+    borderSide: const BorderSide(color: Color(0xFFB3261E), width: 2),
   ),
 );
 
@@ -51,10 +71,10 @@ String laundryStatusText(BuildContext context, LaundryStatus status) =>
     };
 
 Color laundryStatusColor(LaundryStatus status) => switch (status) {
-  LaundryStatus.deposited => AppColors.navy,
-  LaundryStatus.processing => const Color(0xFF087C91),
-  LaundryStatus.ready => const Color(0xFF17754D),
-  LaundryStatus.delivered => AppColors.muted,
+  LaundryStatus.deposited => LaundryPalette.terracotta,
+  LaundryStatus.processing => LaundryPalette.plum,
+  LaundryStatus.ready => LaundryPalette.teal,
+  LaundryStatus.delivered => const Color(0xFF126582),
 };
 
 IconData laundryStatusIcon(LaundryStatus status) => switch (status) {
@@ -72,23 +92,30 @@ class LaundrySectionHeader extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     this.action,
+    this.accent = AppColors.coral,
   });
   final String title;
   final String subtitle;
   final IconData icon;
   final Widget? action;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
     padding: const EdgeInsets.all(22),
     decoration: BoxDecoration(
-      gradient: const LinearGradient(
+      gradient: LinearGradient(
         begin: AlignmentDirectional.topStart,
         end: AlignmentDirectional.bottomEnd,
-        colors: [AppColors.navy, Color(0xFF15546F)],
+        colors: [
+          Color.lerp(accent, Colors.white, .64)!,
+          const Color(0xFFFFF8EE),
+          LaundryPalette.mint,
+        ],
       ),
       borderRadius: BorderRadius.circular(24),
+      border: Border.all(color: accent.withValues(alpha: .25)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,17 +125,17 @@ class LaundrySectionHeader extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .12),
+                color: Colors.white.withValues(alpha: .8),
                 borderRadius: BorderRadius.circular(13),
               ),
-              child: Icon(icon, color: Colors.white, size: 22),
+              child: Icon(icon, color: AppColors.navy, size: 24),
             ),
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
                 'RESIDRY',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.navy,
                   letterSpacing: 2.5,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -121,7 +148,7 @@ class LaundrySectionHeader extends StatelessWidget {
         Text(
           title,
           style: const TextStyle(
-            color: Colors.white,
+            color: AppColors.navy,
             fontSize: 26,
             fontWeight: FontWeight.w800,
             height: 1.15,
@@ -130,15 +157,15 @@ class LaundrySectionHeader extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           subtitle,
-          style: const TextStyle(color: Color(0xFFE1EEF4), height: 1.5),
+          style: const TextStyle(color: AppColors.ink, height: 1.5),
         ),
         if (action != null) ...[
           const SizedBox(height: 18),
           FilledButtonTheme(
             data: FilledButtonThemeData(
               style: FilledButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.navy,
+                backgroundColor: AppColors.navy,
+                foregroundColor: Colors.white,
                 minimumSize: const Size(0, 48),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 18,
@@ -167,7 +194,7 @@ class LaundryStatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: .08),
+        color: color.withValues(alpha: .11),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -218,7 +245,7 @@ class LaundryProgress extends StatelessWidget {
                                 color: step.index == 0
                                     ? Colors.transparent
                                     : step.index <= status.index
-                                    ? AppColors.cyan
+                                    ? laundryStatusColor(status)
                                     : AppColors.line,
                               ),
                             ),
@@ -228,7 +255,7 @@ class LaundryProgress extends StatelessWidget {
                                 color: step == LaundryStatus.delivered
                                     ? Colors.transparent
                                     : step.index < status.index
-                                    ? AppColors.cyan
+                                    ? laundryStatusColor(status)
                                     : AppColors.line,
                               ),
                             ),
@@ -243,11 +270,11 @@ class LaundryProgress extends StatelessWidget {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: step.index <= status.index
-                                  ? AppColors.navy
+                                  ? laundryStatusColor(step)
                                   : AppColors.cream,
                               border: Border.all(
                                 color: step.index <= status.index
-                                    ? AppColors.navy
+                                    ? laundryStatusColor(step)
                                     : AppColors.line,
                               ),
                             ),
@@ -297,6 +324,7 @@ class LaundryRequestCard extends StatelessWidget {
     this.showProgress = false,
     this.title,
     this.notice,
+    this.warning = false,
   });
   final LaundryItem item;
   final List<Widget> actions;
@@ -305,6 +333,7 @@ class LaundryRequestCard extends StatelessWidget {
   final bool showProgress;
   final String? title;
   final String? notice;
+  final bool warning;
 
   @override
   Widget build(BuildContext context) {
@@ -317,13 +346,24 @@ class LaundryRequestCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 14),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
-        side: const BorderSide(color: AppColors.line),
+        side: BorderSide(
+          color: laundryStatusColor(item.status).withValues(alpha: .25),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              height: 5,
+              width: 48,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: laundryStatusColor(item.status),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
             Wrap(
               spacing: 10,
               runSpacing: 10,
@@ -385,19 +425,19 @@ class LaundryRequestCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.cream,
+                  color: LaundryPalette.mint,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   item.priceConfirmed
-                      ? '${item.price.toStringAsFixed(2)} DT'
+                      ? '${item.price.toStringAsFixed(3)} DT'
                       : context.tr(
                           fr: 'À tarifer',
                           en: 'Awaiting pricing',
                           ar: 'بانتظار التسعير',
                         ),
                   style: const TextStyle(
-                    color: AppColors.navy,
+                    color: LaundryPalette.teal,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -409,12 +449,22 @@ class LaundryRequestCard extends StatelessWidget {
             ],
             if (notice != null) ...[
               const SizedBox(height: 14),
-              Text(
-                notice!,
-                style: const TextStyle(
-                  color: AppColors.muted,
-                  fontSize: 12,
-                  height: 1.5,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: warning
+                      ? AppColors.coral.withValues(alpha: 0.15)
+                      : AppColors.cream,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  notice!,
+                  style: TextStyle(
+                    color: warning ? const Color(0xFF9C3030) : AppColors.muted,
+                    fontSize: 12,
+                    height: 1.5,
+                  ),
                 ),
               ),
             ],

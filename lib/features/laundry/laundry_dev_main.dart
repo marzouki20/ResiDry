@@ -27,68 +27,111 @@ class LaundryDevApp extends StatefulWidget {
 }
 
 class _LaundryDevAppState extends State<LaundryDevApp> {
-  final _locale = AppLocaleController(initialLocale: const Locale('en'));
+  AppLocaleController? _locale;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreLocale();
+  }
+
+  Future<void> _restoreLocale() async {
+    AppLocaleController controller;
+    try {
+      final saved = await AppLocaleController.load();
+      if (saved.locale == null) {
+        saved.dispose();
+        controller = AppLocaleController(initialLocale: const Locale('en'));
+      } else {
+        controller = saved;
+      }
+    } catch (_) {
+      // A storage failure does not prevent login or overwrite the preference.
+      controller = AppLocaleController(initialLocale: const Locale('en'));
+    }
+    if (!mounted) {
+      controller.dispose();
+      return;
+    }
+    setState(() => _locale = controller);
+  }
 
   @override
   void dispose() {
-    _locale.dispose();
+    _locale?.dispose();
     super.dispose();
   }
 
   late final Future<User>? _account = widget.repository?.getCurrentUser();
 
   @override
-  Widget build(BuildContext context) => AppLocaleScope(
-    controller: _locale,
-    child: AnimatedBuilder(
-      animation: _locale,
-      builder: (context, _) => MaterialApp(
-        locale: _locale.locale,
-        supportedLocales: supportedAppLocales,
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        title: 'ResiDry - Gestion du linge',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        home: widget.repository == null
-            ? const AuthScreen()
-            : FutureBuilder<User>(
-                future: _account,
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return const Scaffold(
-                      body: Center(child: Text('Connexion requise.')),
-                    );
-                  }
-                  if (!snapshot.hasData) {
-                    return const Scaffold(
-                      body: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  final repository = widget.repository!;
-                  return switch (laundryRoleFromUserRole(snapshot.data!.role)) {
-                    LaundryRole.resident => ResidentLaundryPage(
-                      repository: repository,
+  Widget build(BuildContext context) => _locale == null
+      ? MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          ),
+        )
+      : AppLocaleScope(
+          controller: _locale!,
+          child: AnimatedBuilder(
+            animation: _locale!,
+            builder: (context, _) => MaterialApp(
+              locale: _locale!.locale,
+              supportedLocales: supportedAppLocales,
+              localizationsDelegates: GlobalMaterialLocalizations.delegates,
+              title: 'ResiDry - Gestion du linge',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.light,
+              home: widget.repository == null
+                  ? const AuthScreen()
+                  : FutureBuilder<User>(
+                      future: _account,
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return const Scaffold(
+                            body: Center(child: Text('Connexion requise.')),
+                          );
+                        }
+                        if (!snapshot.hasData) {
+                          return const Scaffold(
+                            body: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        final repository = widget.repository!;
+                        return switch (laundryRoleFromUserRole(
+                          snapshot.data!.role,
+                        )) {
+                          LaundryRole.resident => ResidentLaundryPage(
+                            repository: repository,
+                          ),
+                          LaundryRole.admin => LaundryPage(
+                            repository: repository,
+                          ),
+                          LaundryRole.driver => Scaffold(
+                            appBar: AppBar(
+                              title: Text(
+                                context.localize('Livraison du linge'),
+                              ),
+                            ),
+                            body: DriverLaundryPage(repository: repository),
+                          ),
+                          LaundryRole.pressing => Scaffold(
+                            appBar: AppBar(
+                              title: Text(
+                                context.localize('Gestion du pressing'),
+                              ),
+                            ),
+                            body: PressingLaundryPage(repository: repository),
+                          ),
+                          null => const Scaffold(
+                            body: Center(child: Text('Rôle non autorisé.')),
+                          ),
+                        };
+                      },
                     ),
-                    LaundryRole.admin => LaundryPage(repository: repository),
-                    LaundryRole.driver => Scaffold(
-                      appBar: AppBar(
-                        title: Text(context.localize('Livraison du linge')),
-                      ),
-                      body: DriverLaundryPage(repository: repository),
-                    ),
-                    LaundryRole.pressing => Scaffold(
-                      appBar: AppBar(
-                        title: Text(context.localize('Gestion du pressing')),
-                      ),
-                      body: PressingLaundryPage(repository: repository),
-                    ),
-                    null => const Scaffold(
-                      body: Center(child: Text('Rôle non autorisé.')),
-                    ),
-                  };
-                },
-              ),
-      ),
-    ),
-  );
+            ),
+          ),
+        );
 }

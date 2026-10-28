@@ -6,12 +6,14 @@ import '../../../models/laundry_item.dart';
 import '../../../models/laundry_role.dart';
 import '../../../models/user.dart';
 import '../data/repositories/laundry_repository.dart';
-import 'widgets/laundry_admin_dialog.dart';
+import 'widgets/laundry_request_editor.dart';
+import 'pages/laundry_tariffs_page.dart';
 import 'pages/laundry_dashboard_page.dart';
 import 'widgets/laundry_async_state.dart';
 import 'widgets/laundry_history_dialog.dart';
 import 'widgets/laundry_insights.dart';
 import 'widgets/laundry_design.dart';
+import 'widgets/laundry_timing.dart';
 
 class LaundryPage extends StatefulWidget {
   const LaundryPage({
@@ -66,6 +68,7 @@ class _LaundryPageState extends State<LaundryPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   LaundrySectionHeader(
+                    accent: LaundryPalette.plum,
                     title: context.tr(
                       fr: 'Gestion du linge',
                       en: 'Laundry management',
@@ -85,7 +88,27 @@ class _LaundryPageState extends State<LaundryPage>
                             label: Text(context.localize('Ajouter')),
                           ),
                   ),
-                  LaundryDashboardButton(repository: _repository),
+                  Wrap(
+                    children: [
+                      LaundryDashboardButton(repository: _repository),
+                      TextButton.icon(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                LaundryTariffsPage(repository: _repository),
+                          ),
+                        ),
+                        icon: const Icon(Icons.price_change_outlined),
+                        label: Text(
+                          context.tr(
+                            fr: 'Tarifs',
+                            en: 'Tariffs',
+                            ar: '\u0627\u0644\u062a\u0639\u0631\u064a\u0641\u0627\u062a',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   LaundryOverview(items: items, role: LaundryRole.admin),
                   Container(
                     width: double.infinity,
@@ -97,9 +120,9 @@ class _LaundryPageState extends State<LaundryPage>
                     ),
                     child: Text(
                       context.tr(
-                        fr: 'Total des tarifs validés : ${confirmedTotal.toStringAsFixed(2)} DT',
-                        en: 'Confirmed prices total: ${confirmedTotal.toStringAsFixed(2)} DT',
-                        ar: 'إجمالي الأسعار المؤكدة: ${confirmedTotal.toStringAsFixed(2)} DT',
+                        fr: 'Total des tarifs validés : ${confirmedTotal.toStringAsFixed(3)} DT',
+                        en: 'Confirmed prices total: ${confirmedTotal.toStringAsFixed(3)} DT',
+                        ar: 'إجمالي الأسعار المؤكدة: ${confirmedTotal.toStringAsFixed(3)} DT',
                       ),
                       style: const TextStyle(
                         color: AppColors.navy,
@@ -228,9 +251,10 @@ class _LaundryPageState extends State<LaundryPage>
   Widget _buildLaundryCard(LaundryItem item) => LaundryRequestCard(
     item: item,
     showPrice: true,
+    warning: laundryHasTimingWarning(report, item.id),
     notice: item.residentId == null
         ? context.localize('Aucun compte résident associé.')
-        : null,
+        : laundryTimingText(context, report, item.id),
     actions: [
       TextButton.icon(
         onPressed: () => showLaundryHistory(context, _repository, item),
@@ -259,33 +283,19 @@ class _LaundryPageState extends State<LaundryPage>
         'Cet espace est réservé aux administrateurs.',
       );
     }
-    return _repository.getAll();
+    report = await _repository.getReport();
+    return report!.workloads.map((w) => w.item).toList();
   }
 
   void _showAddDialog() => _openAdminForm();
   void _showEditDialog(LaundryItem item) => _openAdminForm(item);
 
   Future<void> _openAdminForm([LaundryItem? item]) async {
-    List<User> residents;
-    try {
-      residents = await _repository.getResidents();
-    } catch (_) {
-      if (mounted) message('Impossible de charger les comptes résidents.');
-      return;
-    }
-    if (!mounted) return;
-    final result = await showDialog<LaundryItem>(
+    final saved = await showDialog<bool>(
       context: context,
-      builder: (_) => LaundryAdminDialog(item: item, residents: residents),
+      builder: (_) => LaundryRequestEditor(repository: _repository, item: item),
     );
-    if (result == null || !mounted) return;
-    await perform(() async {
-      if (item == null) {
-        await _repository.add(result);
-      } else {
-        await _repository.update(result);
-      }
-    });
+    if (saved == true && mounted) await reload();
   }
 
   Future<void> _deleteItem(LaundryItem item) async {

@@ -38,33 +38,15 @@ void main() {
   });
   tearDown(() async => db.close());
 
-  test(
-    'schema actually has no saved tariff, weight, urgency or deadline',
-    () async {
-      final columns = (await db.rawQuery('PRAGMA table_info(laundry_items)'))
-          .map((row) => row['name'])
-          .toSet();
-      expect(
-        columns,
-        containsAll(['price', 'price_confirmed', 'created_at', 'status']),
-      );
-      for (final column in [
-        'weight_grams',
-        'quantity',
-        'treatment_due_at',
-        'urgency',
-        'estimated_minutes',
-      ]) {
-        expect(columns, isNot(contains(column)));
-      }
-      expect(
-        await db.rawQuery(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='laundry_pricing_rules'",
-        ),
-        isEmpty,
-      );
-    },
-  );
+  test('advanced schema exists but seeds no tariffs or measurements', () async {
+    final columns = (await db.rawQuery('PRAGMA table_info(laundry_items)'))
+        .map((row) => row['name'])
+        .toSet();
+    expect(columns, containsAll(['treatment_due_at', 'urgency', 'revision']));
+    expect(await db.query('laundry_pricing_rules'), isEmpty);
+    expect(await db.query('laundry_request_lines'), isEmpty);
+    expect((await db.query('laundry_service_types')).length, 3);
+  });
   test(
     'empty database produces empty statistics, not a sample average',
     () async {

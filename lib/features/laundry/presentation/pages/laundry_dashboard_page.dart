@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/localization/app_locale.dart';
@@ -5,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../data/models/laundry_report.dart';
 import '../../data/repositories/laundry_repository.dart';
 import '../widgets/laundry_design.dart';
+import '../widgets/laundry_language_button.dart';
 
 /// Reads the repository again on entry/refresh: no sample figures or stale
 /// totals passed by another role's screen.
@@ -17,10 +20,20 @@ class LaundryDashboardPage extends StatefulWidget {
 
 class _LaundryDashboardPageState extends State<LaundryDashboardPage> {
   late Future<LaundryReport> _report;
+  Timer? _timer;
   @override
   void initState() {
     super.initState();
     _report = widget.repository.getReport();
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted && ModalRoute.of(context)?.isCurrent == true) _refresh();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   void _refresh() {
@@ -41,6 +54,7 @@ class _LaundryDashboardPageState extends State<LaundryDashboardPage> {
         ),
       ),
       actions: [
+        const LaundryLanguageButton(compact: true),
         IconButton(
           onPressed: _refresh,
           icon: const Icon(Icons.refresh),
@@ -126,11 +140,25 @@ class _LaundryDashboardPageState extends State<LaundryDashboardPage> {
               ),
               '${(stats.confirmedDeliveredValueMillimes! / 1000).toStringAsFixed(3)} DT',
             ),
+          (
+            context.tr(
+              fr: 'Demandes à risque',
+              en: 'Requests at risk',
+              ar: 'طلبات معرّضة للتأخير',
+            ),
+            stats.activeTreatmentRequests > 0 &&
+                    !report.priorities.any(
+                      (priority) => priority.timing.isAtRisk != null,
+                    )
+                ? '—'
+                : '${stats.atRiskTreatmentRequests}',
+          ),
         ];
         return ListView(
           padding: const EdgeInsets.all(20),
           children: [
             LaundrySectionHeader(
+              accent: LaundryPalette.plum,
               title: context.tr(
                 fr: 'Votre activité en chiffres',
                 en: 'Your activity in figures',
@@ -146,14 +174,19 @@ class _LaundryDashboardPageState extends State<LaundryDashboardPage> {
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-                  for (final (label, value) in entries)
+                  for (final (index, (label, value)) in entries.indexed)
                     Container(
                       width: constraints.maxWidth >= 500
                           ? (constraints.maxWidth - 12) / 2
                           : constraints.maxWidth,
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: const [
+                          LaundryPalette.mint,
+                          LaundryPalette.lilac,
+                          LaundryPalette.peach,
+                          LaundryPalette.sky,
+                        ][index % 4],
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(color: AppColors.line),
                       ),

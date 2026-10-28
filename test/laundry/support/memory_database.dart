@@ -7,6 +7,31 @@ class MemoryDatabase extends MemoryExecutor implements Database {
         'laundry_items': [],
         'laundry_status_history': [],
         'users': [],
+        'laundry_service_types': [
+          {
+            'id': 'washing',
+            'label_fr': 'Lavage',
+            'label_en': 'Washing',
+            'label_ar': 'Washing',
+            'is_active': 1,
+          },
+          {
+            'id': 'ironing',
+            'label_fr': 'Repassage',
+            'label_en': 'Ironing',
+            'label_ar': 'Ironing',
+            'is_active': 1,
+          },
+          {
+            'id': 'dry_cleaning',
+            'label_fr': 'Dry cleaning',
+            'label_en': 'Dry cleaning',
+            'label_ar': 'Dry cleaning',
+            'is_active': 1,
+          },
+        ],
+        'laundry_pricing_rules': [],
+        'laundry_request_lines': [],
       });
   bool failHistory = false;
   int transactions = 0;
@@ -101,6 +126,7 @@ class MemoryExecutor implements DatabaseExecutor {
     ConflictAlgorithm? conflictAlgorithm,
   }) async {
     final row = Map<String, Object?>.from(values);
+    if (table == 'laundry_items') row.putIfAbsent('revision', () => 0);
     if (table == 'laundry_status_history') {
       row['id'] = rows[table]!.length + 1;
     }

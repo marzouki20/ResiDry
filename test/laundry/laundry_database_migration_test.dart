@@ -76,7 +76,7 @@ void main() {
 
     final common = await AppDatabase.instance.database;
     opened = common;
-    expect(await common.getVersion(), 10);
+    expect(await common.getVersion(), 11);
     expect(await common.query('users', orderBy: 'id'), originalUsers);
     expect((await common.query('laundry_items')).single['resident_id'], isNull);
     expect(
@@ -99,7 +99,7 @@ void main() {
     expect(await File(legacyPath).readAsBytes(), originalArchive);
     await common.close();
     opened = await databaseFactoryFfi.openDatabase(commonPath);
-    expect(await opened.getVersion(), 10);
+    expect(await opened.getVersion(), 11);
     expect((await opened.query('laundry_items')).length, 1);
     expect((await opened.query('laundry_status_history')).length, 1);
     expect(await opened.query('users', orderBy: 'id'), originalUsers);

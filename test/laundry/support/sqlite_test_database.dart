@@ -6,6 +6,8 @@ import 'package:ttttttteee/database/database.dart';
 
 import 'test_accounts.dart';
 
+import 'package:ttttttteee/features/laundry/data/laundry_schema.dart';
+
 Future<Database> openLaundryTestDatabase() async {
   sqfliteFfiInit();
   final db = await databaseFactoryFfi.openDatabase(
@@ -19,6 +21,7 @@ Future<Database> openLaundryTestDatabase() async {
       .group(0)!;
   await db.execute(usersSql);
   await AppDatabase.createLaundryTables(db);
+  await LaundrySchema.upgradeV11(db);
   for (final user in testAccounts) {
     await db.insert('users', user.toMap());
   }

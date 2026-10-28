@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../features/laundry/data/laundry_schema.dart';
 import 'package:path/path.dart' as paths;
 
 import 'package:sqflite/sqflite.dart';
@@ -31,7 +32,7 @@ class AppDatabase {
 
     _database = await openDatabase(
       path,
-      version: 10,
+      version: 11,
       onConfigure: (database) => database.execute('PRAGMA foreign_keys = ON'),
       onCreate: (database, _) async {
         await _createUsersTable(database);
@@ -46,8 +47,13 @@ class AppDatabase {
         await createCapacityEvidenceSchema(database);
         await createRegistrationCertificateSchema(database);
         await ensureLaundrySchema(database, paths.join(databasePath, 'laundry.db'));
+        await LaundrySchema.upgradeV11(database);
       },
       onUpgrade: (database, oldVersion, _) async {
+        if (oldVersion >= 10) {
+          await LaundrySchema.upgradeV11(database);
+          return;
+        }
         if (oldVersion < 2) {
           await _createUsersTable(database);
         }
@@ -73,6 +79,7 @@ class AppDatabase {
         await createCapacityEvidenceSchema(database);
         await createRegistrationCertificateSchema(database);
         await ensureLaundrySchema(database, paths.join(databasePath, 'laundry.db'));
+        await LaundrySchema.upgradeV11(database);
       },
     );
     return _database!;

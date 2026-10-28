@@ -4,6 +4,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/localization/app_locale.dart';
 import '../../../../models/laundry_item.dart';
 import '../../../../models/laundry_role.dart';
+import 'laundry_design.dart';
 
 /// Local workflow guidance, calculated from saved data; no remote AI service.
 String laundryNextStep(LaundryStatus status) => switch (status) {
@@ -84,15 +85,20 @@ class LaundryOverview extends StatelessWidget {
           spacing: 12,
           runSpacing: 12,
           children: [
-            for (final (label, value) in entries)
+            for (final (index, (label, value)) in entries.indexed)
               Container(
                 width: constraints.maxWidth > 280
                     ? (constraints.maxWidth - 12) / 2
                     : constraints.maxWidth,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: AppColors.line),
+                  color: const [
+                    LaundryPalette.mint,
+                    LaundryPalette.lilac,
+                    LaundryPalette.peach,
+                    LaundryPalette.sky,
+                  ][index % 4],
+                  border: Border.all(color: Colors.white.withValues(alpha: .7)),
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Column(

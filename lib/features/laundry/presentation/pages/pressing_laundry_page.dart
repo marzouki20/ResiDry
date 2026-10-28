@@ -12,6 +12,7 @@ import '../widgets/laundry_insights.dart';
 import '../widgets/laundry_design.dart';
 import '../../data/models/laundry_report.dart';
 import 'laundry_dashboard_page.dart';
+import '../widgets/laundry_timing.dart';
 
 class LaundryWorkflowView extends StatefulWidget {
   const LaundryWorkflowView({
@@ -84,6 +85,9 @@ class _LaundryWorkflowViewState extends State<LaundryWorkflowView>
               child: Column(
                 children: [
                   LaundrySectionHeader(
+                    accent: widget.role == LaundryRole.driver
+                        ? AppColors.cyan
+                        : LaundryPalette.teal,
                     title: context.localize(
                       widget.role == LaundryRole.driver
                           ? 'Livraison du linge'
@@ -212,6 +216,7 @@ class _LaundryWorkflowViewState extends State<LaundryWorkflowView>
     item: item,
     title: context.localize('Commande #${item.id}'),
     showPrice: widget.role == LaundryRole.pressing,
+    warning: laundryHasTimingWarning(_report, item.id),
     notice: _priorityExplanation(item),
     actions: [
       TextButton.icon(
@@ -253,20 +258,13 @@ class _LaundryWorkflowViewState extends State<LaundryWorkflowView>
     }
     final report = await widget.repository.getReport();
     _report = report;
+    this.report = report;
     return report.workloads.map((workload) => workload.item).toList();
   }
 
   String? _priorityExplanation(LaundryItem item) {
     if (widget.role != LaundryRole.pressing || _report == null) return null;
-    final rank = _report!.priorities.indexWhere(
-      (p) => p.workload.item.id == item.id,
-    );
-    if (rank < 0) return null;
-    return context.tr(
-      fr: 'Ordre de traitement : ${rank + 1}. Classement par ancienneté du dépôt ; échéance et durée non renseignées. Retard non évaluable.',
-      en: 'Treatment order: ${rank + 1}. Ranked by deposit age; deadline and duration unavailable. Delay cannot be assessed.',
-      ar: 'ترتيب المعالجة: ${rank + 1}. حسب أقدمية الإيداع؛ الموعد والمدة غير متاحين. لا يمكن تقييم التأخير.',
-    );
+    return laundryTimingText(context, _report, item.id, showPriority: true);
   }
 
   Future<void> _updateStatus(LaundryItem item, LaundryStatus newStatus) async {

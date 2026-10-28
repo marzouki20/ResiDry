@@ -97,6 +97,12 @@ void main() {
         await settleSqlite(tester);
         expect(find.byType(LaundryDashboardPage), findsOneWidget);
         expect(find.text('Demandes'), findsOneWidget);
+        if (user == testAdmin) {
+          await tester.scrollUntilVisible(find.text('15.125 DT'), 200);
+          expect(find.text('15.125 DT'), findsOneWidget);
+        } else {
+          expect(find.text('15.125 DT'), findsNothing);
+        }
         await tester.scrollUntilVisible(
           find.text('Services les plus demandés'),
           250,
@@ -107,16 +113,16 @@ void main() {
               )
               .first,
         );
+        await tester.scrollUntilVisible(find.text('Lavage'), 150);
         expect(find.text('Lavage'), findsOneWidget);
+        if (user == testAdmin || user == testPressing) {
+          await tester.scrollUntilVisible(find.text('Repassage'), 150);
+        }
         expect(
           find.text('Repassage'),
           user == testAdmin || user == testPressing
               ? findsOneWidget
               : findsNothing,
-        );
-        expect(
-          find.text('15.125 DT'),
-          user == testAdmin ? findsOneWidget : findsNothing,
         );
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
@@ -180,10 +186,7 @@ void main() {
           .map((card) => card.item.id)
           .toList();
       expect(displayedIds(), ['OLDEST', 'OTHER']);
-      expect(
-        find.textContaining('Classement par ancienneté'),
-        findsNWidgets(2),
-      );
+      expect(find.textContaining('Tri : retard'), findsNWidgets(2));
       await tester.tap(find.text('Par statut'));
       await tester.pumpAndSettle();
       expect(displayedIds(), ['OTHER', 'OLDEST']);

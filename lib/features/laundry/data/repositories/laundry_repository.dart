@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 
 import '../../../../database/database.dart';
@@ -7,9 +9,14 @@ import '../../../../models/laundry_status_change.dart';
 import '../../../../models/user.dart';
 import 'laundry_user_directory.dart';
 import '../models/laundry_report.dart';
+import '../models/laundry_details.dart';
+import '../../domain/models/laundry_quote.dart';
+import '../../domain/services/pricing_service.dart';
 import '../../domain/models/laundry_workload.dart';
 import '../../domain/services/planning_service.dart';
 import '../../domain/services/laundry_statistics_service.dart';
+
+part 'laundry_essential_operations.dart';
 
 class LaundryException implements Exception {
   const LaundryException(this.message);
@@ -22,14 +29,17 @@ class LaundryException implements Exception {
 class LaundryRepository {
   LaundryRepository({
     this.currentUser,
+    DateTime Function()? clock,
     Future<Database> Function()? databaseProvider,
     LaundryUserDirectory? userDirectory,
-  }) : _databaseProvider =
+  }) : _clock = clock ?? DateTime.now,
+       _databaseProvider =
            databaseProvider ?? (() => AppDatabase.instance.database),
        _users =
            userDirectory ??
            LaundryUserDirectory(databaseProvider: databaseProvider);
   final User? currentUser;
+  final DateTime Function() _clock;
   final Future<Database> Function() _databaseProvider;
   final LaundryUserDirectory _users;
 
@@ -37,6 +47,7 @@ class LaundryRepository {
       ? this
       : LaundryRepository(
           currentUser: user,
+          clock: _clock,
           databaseProvider: _databaseProvider,
           userDirectory: _users,
         );
@@ -75,56 +86,56 @@ class LaundryRepository {
 
   /// One consistent SQLite snapshot, with the same ownership and financial
   /// permissions as the lists. Missing planning inputs remain unknown.
-  Future<LaundryReport> getReport({DateTime? evaluatedAt}) => _authorized(
-    _allRoles,
-    (db, actor, role) async {
-      final now = (evaluatedAt ?? DateTime.now()).toUtc();
-      var rows = await db.query(
-        'laundry_items',
-        where: role == LaundryRole.resident ? 'resident_id = ?' : null,
-        whereArgs: role == LaundryRole.resident ? [actor.id] : null,
-        orderBy: 'created_at DESC, id DESC',
-      );
-      if (role == LaundryRole.driver) {
-        rows = rows
-            .where(
-              (row) => row['status'] == 'ready' || row['status'] == 'delivered',
-            )
+  Future<LaundryReport> getReport({DateTime? evaluatedAt}) =>
+      _authorized(_allRoles, (db, actor, role) async {
+        final now = (evaluatedAt ?? _clock()).toUtc();
+        var rows = await db.query(
+          'laundry_items',
+          where: role == LaundryRole.resident ? 'resident_id = ?' : null,
+          whereArgs: role == LaundryRole.resident ? [actor.id] : null,
+          orderBy: 'created_at DESC, id DESC',
+        );
+        if (role == LaundryRole.driver) {
+          rows = rows
+              .where(
+                (row) =>
+                    row['status'] == 'ready' || row['status'] == 'delivered',
+              )
+              .toList();
+        }
+        final details = await _details(db, rows, role);
+        final history = {
+          for (final request in details) request.item.id: request.history,
+        };
+        final workloads = details
+            .map((request) => request.workload(now))
             .toList();
-      }
-      final requests = await _resolve(
-        db,
-        rows,
-        hidePrices: role == LaundryRole.resident || role == LaundryRole.driver,
-      );
-      final history = <String, List<LaundryStatusChange>>{};
-      for (final item in requests) {
-        history[item.id] = (await db.query(
-          'laundry_status_history',
-          where: 'laundry_id = ?',
-          whereArgs: [item.id],
-          orderBy: 'id ASC',
-        )).map(LaundryStatusChange.fromMap).toList();
-      }
-      // v10 has no saved deadlines, urgency, weights or duration estimates.
-      // Never borrow demo dates or a delivery mission's unrelated weight.
-      final workloads = requests
-          .map((item) => LaundryWorkload(item: item))
-          .toList();
-      return LaundryReport(
-        workloads: workloads,
-        history: history,
-        priorities: const PlanningService().prioritize(workloads, now: now),
-        statistics: const LaundryStatisticsService().summarize(
-          workloads,
-          now: now,
-          historyByLaundryId: history,
-          includeFinancials: role == LaundryRole.admin,
-        ),
-        evaluatedAt: now,
-      );
-    },
-  );
+        final services = (await db.query('laundry_service_types'))
+            .map(LaundryServiceType.fromMap)
+            .toList();
+        final serviceNames = {
+          for (final service in services) service.id: service.fr,
+        };
+        return LaundryReport(
+          workloads: workloads,
+          details: {for (final request in details) request.item.id: request},
+          history: history,
+          priorities: const PlanningService().prioritize(workloads, now: now),
+          statistics: const LaundryStatisticsService().summarize(
+            workloads,
+            now: now,
+            historyByLaundryId: history,
+            servicesByLaundryId: {
+              for (final request in details.where((d) => d.lines.isNotEmpty))
+                request.item.id: request.lines
+                    .map((l) => serviceNames[l.serviceId] ?? l.serviceId)
+                    .toList(),
+            },
+            includeFinancials: role == LaundryRole.admin,
+          ),
+          evaluatedAt: now,
+        );
+      });
 
   Future<List<LaundryItem>> _resolve(
     DatabaseExecutor db,
@@ -289,6 +300,15 @@ class LaundryRepository {
       _checkAuthor(actor, changedByUserId);
       _validate(item);
       final current = await _require(db, item.id);
+      if ((await db.query(
+        'laundry_request_lines',
+        where: 'laundry_id = ?',
+        whereArgs: [item.id],
+      )).isNotEmpty) {
+        throw const LaundryException(
+          'Modifiez les articles avec le formulaire détaillé.',
+        );
+      }
       if (item.residentId != null) await _resident(db, item.residentId);
       if (current.residentId != null && item.residentId == null) {
         throw const LaundryException('Un compte résident doit rester associé.');
@@ -296,6 +316,15 @@ class LaundryRepository {
       final row = item.toMap()
         ..['resident_name'] = current.residentNameSnapshot
         ..['created_at'] = current.createdAt.toUtc().toIso8601String();
+      row['revision'] =
+          ((await db.query(
+                    'laundry_items',
+                    where: 'id = ?',
+                    whereArgs: [item.id],
+                  )).single['revision']
+                  as int? ??
+              0) +
+          1;
       final result = await db.update(
         'laundry_items',
         row,
@@ -324,10 +353,28 @@ class LaundryRepository {
         _validate(item.copyWith(price: 0));
         final current = await _require(db, item.id);
         _checkResident(current, actor);
+        if ((await db.query(
+          'laundry_request_lines',
+          where: 'laundry_id = ?',
+          whereArgs: [item.id],
+        )).isNotEmpty) {
+          throw const LaundryException(
+            'Modifiez les articles avec le formulaire détaillé.',
+          );
+        }
         return db.update(
           'laundry_items',
           {
             'service_type': item.serviceType,
+            'revision':
+                ((await db.query(
+                          'laundry_items',
+                          where: 'id = ?',
+                          whereArgs: [item.id],
+                        )).single['revision']
+                        as int? ??
+                    0) +
+                1,
             if (item.serviceType != current.serviceType) 'price_confirmed': 0,
           },
           where: 'id = ? AND resident_id = ? AND status = ?',
@@ -384,7 +431,19 @@ class LaundryRepository {
     }
     final count = await db.update(
       'laundry_items',
-      {'status': newStatus.name},
+      {
+        'status': newStatus.name,
+        'revision':
+            ((await db.query(
+                      'laundry_items',
+                      where: 'id = ?',
+                      whereArgs: [id],
+                    )).single['revision']
+                    as int? ??
+                0) +
+            1,
+        'updated_at': _clock().toUtc().toIso8601String(),
+      },
       where: 'id = ? AND status = ?',
       whereArgs: [id, expectedStatus.name],
     );
@@ -424,7 +483,7 @@ class LaundryRepository {
       'old_status': oldStatus?.name,
       'new_status': newStatus.name,
       'changed_by_user_id': userId,
-      'changed_at': DateTime.now().toUtc().toIso8601String(),
+      'changed_at': _clock().toUtc().toIso8601String(),
     });
   }
 }

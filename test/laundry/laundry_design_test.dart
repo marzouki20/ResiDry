@@ -64,18 +64,21 @@ void main() {
   };
 
   Widget app(String role, Locale locale, {double scale = 1, Key? captureKey}) =>
-      MaterialApp(
-        theme: AppTheme.light,
-        debugShowCheckedModeBanner: false,
-        locale: locale,
-        supportedLocales: const [Locale('fr'), Locale('en'), Locale('ar')],
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context)
-              .copyWith(textScaler: TextScaler.linear(scale)),
-          child: child!,
+      RepaintBoundary(
+        key: captureKey,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          debugShowCheckedModeBanner: false,
+          locale: locale,
+          supportedLocales: const [Locale('fr'), Locale('en'), Locale('ar')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(scale)),
+            child: child!,
+          ),
+          home: page(role),
         ),
-        home: RepaintBoundary(key: captureKey, child: page(role)),
       );
 
   for (final role in ['admin', 'resident', 'pressing', 'driver']) {
@@ -154,7 +157,7 @@ void main() {
             of: find.byType(AlertDialog),
             matching: find.byType(TextField),
           );
-          expect(fields, findsNWidgets(role == 'admin' ? 2 : 1));
+          expect(fields, findsNWidgets(4));
           await tester.ensureVisible(fields.first);
           await tester.showKeyboard(fields.first);
           tester.view.viewInsets = const FakeViewPadding(bottom: 300);
@@ -222,6 +225,23 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
+      Future<void> capture(GlobalKey key, String filename) async {
+        final boundary =
+            key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+        await tester.runAsync(() async {
+          final picture = await boundary.toImage(pixelRatio: 1);
+          try {
+            final bytes = await picture.toByteData(
+              format: ui.ImageByteFormat.png,
+            );
+            await File('.dart_tool/$filename.png')
+                .writeAsBytes(bytes!.buffer.asUint8List());
+          } finally {
+            picture.dispose();
+          }
+        });
+      }
+
       for (final role in ['admin', 'resident', 'pressing', 'driver']) {
         final captureKey = GlobalKey();
         await tester.pumpWidget(
@@ -229,22 +249,40 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
-        final boundary =
-            captureKey.currentContext!.findRenderObject()!
-                as RenderRepaintBoundary;
-        await tester.runAsync(() async {
-          final picture = await boundary.toImage(pixelRatio: 1);
-          try {
-            final bytes = await picture.toByteData(
-              format: ui.ImageByteFormat.png,
-            );
-            final file = File('.dart_tool/laundry_${role}_preview.png');
-            await file.writeAsBytes(bytes!.buffer.asUint8List());
-          } finally {
-            picture.dispose();
-          }
-        });
+        await capture(captureKey, 'laundry_${role}_preview');
       }
+      await repository
+          .forUser(testPressing)
+          .transitionStatus(
+            'LINGE-deposited-0001',
+            expectedStatus: LaundryStatus.deposited,
+            newStatus: LaundryStatus.processing,
+          );
+      final historyKey = GlobalKey();
+      await tester.pumpWidget(
+        app('resident', const Locale('fr'), captureKey: historyKey),
+      );
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('Historique').first, 180);
+      await tester.ensureVisible(find.text('Historique').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Historique').first);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await capture(historyKey, 'laundry_history_preview');
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      final formKey = GlobalKey();
+      await tester.pumpWidget(
+        app('resident', const Locale('fr'), captureKey: formKey),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Nouvelle demande'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+      expect(find.text('Champ obligatoire'), findsOneWidget);
+      await capture(formKey, 'laundry_validation_preview');
     } finally {
       debugDisableShadows = previousShadows;
       FocusManager.instance.highlightStrategy = previousHighlight;

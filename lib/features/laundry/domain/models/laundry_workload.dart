@@ -3,7 +3,7 @@ import '../../../../models/laundry_item.dart';
 enum LaundryUrgency { normal, urgent }
 
 /// Planning inputs around the existing shared LaundryItem. No duplicated user.
-/// These additional inputs are not persisted by the current SQLite schema.
+/// Additional inputs are supplied by persisted LaundryDetails.
 class LaundryWorkload {
   LaundryWorkload({
     required this.item,

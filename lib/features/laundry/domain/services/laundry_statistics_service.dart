@@ -13,6 +13,7 @@ class LaundryStatisticsService {
     Iterable<LaundryWorkload> workloads, {
     required DateTime now,
     Map<String, List<LaundryStatusChange>> historyByLaundryId = const {},
+    Map<String, List<String>> servicesByLaundryId = const {},
     bool includeFinancials = false,
   }) {
     final inputs = workloads.toList();
@@ -36,11 +37,10 @@ class LaundryStatisticsService {
     for (final workload in inputs) {
       final item = workload.item;
       final timing = tracking.assess(workload, now: now);
-      serviceCounts.update(
-        item.serviceType,
-        (count) => count + 1,
-        ifAbsent: () => 1,
-      );
+      for (final service
+          in (servicesByLaundryId[item.id] ?? [item.serviceType]).toSet()) {
+        serviceCounts.update(service, (count) => count + 1, ifAbsent: () => 1);
+      }
       if (workload.needsTreatment) {
         active++;
         if (timing.isOverdue) overdue++;

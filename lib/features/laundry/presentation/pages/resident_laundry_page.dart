@@ -11,6 +11,8 @@ import '../widgets/laundry_history_dialog.dart';
 import '../widgets/laundry_insights.dart';
 import '../widgets/laundry_design.dart';
 import 'laundry_dashboard_page.dart';
+import '../widgets/laundry_request_editor.dart';
+import '../widgets/laundry_timing.dart';
 
 // Laundry requests belonging to one resident.
 class ResidentLaundryPage extends StatefulWidget {
@@ -132,11 +134,15 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
       item: item,
       showResident: false,
       showProgress: true,
-      notice: !canModify
-          ? context.localize(
-              'Cette demande a été prise en charge et ne peut plus être modifiée.',
-            )
-          : null,
+      warning: laundryHasTimingWarning(report, item.id),
+      notice: [
+        if (!canModify)
+          context.localize(
+            'Cette demande a été prise en charge et ne peut plus être modifiée.',
+          ),
+        if (laundryTimingText(context, report, item.id) != null)
+          laundryTimingText(context, report, item.id)!,
+      ].join('\n'),
       actions: [
         TextButton.icon(
           onPressed: () => showLaundryHistory(
@@ -168,36 +174,11 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
   }
 
   Future<void> _openForm({LaundryItem? item}) async {
-    final service = await showDialog<String>(
+    final saved = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) {
-        return _LaundryRequestDialog(item: item);
-      },
+      builder: (_) => LaundryRequestEditor(repository: _repository, item: item),
     );
-
-    // Stop if the user cancelled or the page was removed.
-    if (service == null || !mounted) return;
-
-    await perform(() async {
-      if (item == null) {
-        await _repository.addForResident(
-          LaundryItem(
-            id: 'LD${DateTime.now().microsecondsSinceEpoch}',
-            residentId: _residentId,
-            residentName: _residentName,
-            serviceType: service,
-            price: 0,
-            status: LaundryStatus.deposited,
-          ),
-          residentId: _residentId,
-        );
-      } else {
-        await _repository.updateForResident(
-          item.copyWith(serviceType: service),
-          residentId: _residentId,
-        );
-      }
-    });
+    if (saved == true && mounted) await reload();
   }
 
   @override
@@ -207,7 +188,8 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
       throw const LaundryException('Cet espace est réservé aux résidents.');
     }
     _account = account;
-    return _repository.getByResidentId(account.id!);
+    report = await _repository.getReport();
+    return report!.workloads.map((w) => w.item).toList();
   }
 
   @override
@@ -252,126 +234,5 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
     await perform(() async {
       await _repository.deleteForResident(item.id, residentId: _residentId);
     });
-  }
-}
-
-// Separate dialog that owns its TextEditingControllers.
-class _LaundryRequestDialog extends StatefulWidget {
-  const _LaundryRequestDialog({this.item});
-
-  final LaundryItem? item;
-
-  @override
-  State<_LaundryRequestDialog> createState() => _LaundryRequestDialogState();
-}
-
-class _LaundryRequestDialogState extends State<_LaundryRequestDialog> {
-  late final TextEditingController _serviceController;
-
-  // Runs when the dialog is created.
-  @override
-  void initState() {
-    super.initState();
-
-    _serviceController = TextEditingController(
-      text: widget.item?.serviceType ?? '',
-    );
-  }
-
-  // Runs when Flutter permanently removes the dialog.
-  @override
-  void dispose() {
-    _serviceController.dispose();
-    super.dispose();
-  }
-
-  // Validate the form and return the entered values.
-  void _save() {
-    final service = _serviceController.text.trim();
-
-    if (service.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            context.localize('Veuillez préciser le service souhaité.'),
-          ),
-        ),
-      );
-      return;
-    }
-
-    Navigator.pop(context, service);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      icon: const Icon(
-        Icons.local_laundry_service_outlined,
-        color: AppColors.navy,
-      ),
-      title: Text(
-        context.localize(
-          widget.item == null ? 'Nouvelle demande' : 'Modifier la demande',
-        ),
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _serviceController,
-              decoration: laundryFieldDecoration(
-                label: context.tr(
-                  fr: 'Type de service',
-                  en: 'Service type',
-                  ar: 'نوع الخدمة',
-                ),
-                icon: Icons.local_laundry_service_outlined,
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final service in [
-                  'Lavage',
-                  'Repassage',
-                  'Nettoyage à sec',
-                ])
-                  ActionChip(
-                    label: Text(context.localize(service)),
-                    onPressed: () => _serviceController.text = service,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              context.localize(
-                'Choisissez un service ou décrivez votre besoin. Vous pourrez modifier votre demande avant sa prise en charge.',
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(context.localize('Annuler')),
-        ),
-        FilledButton(
-          onPressed: _save,
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.navy,
-            foregroundColor: Colors.white,
-          ),
-          child: Text(context.localize('Enregistrer')),
-        ),
-      ],
-    );
   }
 }
