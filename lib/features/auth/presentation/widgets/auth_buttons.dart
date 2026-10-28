@@ -29,14 +29,16 @@ class PrimaryAuthButton extends StatelessWidget {
 }
 
 class GoogleAuthButton extends StatelessWidget {
-  const GoogleAuthButton({super.key});
+  const GoogleAuthButton({super.key, this.onPressed});
+
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 52,
       child: OutlinedButton(
-        onPressed: () {},
+        onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.ink,
           backgroundColor: Colors.white,

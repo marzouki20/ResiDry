@@ -5,9 +5,10 @@ import '../navigation/resident_navigation_bar.dart';
 import '../widgets/casier_components.dart';
 
 class ResidentInterface extends StatefulWidget {
-  const ResidentInterface({super.key, this.userName});
+  const ResidentInterface({super.key, this.userName, this.onLogout});
 
   final String? userName;
+  final VoidCallback? onLogout;
 
   @override
   State<ResidentInterface> createState() => _ResidentInterfaceState();
@@ -55,6 +56,12 @@ class _ResidentInterfaceState extends State<ResidentInterface> {
             onPressed: () => setState(() => _selectedIndex = 3),
             icon: const Icon(Icons.notifications_none_rounded),
           ),
+          if (widget.onLogout != null)
+            IconButton(
+              tooltip: 'Sign out',
+              onPressed: widget.onLogout,
+              icon: const Icon(Icons.logout_rounded),
+            ),
           const SizedBox(width: 8),
         ],
       ),

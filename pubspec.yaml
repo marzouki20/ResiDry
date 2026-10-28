@@ -37,6 +37,11 @@ dependencies:
   sqflite: ^2.4.4+1
   sqflite_common_ffi: ^2.3.5
   geolocator: ^13.0.2
+  flutter_dotenv: ^6.0.1
+  google_sign_in: ^7.2.0
+  shared_preferences: ^2.5.4
+  supabase_flutter: ^2.18.3
+  webview_flutter: ^4.14.1
 
 dev_dependencies:
   flutter_test:
@@ -61,6 +66,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - .env
     - assets/logo.png
 
   # To add assets to your application, add an assets section, like this:

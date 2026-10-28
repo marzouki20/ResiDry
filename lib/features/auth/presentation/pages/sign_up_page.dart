@@ -19,6 +19,7 @@ class SignUpPage extends StatelessWidget {
     required this.selectedRole,
     required this.onRoleChanged,
     required this.onSignUp,
+    required this.onGoogleSignIn,
     required this.isSubmitting,
   });
 
@@ -32,6 +33,7 @@ class SignUpPage extends StatelessWidget {
   final String selectedRole;
   final ValueChanged<String> onRoleChanged;
   final VoidCallback onSignUp;
+  final VoidCallback onGoogleSignIn;
   final bool isSubmitting;
 
   @override
@@ -169,7 +171,7 @@ class SignUpPage extends StatelessWidget {
         const SizedBox(height: 20),
         const AuthDivider(),
         const SizedBox(height: 18),
-        const GoogleAuthButton(),
+        GoogleAuthButton(onPressed: isSubmitting ? null : onGoogleSignIn),
       ],
     );
   }

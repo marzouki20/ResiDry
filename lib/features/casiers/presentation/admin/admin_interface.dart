@@ -9,9 +9,10 @@ import '../navigation/admin_navigation_bar.dart';
 import '../widgets/casier_components.dart';
 
 class AdminInterface extends StatefulWidget {
-  const AdminInterface({super.key, this.userName});
+  const AdminInterface({super.key, this.userName, this.onLogout});
 
   final String? userName;
+  final VoidCallback? onLogout;
 
   @override
   State<AdminInterface> createState() => _AdminInterfaceState();
@@ -64,6 +65,12 @@ class _AdminInterfaceState extends State<AdminInterface> {
             onPressed: () => setState(() => _selectedIndex = 2),
             icon: const Icon(Icons.notifications_none_rounded),
           ),
+          if (widget.onLogout != null)
+            IconButton(
+              tooltip: 'Sign out',
+              onPressed: widget.onLogout,
+              icon: const Icon(Icons.logout_rounded),
+            ),
           const SizedBox(width: 8),
         ],
       ),
