@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/localization/app_locale.dart';
 import '../../../../models/laundry_item.dart';
 import '../../../../models/laundry_role.dart';
+import 'laundry_design.dart';
 
 /// Local workflow guidance, calculated from saved data; no remote AI service.
 String laundryNextStep(LaundryStatus status) => switch (status) {
@@ -49,39 +51,82 @@ class LaundryOverview extends StatelessWidget {
         ('En traitement', count(LaundryStatus.processing)),
       ],
       LaundryRole.driver => [
-        ('À livrer', count(LaundryStatus.ready)),
+        (
+          context.tr(fr: 'À livrer', en: 'To deliver', ar: 'بانتظار التسليم'),
+          count(LaundryStatus.ready),
+        ),
         ('Livrées', count(LaundryStatus.delivered)),
       ],
       LaundryRole.admin => [
-        ('Actives', active),
         (
-          'Tarifs à valider',
+          context.tr(
+            fr: 'Total des demandes',
+            en: 'Total requests',
+            ar: 'إجمالي الطلبات',
+          ),
+          items.length,
+        ),
+        (context.tr(fr: 'Actives', en: 'Active', ar: 'النشطة'), active),
+        ('Livrées', count(LaundryStatus.delivered)),
+        (
+          context.tr(
+            fr: 'Tarifs à valider',
+            en: 'Prices to confirm',
+            ar: 'أسعار بانتظار التأكيد',
+          ),
           items.where((item) => !item.priceConfirmed).length,
         ),
       ],
     };
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final (label, value) in entries)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-              decoration: BoxDecoration(
-                color: AppColors.cyan.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '$label : $value',
-                style: const TextStyle(
-                  color: AppColors.navy,
-                  fontWeight: FontWeight.w600,
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: LayoutBuilder(
+        builder: (context, constraints) => Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final (index, (label, value)) in entries.indexed)
+              Container(
+                width: constraints.maxWidth > 280
+                    ? (constraints.maxWidth - 12) / 2
+                    : constraints.maxWidth,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const [
+                    LaundryPalette.mint,
+                    LaundryPalette.lilac,
+                    LaundryPalette.peach,
+                    LaundryPalette.sky,
+                  ][index % 4],
+                  border: Border.all(color: Colors.white.withValues(alpha: .7)),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$value',
+                      style: const TextStyle(
+                        color: AppColors.navy,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      context.localize(label),
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -93,11 +138,33 @@ class LaundrySearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) => TextField(
     onChanged: onChanged,
-    decoration: const InputDecoration(
-      labelText: 'Rechercher une demande',
-      hintText: 'Référence, service ou résident',
-      prefixIcon: Icon(Icons.search),
-      border: OutlineInputBorder(),
+    decoration: InputDecoration(
+      labelText: context.tr(
+        fr: 'Rechercher une demande',
+        en: 'Search requests',
+        ar: 'البحث عن طلب',
+      ),
+      hintText: context.tr(
+        fr: 'Référence, service ou résident',
+        en: 'Reference, service or resident',
+        ar: 'المرجع أو الخدمة أو المقيم',
+      ),
+      prefixIcon: const Icon(Icons.search_rounded),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.line),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.line),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.cyan, width: 2),
+      ),
     ),
   );
 }

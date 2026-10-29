@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:ttttttteee/core/theme/app_theme.dart';
 import 'package:ttttttteee/models/laundry_item.dart';
@@ -10,16 +12,20 @@ import 'package:ttttttteee/features/laundry/presentation/navigation/laundry_rout
 import 'package:ttttttteee/features/laundry/presentation/pages/driver_laundry_page.dart';
 import 'package:ttttttteee/features/laundry/presentation/pages/pressing_laundry_page.dart';
 import 'package:ttttttteee/features/laundry/presentation/pages/resident_laundry_page.dart';
-import 'package:ttttttteee/features/laundry/presentation/widgets/laundry_admin_dialog.dart';
+import 'package:ttttttteee/features/laundry/presentation/widgets/laundry_request_editor.dart';
 import 'package:ttttttteee/features/laundry/presentation/widgets/laundry_navigation_access.dart';
 
 import 'support/memory_database.dart';
+
+import 'package:ttttttteee/features/laundry/domain/models/laundry_quote.dart';
+
 import 'support/test_accounts.dart';
 
 void main() {
   late MemoryDatabase db;
   late LaundryRepository admin;
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     db = MemoryDatabase();
     db.rows['users']!.addAll(testAccounts.map((user) => user.toMap()));
     admin = LaundryRepository(
@@ -44,6 +50,9 @@ void main() {
   Future<void> open(WidgetTester tester, Widget page) async {
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('fr'),
+        supportedLocales: const [Locale('fr'), Locale('en'), Locale('ar')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         theme: AppTheme.light,
         home: Scaffold(body: page),
       ),
@@ -60,6 +69,9 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(
         MaterialApp(
+          locale: const Locale('fr'),
+          supportedLocales: const [Locale('fr'), Locale('en'), Locale('ar')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
           theme: AppTheme.light,
           home: LaundryPage(repository: admin),
         ),
@@ -69,7 +81,7 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
       expect(find.text('Compte résident'), findsOneWidget);
-      expect(find.byType(TextFormField), findsNWidgets(2));
+      expect(find.byType(TextFormField), findsNWidgets(4));
       await tester.tap(find.text('Annuler'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -83,7 +95,7 @@ void main() {
     expect(find.byType(AppBar), findsNothing);
     await tester.tap(find.text('Ajouter'));
     await tester.pumpAndSettle();
-    expect(find.byType(LaundryAdminDialog), findsOneWidget);
+    expect(find.byType(LaundryRequestEditor), findsOneWidget);
     await tester.tap(find.text('Annuler'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
@@ -91,6 +103,11 @@ void main() {
   testWidgets(
     'admin creates from existing resident account and confirms free service',
     (tester) async {
+      await admin.saveTariff(
+        serviceId: 'washing',
+        basis: LaundryPricingBasis.perKilogram,
+        unitPriceMillimes: 0,
+      );
       await open(tester, LaundryPage(repository: admin));
       await tester.tap(find.text('Ajouter'));
       await tester.pumpAndSettle();
@@ -103,8 +120,9 @@ void main() {
       await tester.tap(find.text('Ahmed · #1').last);
       await tester.pumpAndSettle();
       expect(find.text('Résident : Ahmed'), findsOneWidget);
-      await tester.enterText(find.byType(TextFormField).at(0), 'Repassage');
-      await tester.enterText(find.byType(TextFormField).at(1), '0');
+      await tester.enterText(find.byType(TextFormField).at(0), 'Chemise');
+      await tester.ensureVisible(find.byType(TextFormField).at(2));
+      await tester.enterText(find.byType(TextFormField).at(2), '3');
       await tester.tap(find.text('Enregistrer'));
       await tester.pumpAndSettle();
       final saved = (await admin.getAll()).single;
@@ -140,12 +158,12 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Modifier'));
       await tester.pumpAndSettle();
-      expect(find.byType(TextField), findsOneWidget);
-      await tester.enterText(find.byType(TextField), 'Repassage');
+      expect(find.byType(TextField), findsNWidgets(4));
+      await tester.enterText(find.byType(TextFormField).first, 'Chemise');
       await tester.tap(find.text('Enregistrer'));
       await tester.pumpAndSettle();
-      expect((await admin.getById('OWN'))!.serviceType, 'Repassage');
-      expect((await admin.getById('OWN'))!.price, 15);
+      expect((await admin.getDetails('OWN')).lines.single.garment, 'Chemise');
+      expect((await admin.getById('OWN'))!.price, 0);
       expect((await admin.getById('OWN'))!.priceConfirmed, isFalse);
       expect(tester.takeException(), isNull);
     },
@@ -162,7 +180,7 @@ void main() {
     await tester.tap(find.text('Enregistrer'));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsOneWidget);
-    await tester.enterText(find.byType(TextField), 'Lavage');
+    await tester.enterText(find.byType(TextFormField).first, 'Chemise');
     await tester.tap(find.text('Enregistrer'));
     await tester.pumpAndSettle();
     final saved = (await admin.getAll()).single;
@@ -274,7 +292,12 @@ void main() {
     await admin.add(item('CONFIRMED', confirmed: true));
     await admin.add(item('PENDING'));
     await open(tester, LaundryPage(repository: admin));
-    expect(find.text('Total des tarifs validés : 15.00 DT'), findsOneWidget);
+    expect(find.text('Total des tarifs validés : 15.000 DT'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.widgetWithText(FilterChip, 'Tarifs à valider'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.widgetWithText(FilterChip, 'Tarifs à valider'));
     await tester.pumpAndSettle();
     expect(find.text('#PENDING'), findsOneWidget);
@@ -375,6 +398,32 @@ void main() {
       expect(find.text('Ahmed'), findsNothing);
     },
   );
+  testWidgets(
+    'standalone language picker supports French and Arabic without changing accounts',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const LaundryDevApp());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Change language'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Français'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Changer de langue'), findsOneWidget);
+      await tester.tap(find.byTooltip('Changer de langue'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('العربية'));
+      await tester.pumpAndSettle();
+      final languageButton = find.byTooltip('تغيير اللغة');
+      expect(languageButton, findsOneWidget);
+      expect(
+        Directionality.of(tester.element(languageButton)),
+        TextDirection.rtl,
+      );
+      expect(find.text('Choisir un utilisateur'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('authenticated dev repositories open each corresponding role', (
     tester,
   ) async {

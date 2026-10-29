@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/app_locale.dart';
+
 import '../../../../models/laundry_item.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../models/user.dart';
+import 'laundry_design.dart';
 
 /// Dialog owns its controllers until its widget is disposed.
 class LaundryAdminDialog extends StatefulWidget {
@@ -41,8 +45,9 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
     super.dispose();
   }
 
-  String? _required(String? value) =>
-      value == null || value.trim().isEmpty ? 'Champ obligatoire' : null;
+  String? _required(String? value) => value == null || value.trim().isEmpty
+      ? context.localize('Champ obligatoire')
+      : null;
 
   void _save() {
     if (!_formKey.currentState!.validate()) return;
@@ -64,8 +69,15 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+    icon: const Icon(
+      Icons.local_laundry_service_outlined,
+      color: AppColors.navy,
+    ),
     title: Text(
-      widget.item == null ? 'Ajouter une commande' : 'Modifier la commande',
+      context.localize(
+        widget.item == null ? 'Ajouter une commande' : 'Modifier la commande',
+      ),
     ),
     content: SizedBox(
       width: 420,
@@ -78,7 +90,14 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
               DropdownButtonFormField<User>(
                 initialValue: _resident,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Compte résident'),
+                decoration: laundryFieldDecoration(
+                  label: context.tr(
+                    fr: 'Compte résident',
+                    en: 'Resident account',
+                    ar: 'حساب المقيم',
+                  ),
+                  icon: Icons.person_outline_rounded,
+                ),
                 items: [
                   for (final user in widget.residents)
                     DropdownMenuItem(
@@ -93,10 +112,11 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
                 validator: (user) =>
                     user == null &&
                         (widget.item == null || widget.item!.residentId != null)
-                    ? 'Sélectionnez un compte résident.'
+                    ? context.localize('Sélectionnez un compte résident.')
                     : null,
               ),
-              if (_resident != null) Text('Résident : ${_resident!.name}'),
+              if (_resident != null)
+                Text(context.localize('Résident : ${_resident!.name}')),
               if (widget.item != null && widget.item!.residentId == null)
                 Text(
                   'Demande ancienne non associée. Ancien nom : ${widget.item!.residentNameSnapshot}. Sélectionner un compte établit une nouvelle association.',
@@ -105,7 +125,14 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
               TextFormField(
                 controller: _service,
                 validator: _required,
-                decoration: const InputDecoration(labelText: 'Type de service'),
+                decoration: laundryFieldDecoration(
+                  label: context.tr(
+                    fr: 'Type de service',
+                    en: 'Service type',
+                    ar: 'نوع الخدمة',
+                  ),
+                  icon: Icons.local_laundry_service_outlined,
+                ),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -113,10 +140,19 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                decoration: const InputDecoration(
-                  labelText: 'Tarif administrateur (facultatif)',
-                  suffixText: 'DT',
-                  helperText: 'Laisser vide pour une validation ultérieure.',
+                decoration: laundryFieldDecoration(
+                  label: context.tr(
+                    fr: 'Tarif administrateur (facultatif)',
+                    en: 'Admin price (optional)',
+                    ar: 'سعر المدير (اختياري)',
+                  ),
+                  suffix: 'DT',
+                  icon: Icons.receipt_long_outlined,
+                  helper: context.tr(
+                    fr: 'Laisser vide pour une validation ultérieure.',
+                    en: 'Leave blank to confirm later.',
+                    ar: 'اتركه فارغًا للتأكيد لاحقًا.',
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) return null;
@@ -124,7 +160,7 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
                     value.trim().replaceAll(',', '.'),
                   );
                   return price == null || !price.isFinite || price < 0
-                      ? 'Prix positif ou nul attendu'
+                      ? context.localize('Prix positif ou nul attendu')
                       : null;
                 },
               ),
@@ -134,17 +170,23 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
-                    'Montant précédent à revalider : ${widget.item!.price.toStringAsFixed(2)} DT',
+                    'Montant précédent à revalider : ${widget.item!.price.toStringAsFixed(3)} DT',
                   ),
                 ),
               const SizedBox(height: 12),
               DropdownButtonFormField<LaundryStatus>(
                 initialValue: _status,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Statut'),
+                decoration: laundryFieldDecoration(
+                  label: context.tr(fr: 'Statut', en: 'Status', ar: 'الحالة'),
+                  icon: Icons.track_changes_rounded,
+                ),
                 items: [
                   for (final status in LaundryStatus.values)
-                    DropdownMenuItem(value: status, child: Text(status.label)),
+                    DropdownMenuItem(
+                      value: status,
+                      child: Text(context.localize(status.label)),
+                    ),
                 ],
                 onChanged: (value) {
                   if (value != null) _status = value;
@@ -158,9 +200,12 @@ class _LaundryAdminDialogState extends State<LaundryAdminDialog> {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: const Text('Annuler'),
+        child: Text(context.localize('Annuler')),
       ),
-      FilledButton(onPressed: _save, child: const Text('Enregistrer')),
+      FilledButton(
+        onPressed: _save,
+        child: Text(context.localize('Enregistrer')),
+      ),
     ],
   );
 }

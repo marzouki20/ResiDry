@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/app_locale.dart';
+
 import '../../../../models/user.dart';
 import '../../data/repositories/laundry_repository.dart';
 import '../laundry_page.dart';
@@ -38,8 +40,8 @@ class LaundryRoutes {
     User? currentUser,
   }) => MaterialPageRoute<void>(
     settings: const RouteSettings(name: driver),
-    builder: (_) => Scaffold(
-      appBar: AppBar(title: const Text('Livraison du linge')),
+    builder: (context) => Scaffold(
+      appBar: AppBar(title: Text(context.localize('Livraison du linge'))),
       body: DriverLaundryPage(
         repository: repository,
         userId: currentUser?.id ?? userId,
@@ -55,8 +57,8 @@ class LaundryRoutes {
   }) {
     return MaterialPageRoute<void>(
       settings: const RouteSettings(name: pressing),
-      builder: (_) => Scaffold(
-        appBar: AppBar(title: const Text('Société de pressing')),
+      builder: (context) => Scaffold(
+        appBar: AppBar(title: Text(context.localize('Société de pressing'))),
         body: PressingLaundryPage(
           repository: repository,
           userId: currentUser?.id ?? userId,
@@ -72,8 +74,8 @@ class LaundryRoutes {
   }) {
     return MaterialPageRoute<void>(
       settings: const RouteSettings(name: admin),
-      builder: (_) => Scaffold(
-        appBar: AppBar(title: const Text('Gestion du linge')),
+      builder: (context) => Scaffold(
+        appBar: AppBar(title: Text(context.localize('Gestion du linge'))),
         body: LaundryPage(
           repository: repository,
           currentUser: currentUser,

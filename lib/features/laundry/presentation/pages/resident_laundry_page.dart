@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/localization/app_locale.dart';
 import '../../../../models/laundry_item.dart';
 import '../../../../models/laundry_role.dart';
 import '../../../../models/user.dart';
@@ -8,6 +9,11 @@ import '../../data/repositories/laundry_repository.dart';
 import '../widgets/laundry_async_state.dart';
 import '../widgets/laundry_history_dialog.dart';
 import '../widgets/laundry_insights.dart';
+import '../widgets/laundry_design.dart';
+import 'laundry_dashboard_page.dart';
+import 'laundry_complaints_page.dart';
+import '../widgets/laundry_request_editor.dart';
+import '../widgets/laundry_timing.dart';
 
 // Laundry requests belonging to one resident.
 class ResidentLaundryPage extends StatefulWidget {
@@ -48,42 +54,43 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
       ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(
-            'Bienvenue, $_residentName',
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.navy,
+          LaundrySectionHeader(
+            title: context.tr(
+              fr: 'Bienvenue, $_residentName',
+              en: 'Welcome, $_residentName',
+              ar: 'مرحبًا، $_residentName',
+            ),
+            subtitle: context.tr(
+              fr: 'Confiez votre linge, suivez chaque étape.',
+              en: 'Send your laundry and follow every step.',
+              ar: 'أرسل غسيلك وتابع كل مرحلة.',
+            ),
+            icon: Icons.local_laundry_service_outlined,
+            action: FilledButton.icon(
+              onPressed: () => _openForm(),
+              icon: const Icon(Icons.add_rounded),
+              label: Text(context.localize('Nouvelle demande')),
             ),
           ),
-
-          const SizedBox(height: 16),
-
+          Wrap(
+            spacing: 8,
+            children: [
+              LaundryDashboardButton(repository: _repository),
+              LaundryComplaintsButton(repository: _repository),
+            ],
+          ),
           LaundryOverview(items: items, role: LaundryRole.resident),
-
-          // CREATE
-          FilledButton.icon(
-            onPressed: () => _openForm(),
-            icon: const Icon(Icons.add),
-            label: const Text('Nouvelle demande'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.navy,
-              foregroundColor: Colors.white,
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
+          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             children: [
               ChoiceChip(
-                label: const Text('En cours'),
+                label: Text(context.localize('En cours')),
                 selected: !_showDelivered,
                 onSelected: (_) => setState(() => _showDelivered = false),
               ),
               ChoiceChip(
-                label: const Text('Livrées'),
+                label: Text(context.localize('Livrées')),
                 selected: _showDelivered,
                 onSelected: (_) => setState(() => _showDelivered = true),
               ),
@@ -92,22 +99,21 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
           const SizedBox(height: 12),
 
           if (items.isEmpty)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('Vous n’avez aucune demande de linge.'),
+            LaundryEmptyState(
+              title: context.localize('Vous n’avez aucune demande de linge.'),
+              description: context.tr(
+                fr: 'Votre première demande commence ici.',
+                en: 'Your first request starts here.',
+                ar: 'ابدأ طلبك الأول هنا.',
               ),
             ),
-
-          // READ
           if (items.isNotEmpty &&
               !items.any(
                 (item) =>
                     (item.status == LaundryStatus.delivered) == _showDelivered,
               ))
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Text('Aucune demande dans cette catégorie.'),
+            LaundryEmptyState(
+              title: context.localize('Aucune demande dans cette catégorie.'),
             ),
           for (final item in items.where(
             (item) =>
@@ -121,7 +127,7 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
     return Scaffold(
       backgroundColor: AppColors.cream,
       appBar: AppBar(
-        title: const Text('Mes demandes de linge'),
+        title: Text(context.localize('Mes demandes de linge')),
         backgroundColor: AppColors.cream,
       ),
       body: body,
@@ -131,135 +137,69 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
   // Display one laundry request.
   Widget _buildItemCard(LaundryItem item) {
     final canModify = item.status == LaundryStatus.deposited;
-
-    return Card(
-      color: Colors.white,
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: AppColors.line),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '#${item.id}',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppColors.navy,
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            Text('Service : ${item.serviceType}'),
-            Text('Statut : ${_statusLabel(item.status)}'),
-            Text('Créée le ${laundryDate(item.createdAt)}'),
-            const SizedBox(height: 8),
-            Text(
-              laundryNextStep(item.status),
-              style: const TextStyle(color: AppColors.muted),
-            ),
-            if (!canModify)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: Text(
-                  'Cette demande a été prise en charge et ne peut plus être modifiée.',
-                ),
-              ),
-
-            const SizedBox(height: 8),
-
-            TextButton.icon(
-              onPressed: () => showLaundryHistory(
-                context,
-                _repository,
-                item,
-                residentId: _residentId,
-              ),
-              icon: const Icon(Icons.history),
-              label: const Text('Historique'),
-            ),
-            if (canModify)
-              Wrap(
-                spacing: 8,
-                children: [
-                  // UPDATE
-                  TextButton.icon(
-                    onPressed: () => _openForm(item: item),
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Modifier'),
-                  ),
-
-                  // DELETE
-                  TextButton.icon(
-                    onPressed: () => _confirmDelete(item),
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('Supprimer'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFFE45858),
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Convert the laundry status to French.
-  String _statusLabel(LaundryStatus status) {
-    switch (status) {
-      case LaundryStatus.deposited:
-        return 'Déposé';
-
-      case LaundryStatus.processing:
-        return 'En traitement';
-
-      case LaundryStatus.ready:
-        return 'Prêt';
-
-      case LaundryStatus.delivered:
-        return 'Livré';
-    }
-  }
-
-  // Open the create/edit dialog and handle the result.
-  Future<void> _openForm({LaundryItem? item}) async {
-    final service = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        return _LaundryRequestDialog(item: item);
-      },
-    );
-
-    // Stop if the user cancelled or the page was removed.
-    if (service == null || !mounted) return;
-
-    await perform(() async {
-      if (item == null) {
-        await _repository.addForResident(
-          LaundryItem(
-            id: 'LD${DateTime.now().microsecondsSinceEpoch}',
-            residentId: _residentId,
-            residentName: _residentName,
-            serviceType: service,
-            price: 0,
-            status: LaundryStatus.deposited,
+    return LaundryRequestCard(
+      item: item,
+      showResident: false,
+      showProgress: true,
+      warning: laundryHasTimingWarning(report, item.id),
+      notice: [
+        if (!canModify)
+          context.localize(
+            'Cette demande a été prise en charge et ne peut plus être modifiée.',
           ),
-          residentId: _residentId,
-        );
-      } else {
-        await _repository.updateForResident(
-          item.copyWith(serviceType: service),
-          residentId: _residentId,
-        );
-      }
-    });
+        if (laundryTimingText(context, report, item.id) != null)
+          laundryTimingText(context, report, item.id)!,
+      ].join('\n'),
+      actions: [
+        TextButton.icon(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => LaundryComplaintsPage(
+                repository: _repository,
+                laundryId: item.id,
+              ),
+            ),
+          ),
+          icon: const Icon(Icons.report_problem_outlined),
+          label: Text(
+            context.tr(fr: 'Réclamer', en: 'Report an issue', ar: 'تقديم شكوى'),
+          ),
+        ),
+        TextButton.icon(
+          onPressed: () => showLaundryHistory(
+            context,
+            _repository,
+            item,
+            residentId: _residentId,
+          ),
+          icon: const Icon(Icons.history),
+          label: Text(context.localize('Historique')),
+        ),
+        if (canModify) ...[
+          TextButton.icon(
+            onPressed: () => _openForm(item: item),
+            icon: const Icon(Icons.edit_outlined),
+            label: Text(context.localize('Modifier')),
+          ),
+          TextButton.icon(
+            onPressed: () => _confirmDelete(item),
+            icon: const Icon(Icons.delete_outline),
+            label: Text(context.localize('Supprimer')),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFB44242),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _openForm({LaundryItem? item}) async {
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (_) => LaundryRequestEditor(repository: _repository, item: item),
+    );
+    if (saved == true && mounted) await reload();
   }
 
   @override
@@ -269,7 +209,8 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
       throw const LaundryException('Cet espace est réservé aux résidents.');
     }
     _account = account;
-    return _repository.getByResidentId(account.id!);
+    report = await _repository.getReport();
+    return report!.workloads.map((w) => w.item).toList();
   }
 
   @override
@@ -290,19 +231,19 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Supprimer la demande ?'),
+          title: Text(context.localize('Supprimer la demande ?')),
           content: Text('Voulez-vous supprimer la demande ${item.id} ?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Annuler'),
+              child: Text(context.localize('Annuler')),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFFE45858),
               ),
-              child: const Text('Supprimer'),
+              child: Text(context.localize('Supprimer')),
             ),
           ],
         );
@@ -314,109 +255,5 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
     await perform(() async {
       await _repository.deleteForResident(item.id, residentId: _residentId);
     });
-  }
-}
-
-// Separate dialog that owns its TextEditingControllers.
-class _LaundryRequestDialog extends StatefulWidget {
-  const _LaundryRequestDialog({this.item});
-
-  final LaundryItem? item;
-
-  @override
-  State<_LaundryRequestDialog> createState() => _LaundryRequestDialogState();
-}
-
-class _LaundryRequestDialogState extends State<_LaundryRequestDialog> {
-  late final TextEditingController _serviceController;
-
-  // Runs when the dialog is created.
-  @override
-  void initState() {
-    super.initState();
-
-    _serviceController = TextEditingController(
-      text: widget.item?.serviceType ?? '',
-    );
-  }
-
-  // Runs when Flutter permanently removes the dialog.
-  @override
-  void dispose() {
-    _serviceController.dispose();
-    super.dispose();
-  }
-
-  // Validate the form and return the entered values.
-  void _save() {
-    final service = _serviceController.text.trim();
-
-    if (service.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez préciser le service souhaité.')),
-      );
-      return;
-    }
-
-    Navigator.pop(context, service);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(
-        widget.item == null ? 'Nouvelle demande' : 'Modifier la demande',
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _serviceController,
-              decoration: const InputDecoration(
-                labelText: 'Type de service',
-                prefixIcon: Icon(Icons.local_laundry_service_outlined),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final service in [
-                  'Lavage',
-                  'Repassage',
-                  'Nettoyage à sec',
-                ])
-                  ActionChip(
-                    label: Text(service),
-                    onPressed: () => _serviceController.text = service,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Choisissez un service ou décrivez votre besoin. Vous pourrez modifier votre demande avant sa prise en charge.',
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Annuler'),
-        ),
-        FilledButton(
-          onPressed: _save,
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.navy,
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('Enregistrer'),
-        ),
-      ],
-    );
   }
 }
