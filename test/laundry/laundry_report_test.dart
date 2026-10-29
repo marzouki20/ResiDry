@@ -1,8 +1,11 @@
+import 'support/laundry_rows.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:ttttttteee/features/laundry/data/repositories/laundry_repository.dart';
 import 'package:ttttttteee/models/laundry_item.dart';
 import 'package:ttttttteee/models/user.dart';
+import 'package:ttttttteee/features/laundry/data/laundry_storage.dart';
 
 import 'support/sqlite_test_database.dart';
 import 'support/test_accounts.dart';
@@ -43,9 +46,9 @@ void main() {
         .map((row) => row['name'])
         .toSet();
     expect(columns, containsAll(['treatment_due_at', 'urgency', 'revision']));
-    expect(await db.query('laundry_pricing_rules'), isEmpty);
-    expect(await db.query('laundry_request_lines'), isEmpty);
-    expect((await db.query('laundry_service_types')).length, 3);
+    expect(await readLaundryRows(db, 'laundry_pricing_rules'), isEmpty);
+    expect(await readLaundryRows(db, 'laundry_request_lines'), isEmpty);
+    expect((await readLaundryRows(db, 'laundry_service_types')).length, 3);
   });
   test(
     'empty database produces empty statistics, not a sample average',
@@ -142,12 +145,12 @@ void main() {
     await admin.add(request('MEASURED', status: LaundryStatus.delivered));
     await admin.add(request('LEGACY', status: LaundryStatus.ready));
     await db.delete(
-      'laundry_status_history',
-      where: 'laundry_id = ?',
-      whereArgs: ['MEASURED'],
+      'laundry_events',
+      where: 'event_type = ? AND laundry_id = ?',
+      whereArgs: ['laundry_status', 'MEASURED'],
     );
     for (var index = 0; index < LaundryStatus.values.length; index++) {
-      await db.insert('laundry_status_history', {
+      await LaundryStorage.addHistory(db, {
         'laundry_id': 'MEASURED',
         'old_status': index == 0 ? null : LaundryStatus.values[index - 1].name,
         'new_status': LaundryStatus.values[index].name,

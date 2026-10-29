@@ -14,8 +14,10 @@ data; live IoT devices and a remote service are not connected yet.
 
 The administrator interface also includes resident, laundry, laundry-company,
 order, and delivery-driver management. Resident accounts can manage a local
-profile and residence information; the GPS, laundry, and order modules remain
-prototype features backed by local data.
+profile and residence information; the GPS and order modules remain
+prototype features backed by local data. Laundry management uses persistent local
+SQLite data, role-based access, pricing, treatment planning, sorting suggestions,
+and resident complaints, as described below.
 
 ---
 
@@ -201,6 +203,9 @@ settings were restored afterward. Run the native test with
 │   ├── models/
 │   │   ├── delivery_driver.dart
 │   │   ├── delivery_order.dart
+│   │   ├── laundry_item.dart
+│   │   ├── laundry_role.dart
+│   │   ├── laundry_status_change.dart
 │   │   └── user.dart
 │   └── features/
 │       ├── auth/
@@ -238,6 +243,23 @@ settings were restored afterward. Run the native test with
 │       │       │   └── driver_navigation_bar.dart
 │       │       └── widgets/
 │       │           └── driver_components.dart
+│       ├── laundry/
+│       │   ├── data/
+│       │   │   ├── models/
+│       │   │   ├── repositories/
+│       │   │   ├── services/
+│       │   │   ├── laundry_compact_schema.dart
+│       │   │   ├── laundry_schema.dart
+│       │   │   └── laundry_storage.dart
+│       │   ├── domain/
+│       │   │   ├── models/
+│       │   │   └── services/
+│       │   ├── presentation/
+│       │   │   ├── navigation/
+│       │   │   ├── pages/
+│       │   │   ├── widgets/
+│       │   │   └── laundry_page.dart
+│       │   └── laundry_dev_main.dart
 │       ├── lockers/
 │       │   └── presentation/
 │       │       └── home_page.dart
@@ -315,6 +337,81 @@ SQLite schema version 4 introduces `delivery_drivers`, `delivery_missions`, and
 `delivery_events`. The repository boundary allows the local implementation to
 be replaced by a REST-backed implementation when the team backend is ready.
 
+### Intelligent laundry management — `lib/features/laundry/`
+
+This module manages laundry requests and their treatment, not the separate
+administrative management of laundry companies. It reuses the central `User`
+model and `users` table; it creates no accounts or independent user database.
+`residentId` means `users.id`, never the independent `residents.id` profile ID.
+The repository reloads the account and checks its role and ownership inside each
+operation's SQLite transaction. Names are resolved from the existing accounts.
+
+| Role | Laundry permissions |
+| --- | --- |
+| Resident | Create, read, edit and delete owned requests while deposited; view treatment history and submit/follow owned complaints. Identity comes from the authenticated account; prices are not exposed in resident responses. |
+| Pressing company | View and filter requests; start treatment (`deposited → processing`) and mark it ready (`processing → ready`); verify garment care information and consult sorting suggestions. No administrator CRUD or tariff editing. |
+| Driver | View ready/delivered requests and confirm delivery (`ready → delivered`). No prices, request CRUD or backward transitions. |
+| Administrator | Manage requests for selected existing resident accounts, configure tariffs, inspect statistics and review complaints with a reasoned decision. |
+
+Implemented business features:
+
+- Request CRUD with garment types, quantities, weights, services, instructions,
+  urgency, explicit treatment deadlines and input validation.
+- Automatic quotes from configured per-item/per-kilogram tariffs, calculated in
+  integer millimes. Tariff versions and saved price snapshots are retained;
+  missing tariffs or weights do not become invented prices.
+- Explained treatment priorities, processing-time estimates and delay warnings
+  based on persisted inputs. Missing estimates/deadlines remain unknown.
+- Statistics from repository data, including request counts, delays, confirmed
+  delivered value, service usage and treatment duration when history permits.
+- Conservative sorting suggestions based on verified colour, fabric, cycle,
+  care-label temperature and dye-transfer/separate-wash information. Different
+  residents' requests are not grouped; missing or ambiguous information requires
+  human review. These are deterministic rules, not machine learning.
+- Resident complaints with descriptions and up to three local photos; administrator
+  review follows `submitted → reviewing → resolved/rejected`, with a decision
+  reason, authenticated author history and an in-app unread-response indicator.
+  A request with a complaint cannot be deleted.
+
+Laundry uses **four physical tables in the shared `residry.db`**, schema version
+14:
+
+| Table | Stored data |
+| --- | --- |
+| `laundry_items` | Requests and embedded `lines_json` for garments, quantities, weights, quote snapshots and sorting observations. |
+| `laundry_services` | Translated service definitions and embedded `pricing_rules_json` for versioned tariffs. |
+| `laundry_complaints` | Complaints, review state, unread-response revision and up to three photo BLOBs with JSON metadata. |
+| `laundry_events` | Typed treatment and complaint history, linked requests/cases and actual account authors. |
+
+Version 14 converts the previous Laundry tables in one transaction, verifies the
+copied content and removes the replaced Laundry tables. Existing request data,
+tariff versions, photos and historical event identifiers are preserved. It does
+not change the team's user schema or other modules' tables. Failure rolls back
+the conversion. Earlier migration definitions remain in the source solely to
+upgrade older databases. Embedded garment/tariff relationships are validated in
+Dart; they are no longer separate SQL foreign keys.
+
+Shared entities remain under `lib/models/`. Laundry persistence and account
+lookups live under `data/repositories/`; rule-based calculations under
+`domain/services/`; pages, reusable widgets and routes under `presentation/`.
+The public `presentation/laundry_page.dart` entry remains compatible. Screens
+use `AppTheme.light` and the shared French/English/Arabic locale, including RTL.
+See the [Laundry module guide](lib/features/laundry/README.md) for the current
+relationships, migration safeguards and validation commands.
+
+Run the independent entry point on Android using the team's actual login:
+
+```bash
+flutter run -d emulator-5554 -t lib/features/laundry/laundry_dev_main.dart
+```
+
+Use existing accounts for each role. The launcher does not create demonstration
+accounts or grant permissions through a role dropdown. Local Laundry data does
+not synchronize between devices; server account IDs must not be treated as local
+SQLite account IDs. Flutter Web persistence, live IoT integration, delivery
+pickup assignments, compensation credits and OS push notifications are not
+implemented by this module.
+
 ### Other feature placeholders
 
 | Folder/file | Current responsibility |
@@ -322,7 +419,7 @@ be replaced by a REST-backed implementation when the team backend is ready.
 | `lib/features/lockers/presentation/home_page.dart` | Generic locker landing-page placeholder for roles without a dedicated screen. |
 | `lib/features/orders/presentation/home_page.dart` | Legacy delivery/order landing page placeholder. |
 
-Other modules listed in the team plan (laundry, laundry companies, and residents)
+Other modules listed in the team plan (laundry companies and residents)
 have not yet been added to the current `lib/features/` tree.
 
 ---
@@ -354,6 +451,23 @@ sign-up screens.
 `test/casier_interfaces_test.dart` covers administrator and resident side-menu
 navigation, opening and closing the drawer, locker management access, and the
 resident locker controls.
+
+Laundry checks:
+
+```bash
+flutter analyze lib test
+flutter test test/laundry --concurrency=1
+python -B -m unittest discover -s test/laundry -p schema_test.py
+```
+
+Validation on October 29, 2026: all **204 Laundry tests passed**, with one optional
+design-preview test skipped; **19 SQLite schema tests passed**. Tests cover real
+native SQLite CRUD, permissions, calculations, sorting, complaint photos and
+decisions, rollback, migration preservation, reopening, forms, translations and
+routes. The full Flutter suite had 250 passes, four skips and the same nine
+pre-existing shared-interface failures as the preceding run. Analysis reported
+18 existing informational lints outside Laundry. These results do not establish
+an Android device/camera walkthrough or Flutter Web persistence.
 
 ---
 

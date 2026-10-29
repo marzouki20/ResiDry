@@ -1,3 +1,5 @@
+import 'support/laundry_rows.dart';
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -202,7 +204,7 @@ void main() {
     expect(saved.priceConfirmed, isFalse);
     await another.deleteForResident('LD1', residentId: 1);
     expect(await admin.getAll(), isEmpty);
-    expect(await db.query('laundry_status_history'), isEmpty);
+    expect(await readLaundryRows(db, 'laundry_status_history'), isEmpty);
   });
   test('complete workflow records real actors in order', () async {
     await resident.addForResident(request(), residentId: 1);
@@ -388,7 +390,7 @@ void main() {
   test('history insertion failures roll back both creation and transition in real SQLite', () async {
     await admin.add(request());
     await db.execute(
-      "CREATE TRIGGER reject_history BEFORE INSERT ON laundry_status_history BEGIN SELECT RAISE(ABORT, 'test failure'); END",
+      "CREATE TRIGGER reject_history BEFORE INSERT ON laundry_events WHEN NEW.event_type = 'laundry_status' BEGIN SELECT RAISE(ABORT, 'test failure'); END",
     );
     await expectLater(
       admin.add(request(id: 'FAILED')),
@@ -428,7 +430,7 @@ void main() {
       );
     }
     await admin.delete(item.id);
-    expect(await db.query('laundry_status_history'), isEmpty);
+    expect(await readLaundryRows(db, 'laundry_status_history'), isEmpty);
   });
   test(
     'same-database foreign keys protect users and reject missing references',

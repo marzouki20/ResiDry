@@ -1,14 +1,16 @@
+import 'support/laundry_rows.dart';
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:ttttttteee/database/database.dart';
-import 'package:ttttttteee/features/laundry/data/laundry_schema.dart';
+import 'package:ttttttteee/features/laundry/data/laundry_compact_schema.dart';
 
 import 'support/test_accounts.dart';
 
 void main() {
-  test('actual AppDatabase v10 to v11 preserves every shared table and historical record', () async {
+  test('actual AppDatabase v10 to current schema preserves every shared table and historical record', () async {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
     final previousPath = await databaseFactoryFfi.getDatabasesPath();
@@ -66,7 +68,7 @@ void main() {
       await previous.close();
       await databaseFactoryFfi.setDatabasesPath(directory.path);
       opened = await AppDatabase.instance.database;
-      expect(await opened.getVersion(), 11);
+      expect(await opened.getVersion(), 14);
       for (final table in sharedTables) {
         expect(
           await opened.query(table),
@@ -80,12 +82,21 @@ void main() {
       }
       expect(current['treatment_due_at'], isNull);
       expect(current['urgency'], isNull);
-      expect(await opened.query('laundry_status_history'), oldHistory);
-      expect(await opened.query('laundry_pricing_rules'), isEmpty);
-      expect(await opened.query('laundry_request_lines'), isEmpty);
-      expect((await opened.query('laundry_service_types')).length, 3);
-      await opened.transaction((db) => LaundrySchema.upgradeV11(db));
-      expect((await opened.query('laundry_service_types')).length, 3);
+      expect(
+        await readLaundryRows(opened, 'laundry_status_history'),
+        oldHistory,
+      );
+      expect(await readLaundryRows(opened, 'laundry_pricing_rules'), isEmpty);
+      expect(await readLaundryRows(opened, 'laundry_request_lines'), isEmpty);
+      expect(
+        (await readLaundryRows(opened, 'laundry_service_types')).length,
+        3,
+      );
+      await opened.transaction((db) => LaundryCompactSchema.upgradeV14(db));
+      expect(
+        (await readLaundryRows(opened, 'laundry_service_types')).length,
+        3,
+      );
       expect(await opened.rawQuery('PRAGMA foreign_key_check'), isEmpty);
     } finally {
       await opened?.close();

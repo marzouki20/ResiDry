@@ -4,19 +4,16 @@ part of 'laundry_repository.dart';
 extension LaundryEssentialOperations on LaundryRepository {
   Future<List<LaundryServiceType>> getServices() => _authorized(
     LaundryRepository._allRoles,
-    (db, actor, role) async => (await db.query(
-      'laundry_service_types',
-      where: 'is_active = ?',
-      whereArgs: [1],
+    (db, actor, role) async => (await LaundryStorage.services(
+      db,
+      activeOnly: true,
     )).map(LaundryServiceType.fromMap).toList(),
   );
 
   Future<List<LaundryTariff>> getTariffs() => _authorized(
     {LaundryRole.admin},
-    (db, actor, role) async => (await db.query(
-      'laundry_pricing_rules',
-      orderBy: 'valid_from DESC',
-    )).map(LaundryTariff.fromMap).toList(),
+    (db, actor, role) async =>
+        (await LaundryStorage.tariffs(db)).map(LaundryTariff.fromMap).toList(),
   );
 
   Future<void> saveTariff({
@@ -31,22 +28,18 @@ extension LaundryEssentialOperations on LaundryRepository {
             (estimatedMinutes <= 0 || estimatedMinutes > 525600))) {
       throw const LaundryException('Vérifiez le tarif et la durée.');
     }
-    final services = await db.query(
-      'laundry_service_types',
-      where: 'id = ? AND is_active = ?',
-      whereArgs: [serviceId, 1],
-    );
+    final services = (await LaundryStorage.services(
+      db,
+      activeOnly: true,
+    )).where((s) => s['id'] == serviceId).toList();
     if (services.length != 1) {
       throw const LaundryException('Service indisponible.');
     }
     final now = _clock().toUtc();
     final stamp = now.toIso8601String();
-    final previous = await db.query(
-      'laundry_pricing_rules',
-      where: 'service_id = ? AND pricing_basis = ?',
-      whereArgs: [serviceId, basisCode(basis)],
-    );
+    final previous = await LaundryStorage.tariffs(db, serviceId: serviceId);
     for (final row in previous) {
+      if (row['pricing_basis'] != basisCode(basis)) continue;
       final tariff = LaundryTariff.fromMap(row);
       if (tariff.rate.appliesAt(now)) {
         if (!now.isAfter(tariff.rate.validFrom)) {
@@ -54,15 +47,10 @@ extension LaundryEssentialOperations on LaundryRepository {
             'Ce tarif vient d’être enregistré. Réessayez.',
           );
         }
-        await db.update(
-          'laundry_pricing_rules',
-          {'valid_until': stamp},
-          where: 'id = ?',
-          whereArgs: [tariff.rate.id],
-        );
+        row['valid_until'] = stamp;
       }
     }
-    await db.insert('laundry_pricing_rules', {
+    previous.add({
       'id': 'RATE:$serviceId:${basisCode(basis)}:${now.microsecondsSinceEpoch}',
       'service_id': serviceId,
       'pricing_basis': basisCode(basis),
@@ -72,6 +60,7 @@ extension LaundryEssentialOperations on LaundryRepository {
       'created_by_user_id': actor.id,
       'created_at': stamp,
     });
+    await LaundryStorage.writeTariffs(db, serviceId, previous);
   });
 
   Future<LaundryDetails> getDetails(String id) =>
@@ -99,11 +88,9 @@ extension LaundryEssentialOperations on LaundryRepository {
     for (var index = 0; index < items.length; index++) {
       final row = rows[index];
       final item = items[index];
-      final history = (await db.query(
-        'laundry_status_history',
-        where: 'laundry_id = ?',
-        whereArgs: [item.id],
-        orderBy: 'id ASC',
+      final history = (await LaundryStorage.history(
+        db,
+        item.id,
       )).map(LaundryStatusChange.fromMap).toList();
       final names = <int, String>{};
       for (final userId
@@ -122,11 +109,9 @@ extension LaundryEssentialOperations on LaundryRepository {
               ? LaundryUrgency.urgent
               : LaundryUrgency.normal,
           revision: row['revision'] as int? ?? 0,
-          lines: (await db.query(
-            'laundry_request_lines',
-            where: 'laundry_id = ?',
-            whereArgs: [item.id],
-            orderBy: 'id ASC',
+          lines: (await LaundryStorage.lines(
+            db,
+            item.id,
           )).map((r) => LaundryLine.fromMap(r, hidePrices: hide)).toList(),
           history: history,
         ),
@@ -178,12 +163,11 @@ extension LaundryEssentialOperations on LaundryRepository {
     LaundryDetails draft,
     DateTime now,
   ) async {
-    final services = (await db.query(
-      'laundry_service_types',
-      where: 'is_active = ?',
-      whereArgs: [1],
+    final services = (await LaundryStorage.services(
+      db,
+      activeOnly: true,
     )).map(LaundryServiceType.fromMap).toList();
-    final tariffs = (await db.query('laundry_pricing_rules'))
+    final tariffs = (await LaundryStorage.tariffs(db))
         .map(LaundryTariff.fromMap)
         .toList();
     if (draft.lines.isEmpty ||
@@ -362,15 +346,23 @@ extension LaundryEssentialOperations on LaundryRepository {
       }
     }
     if (!frozen) {
+      final previousLines = {
+        for (final row in await LaundryStorage.lines(db, item.id))
+          row['id']: row,
+      };
       // Editable deposits only. Historical completed lots and tariff snapshots
       // are never repriced by changing a tariff configuration.
-      await db.delete(
-        'laundry_request_lines',
-        where: 'laundry_id = ?',
-        whereArgs: [item.id],
-      );
+      final storedLines = <Map<String, Object?>>[];
       for (final line in calculated.lines) {
-        await db.insert('laundry_request_lines', {
+        final previous = previousLines[line.id];
+        final unchanged =
+            previous != null &&
+            previous['garment_type'] == line.garment &&
+            previous['service_id'] == line.serviceId &&
+            previous['quantity'] == line.quantity &&
+            previous['weight_grams'] == line.weightGrams &&
+            previous['instructions'] == line.instructions;
+        storedLines.add({
           'id': line.id,
           'laundry_id': item.id,
           'garment_type': line.garment,
@@ -384,7 +376,20 @@ extension LaundryEssentialOperations on LaundryRepository {
           'total_millimes': line.totalMillimes,
           'estimated_minutes': line.estimatedMinutes,
           'created_at': now.toIso8601String(),
+          if (unchanged) ...{
+            for (final entry in previous.entries.where(
+              (entry) => entry.key.startsWith('sorting_'),
+            ))
+              entry.key: entry.value,
+          },
         });
+      }
+      try {
+        await LaundryStorage.writeLines(db, item.id, storedLines);
+      } on FormatException {
+        throw const LaundryException(
+          'Identifiant de lot déjà utilisé ou invalide.',
+        );
       }
     }
   });

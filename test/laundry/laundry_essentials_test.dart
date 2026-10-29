@@ -1,3 +1,5 @@
+import 'support/laundry_rows.dart';
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -113,8 +115,8 @@ void main() {
       );
       expect((await admin.getDetails('LD1')).item.price, 10);
       await resident.deleteForResident('LD1', residentId: 1);
-      expect(await db.query('laundry_request_lines'), isEmpty);
-      expect(await db.query('laundry_status_history'), isEmpty);
+      expect(await readLaundryRows(db, 'laundry_request_lines'), isEmpty);
+      expect(await readLaundryRows(db, 'laundry_status_history'), isEmpty);
       expect((await db.query('users')).length, testAccounts.length);
     },
   );
@@ -437,7 +439,7 @@ void main() {
       throwsA(isA<LaundryException>()),
     );
     expect(await db.query('laundry_items'), isEmpty);
-    expect(await db.query('laundry_status_history'), isEmpty);
+    expect(await readLaundryRows(db, 'laundry_status_history'), isEmpty);
   });
   test(
     'duplicate line from another request rolls back the complete operation',
@@ -445,11 +447,11 @@ void main() {
       await resident.saveRequest(draft());
       await expectLater(
         resident.saveRequest(draft(id: 'LD2')),
-        throwsA(isA<DatabaseException>()),
+        throwsA(isA<LaundryException>()),
       );
       expect(await admin.getById('LD2'), isNull);
       expect((await admin.getDetails('LD1')).lines.single.totalMillimes, 15000);
-      expect((await db.query('laundry_status_history')).length, 1);
+      expect((await readLaundryRows(db, 'laundry_status_history')).length, 1);
     },
   );
   test(

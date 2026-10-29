@@ -1,5 +1,7 @@
 import 'dart:io';
 import '../features/laundry/data/laundry_schema.dart';
+import '../features/laundry/data/laundry_compact_schema.dart';
+import '../features/laundry/data/laundry_storage.dart';
 import 'package:path/path.dart' as paths;
 
 import 'package:sqflite/sqflite.dart';
@@ -32,7 +34,7 @@ class AppDatabase {
 
     _database = await openDatabase(
       path,
-      version: 11,
+      version: 14,
       onConfigure: (database) => database.execute('PRAGMA foreign_keys = ON'),
       onCreate: (database, _) async {
         await _createUsersTable(database);
@@ -48,10 +50,24 @@ class AppDatabase {
         await createRegistrationCertificateSchema(database);
         await ensureLaundrySchema(database, paths.join(databasePath, 'laundry.db'));
         await LaundrySchema.upgradeV11(database);
+        await LaundrySchema.upgradeV12(database);
+        await LaundrySchema.upgradeV13(database);
+        await LaundryCompactSchema.upgradeV14(database);
       },
       onUpgrade: (database, oldVersion, _) async {
         if (oldVersion >= 10) {
-          await LaundrySchema.upgradeV11(database);
+          if (oldVersion < 11) {
+            await LaundrySchema.upgradeV11(database);
+          }
+          if (oldVersion < 12) {
+            await LaundrySchema.upgradeV12(database);
+          }
+          if (oldVersion < 13) {
+            await LaundrySchema.upgradeV13(database);
+          }
+          if (oldVersion < 14) {
+            await LaundryCompactSchema.upgradeV14(database);
+          }
           return;
         }
         if (oldVersion < 2) {
@@ -80,6 +96,9 @@ class AppDatabase {
         await createRegistrationCertificateSchema(database);
         await ensureLaundrySchema(database, paths.join(databasePath, 'laundry.db'));
         await LaundrySchema.upgradeV11(database);
+        await LaundrySchema.upgradeV12(database);
+        await LaundrySchema.upgradeV13(database);
+        await LaundryCompactSchema.upgradeV14(database);
       },
     );
     return _database!;
@@ -173,18 +192,29 @@ class AppDatabase {
         });
       }
       if (tables.contains('laundry_status_history')) {
+        final compact = (await database.query(
+          'sqlite_master',
+          columns: ['name'],
+          where: 'type = ? AND name = ?',
+          whereArgs: ['table', 'laundry_events'],
+        )).isNotEmpty;
         for (final row in await legacy.query(
           'laundry_status_history',
           orderBy: 'id ASC',
         )) {
-          await database.insert('laundry_status_history', {
+          final event = <String, Object?>{
             'id': row['id'],
             'laundry_id': row['laundry_id'],
             'old_status': row['old_status'],
             'new_status': row['new_status'],
             'changed_by_user_id': null,
             'changed_at': row['changed_at'],
-          });
+          };
+          if (compact) {
+            await LaundryStorage.addHistory(database, event);
+          } else {
+            await database.insert('laundry_status_history', event);
+          }
         }
       }
     } finally {

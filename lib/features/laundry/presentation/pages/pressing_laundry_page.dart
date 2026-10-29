@@ -12,6 +12,7 @@ import '../widgets/laundry_insights.dart';
 import '../widgets/laundry_design.dart';
 import '../../data/models/laundry_report.dart';
 import 'laundry_dashboard_page.dart';
+import 'laundry_sorting_page.dart';
 import '../widgets/laundry_timing.dart';
 
 class LaundryWorkflowView extends StatefulWidget {
@@ -108,7 +109,18 @@ class _LaundryWorkflowViewState extends State<LaundryWorkflowView>
                         ? Icons.local_shipping_outlined
                         : Icons.local_laundry_service_outlined,
                   ),
-                  LaundryDashboardButton(repository: widget.repository),
+                  Wrap(
+                    spacing: 8,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      LaundryDashboardButton(repository: widget.repository),
+                      if (widget.role == LaundryRole.pressing)
+                        LaundrySortingButton(
+                          repository: widget.repository,
+                          onReturn: reload,
+                        ),
+                    ],
+                  ),
                   LaundryOverview(items: items, role: widget.role),
                   if (widget.role == LaundryRole.pressing)
                     Padding(

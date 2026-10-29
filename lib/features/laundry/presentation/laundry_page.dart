@@ -9,6 +9,8 @@ import '../data/repositories/laundry_repository.dart';
 import 'widgets/laundry_request_editor.dart';
 import 'pages/laundry_tariffs_page.dart';
 import 'pages/laundry_dashboard_page.dart';
+import 'pages/laundry_sorting_page.dart';
+import 'pages/laundry_complaints_page.dart';
 import 'widgets/laundry_async_state.dart';
 import 'widgets/laundry_history_dialog.dart';
 import 'widgets/laundry_insights.dart';
@@ -91,6 +93,11 @@ class _LaundryPageState extends State<LaundryPage>
                   Wrap(
                     children: [
                       LaundryDashboardButton(repository: _repository),
+                      LaundryComplaintsButton(repository: _repository),
+                      LaundrySortingButton(
+                        repository: _repository,
+                        onReturn: reload,
+                      ),
                       TextButton.icon(
                         onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute<void>(

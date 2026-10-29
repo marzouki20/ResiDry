@@ -1,3 +1,5 @@
+import 'support/laundry_rows.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -177,11 +179,15 @@ void main() {
         isEmpty,
       );
       expect(
-        await tester.runAsync(() => db.query('laundry_request_lines')),
+        await tester.runAsync(
+          () => readLaundryRows(db, 'laundry_request_lines'),
+        ),
         isEmpty,
       );
       expect(
-        await tester.runAsync(() => db.query('laundry_status_history')),
+        await tester.runAsync(
+          () => readLaundryRows(db, 'laundry_status_history'),
+        ),
         isEmpty,
       );
       expect(

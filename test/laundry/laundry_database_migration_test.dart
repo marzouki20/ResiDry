@@ -1,3 +1,5 @@
+import 'support/laundry_rows.dart';
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -76,12 +78,14 @@ void main() {
 
     final common = await AppDatabase.instance.database;
     opened = common;
-    expect(await common.getVersion(), 11);
+    expect(await common.getVersion(), 14);
     expect(await common.query('users', orderBy: 'id'), originalUsers);
     expect((await common.query('laundry_items')).single['resident_id'], isNull);
     expect(
-      (await common.query('laundry_status_history'))
-          .single['changed_by_user_id'],
+      (await readLaundryRows(
+        common,
+        'laundry_status_history',
+      )).single['changed_by_user_id'],
       isNull,
     );
     expect(
@@ -99,9 +103,9 @@ void main() {
     expect(await File(legacyPath).readAsBytes(), originalArchive);
     await common.close();
     opened = await databaseFactoryFfi.openDatabase(commonPath);
-    expect(await opened.getVersion(), 11);
+    expect(await opened.getVersion(), 14);
     expect((await opened.query('laundry_items')).length, 1);
-    expect((await opened.query('laundry_status_history')).length, 1);
+    expect((await readLaundryRows(opened, 'laundry_status_history')).length, 1);
     expect(await opened.query('users', orderBy: 'id'), originalUsers);
   });
   for (final version in [6, 9]) {

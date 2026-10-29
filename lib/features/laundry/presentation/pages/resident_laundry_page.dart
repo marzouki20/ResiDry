@@ -11,6 +11,7 @@ import '../widgets/laundry_history_dialog.dart';
 import '../widgets/laundry_insights.dart';
 import '../widgets/laundry_design.dart';
 import 'laundry_dashboard_page.dart';
+import 'laundry_complaints_page.dart';
 import '../widgets/laundry_request_editor.dart';
 import '../widgets/laundry_timing.dart';
 
@@ -71,7 +72,13 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
               label: Text(context.localize('Nouvelle demande')),
             ),
           ),
-          LaundryDashboardButton(repository: _repository),
+          Wrap(
+            spacing: 8,
+            children: [
+              LaundryDashboardButton(repository: _repository),
+              LaundryComplaintsButton(repository: _repository),
+            ],
+          ),
           LaundryOverview(items: items, role: LaundryRole.resident),
           const SizedBox(height: 8),
           Wrap(
@@ -144,6 +151,20 @@ class _ResidentLaundryPageState extends State<ResidentLaundryPage>
           laundryTimingText(context, report, item.id)!,
       ].join('\n'),
       actions: [
+        TextButton.icon(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => LaundryComplaintsPage(
+                repository: _repository,
+                laundryId: item.id,
+              ),
+            ),
+          ),
+          icon: const Icon(Icons.report_problem_outlined),
+          label: Text(
+            context.tr(fr: 'Réclamer', en: 'Report an issue', ar: 'تقديم شكوى'),
+          ),
+        ),
         TextButton.icon(
           onPressed: () => showLaundryHistory(
             context,

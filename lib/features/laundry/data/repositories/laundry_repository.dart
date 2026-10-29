@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:sqflite/sqflite.dart';
 
@@ -7,6 +8,7 @@ import '../../../../models/laundry_item.dart';
 import '../../../../models/laundry_role.dart';
 import '../../../../models/laundry_status_change.dart';
 import '../../../../models/user.dart';
+import '../laundry_storage.dart';
 import 'laundry_user_directory.dart';
 import '../models/laundry_report.dart';
 import '../models/laundry_details.dart';
@@ -15,8 +17,17 @@ import '../../domain/services/pricing_service.dart';
 import '../../domain/models/laundry_workload.dart';
 import '../../domain/services/planning_service.dart';
 import '../../domain/services/laundry_statistics_service.dart';
+import '../models/laundry_sorting_data.dart';
+import '../../domain/models/laundry_sorting.dart';
+import '../../domain/services/sorting_service.dart';
+import '../models/laundry_complaint_data.dart';
+import '../services/complaint_photo_service.dart';
+import '../../domain/models/laundry_complaint.dart';
+import '../../domain/services/complaint_service.dart';
 
 part 'laundry_essential_operations.dart';
+part 'laundry_sorting_operations.dart';
+part 'laundry_complaint_operations.dart';
 
 class LaundryException implements Exception {
   const LaundryException(this.message);
@@ -110,7 +121,7 @@ class LaundryRepository {
         final workloads = details
             .map((request) => request.workload(now))
             .toList();
-        final services = (await db.query('laundry_service_types'))
+        final services = (await LaundryStorage.services(db))
             .map(LaundryServiceType.fromMap)
             .toList();
         final serviceNames = {
@@ -300,11 +311,7 @@ class LaundryRepository {
       _checkAuthor(actor, changedByUserId);
       _validate(item);
       final current = await _require(db, item.id);
-      if ((await db.query(
-        'laundry_request_lines',
-        where: 'laundry_id = ?',
-        whereArgs: [item.id],
-      )).isNotEmpty) {
+      if ((await LaundryStorage.lines(db, item.id)).isNotEmpty) {
         throw const LaundryException(
           'Modifiez les articles avec le formulaire détaillé.',
         );
@@ -353,11 +360,7 @@ class LaundryRepository {
         _validate(item.copyWith(price: 0));
         final current = await _require(db, item.id);
         _checkResident(current, actor);
-        if ((await db.query(
-          'laundry_request_lines',
-          where: 'laundry_id = ?',
-          whereArgs: [item.id],
-        )).isNotEmpty) {
+        if ((await LaundryStorage.lines(db, item.id)).isNotEmpty) {
           throw const LaundryException(
             'Modifiez les articles avec le formulaire détaillé.',
           );
@@ -381,17 +384,18 @@ class LaundryRepository {
           whereArgs: [item.id, actor.id, 'deposited'],
         );
       });
-  Future<int> delete(String id) => _authorized(
-    {LaundryRole.admin},
-    (db, actor, role) =>
-        db.delete('laundry_items', where: 'id = ?', whereArgs: [id]),
-  );
+  Future<int> delete(String id) =>
+      _authorized({LaundryRole.admin}, (db, actor, role) async {
+        await _ensureNoComplaint(db, id);
+        return db.delete('laundry_items', where: 'id = ?', whereArgs: [id]);
+      });
   Future<int> deleteForResident(String id, {required int residentId}) =>
       _authorized({LaundryRole.resident}, (db, actor, role) async {
         if (residentId != actor.id) {
           throw const LaundryException('Compte résident non autorisé.');
         }
         _checkResident(await _require(db, id), actor);
+        await _ensureNoComplaint(db, id);
         return db.delete(
           'laundry_items',
           where: 'id = ? AND resident_id = ? AND status = ?',
@@ -464,11 +468,9 @@ class LaundryRepository {
         (residentId != actor.id || item.residentId != actor.id)) {
       throw const LaundryException('Cette demande ne vous appartient pas.');
     }
-    return (await db.query(
-      'laundry_status_history',
-      where: 'laundry_id = ?',
-      whereArgs: [id],
-      orderBy: 'id ASC',
+    return (await LaundryStorage.history(
+      db,
+      id,
     )).map(LaundryStatusChange.fromMap).toList();
   });
   Future<void> _record(
@@ -478,7 +480,7 @@ class LaundryRepository {
     LaundryStatus newStatus,
     int userId,
   ) async {
-    await db.insert('laundry_status_history', {
+    await LaundryStorage.addHistory(db, {
       'laundry_id': id,
       'old_status': oldStatus?.name,
       'new_status': newStatus.name,
