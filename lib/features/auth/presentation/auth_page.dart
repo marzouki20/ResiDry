@@ -1,1 +1,1 @@
-enum AuthPage { signIn, signUp, forgotPassword, verifyEmail, resetPassword }
+enum AuthPage { signIn, signUp, forgotPassword, resetPassword }

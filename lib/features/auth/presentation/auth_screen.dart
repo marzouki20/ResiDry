@@ -15,7 +15,6 @@ import 'pages/forgot_password_page.dart';
 import 'pages/reset_password_page.dart';
 import 'pages/sign_in_page.dart';
 import 'pages/sign_up_page.dart';
-import 'pages/verify_email_page.dart';
 import 'widgets/auth_footer.dart';
 import 'widgets/auth_illustration.dart';
 import 'widgets/hcaptcha_challenge.dart';
@@ -39,8 +38,6 @@ class _AuthScreenState extends State<AuthScreen> {
 
   AuthPage _page = AuthPage.signIn;
   String? _pendingEmail;
-  String _pendingRole = 'Résident';
-  bool _pendingRememberMe = false;
   bool _passwordVisible = false;
   bool _acceptedTerms = false;
   bool _isSubmitting = false;
@@ -160,15 +157,6 @@ class _AuthScreenState extends State<AuthScreen> {
           onSendResetCode: _sendPasswordReset,
           onBackToSignIn: () => _showPage(AuthPage.signIn),
         );
-      case AuthPage.verifyEmail:
-        return VerifyEmailPage(
-          key: const ValueKey('verify-email'),
-          email: _pendingEmail ?? '',
-          codeController: _verificationCodeController,
-          isSubmitting: _isSubmitting,
-          onVerify: _verifySignupEmail,
-          onResend: _resendSignupCode,
-        );
       case AuthPage.resetPassword:
         return ResetPasswordPage(
           key: const ValueKey('reset-password'),
@@ -219,13 +207,8 @@ class _AuthScreenState extends State<AuthScreen> {
         captchaToken: captchaToken,
       );
       if (response.session == null) {
-        _pendingEmail = email;
-        _pendingRole = _selectedRole;
-        _pendingRememberMe = _rememberMe;
-        _verificationCodeController.clear();
-        _showPage(AuthPage.verifyEmail);
         _showMessage(
-          'We sent a verification code to $email. Enter it to finish creating your account.',
+          'Account created, but Supabase still requires email confirmation. Disable Confirm email in Supabase Authentication settings.',
         );
         return;
       }
@@ -285,12 +268,8 @@ class _AuthScreenState extends State<AuthScreen> {
     } on AuthException catch (error) {
       if (mounted) {
         if (error.code == 'email_not_confirmed') {
-          _pendingEmail = email;
-          _pendingRememberMe = rememberMe;
-          _verificationCodeController.clear();
-          _showPage(AuthPage.verifyEmail);
           _showMessage(
-            'Verify your email with the code already sent, or request a new code.',
+            'Email confirmation is enabled in Supabase. Disable Confirm email to allow sign-in without email verification.',
           );
         } else {
           _showMessage(error.message);
@@ -300,72 +279,6 @@ class _AuthScreenState extends State<AuthScreen> {
       if (mounted) {
         setState(() => _isSubmitting = false);
       }
-    }
-  }
-
-  Future<void> _verifySignupEmail() async {
-    final email = _pendingEmail;
-    final token = _verificationCodeController.text.trim();
-    if (email == null) {
-      _showMessage(
-        'Start account creation again to request a verification code.',
-      );
-      return;
-    }
-    if (!RegExp(r'^\d{6}$').hasMatch(token)) {
-      _showMessage('Enter the 6-digit code from your email.');
-      return;
-    }
-
-    setState(() => _isSubmitting = true);
-    try {
-      final captchaToken = await _requestCaptchaToken();
-      if (captchaToken == null) return;
-      await SupabaseConnection.authStorage.setRememberMe(_pendingRememberMe);
-      final response = await SupabaseConnection.client.auth.verifyOTP(
-        email: email,
-        token: token,
-        type: OtpType.signup,
-        captchaToken: captchaToken,
-      );
-      final user = response.user;
-      if (user == null) {
-        _showMessage('Email verification did not return an account session.');
-        return;
-      }
-
-      await _updateRememberedSession(email, _pendingRememberMe);
-      if (mounted) {
-        _openHome(
-          _userName(user, email),
-          _userRole(user, fallback: _pendingRole),
-        );
-      }
-    } on AuthException catch (error) {
-      if (mounted) _showMessage(error.message);
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
-  Future<void> _resendSignupCode() async {
-    final email = _pendingEmail;
-    if (email == null) return;
-
-    setState(() => _isSubmitting = true);
-    try {
-      final captchaToken = await _requestCaptchaToken();
-      if (captchaToken == null) return;
-      await SupabaseConnection.client.auth.resend(
-        type: OtpType.signup,
-        email: email,
-        captchaToken: captchaToken,
-      );
-      if (mounted) _showMessage('A new verification code was sent to $email.');
-    } on AuthException catch (error) {
-      if (mounted) _showMessage(error.message);
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
