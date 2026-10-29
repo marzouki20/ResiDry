@@ -271,7 +271,13 @@ class _AuthScreenState extends State<AuthScreen> {
       }
 
       if (mounted) {
-        _openHome(_userName(user, email), _userRole(user), email: email);
+        final name = _userName(user, email);
+        await SupabaseDataStore.upsertUserProfile(
+          user: user,
+          name: name,
+          email: email,
+        );
+        _openHome(name, _userRole(user), email: email);
       }
     } on AuthException catch (error) {
       if (mounted) {
@@ -425,6 +431,12 @@ class _AuthScreenState extends State<AuthScreen> {
       );
       await SupabaseConnection.client.auth.updateUser(
         UserAttributes(data: {'name': name, 'role': role}),
+      );
+
+      await SupabaseDataStore.upsertUserProfile(
+        user: user,
+        name: name,
+        email: email,
       );
 
       await _updateRememberedSession(
