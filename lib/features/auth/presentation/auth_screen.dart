@@ -197,6 +197,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
     setState(() => _isSubmitting = true);
     try {
+      final captchaToken = await _requestCaptchaToken();
+      if (captchaToken == null) return;
       if (mounted) {
         _openHome(name, _selectedRole, email: email);
       }
