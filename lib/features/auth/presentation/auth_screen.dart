@@ -199,9 +199,25 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       final captchaToken = await _requestCaptchaToken();
       if (captchaToken == null) return;
+      await SupabaseConnection.authStorage.setRememberMe(_rememberMe);
+      final response = await SupabaseConnection.client.auth.signUp(
+        email: email,
+        password: password,
+        data: {'name': name, 'role': _selectedRole},
+        captchaToken: captchaToken,
+      );
+      if (response.session == null) {
+        _showMessage(
+          'Supabase requires email confirmation. Disable Confirm email in Supabase Authentication settings.',
+        );
+        return;
+      }
+      await _updateRememberedSession(email, _rememberMe);
       if (mounted) {
         _openHome(name, _selectedRole, email: email);
       }
+    } on AuthException catch (error) {
+      if (mounted) _showMessage(error.message);
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
