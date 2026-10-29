@@ -1,6 +1,6 @@
 import 'package:geolocator/geolocator.dart';
 
-import '../../../../database/database.dart';
+import '../../../data/supabase_data_store.dart';
 import '../../../models/residence.dart';
 
 class ResidenceLocator {
@@ -26,7 +26,7 @@ class ResidenceLocator {
 
     Residence? nearest;
     var nearestDistance = double.infinity;
-    for (final residence in await AppDatabase.instance.listResidences()) {
+    for (final residence in await SupabaseDataStore.listResidences()) {
       final distance = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,

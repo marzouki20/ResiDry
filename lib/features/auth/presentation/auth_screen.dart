@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../data/supabase_data_store.dart';
 import '../../../database/supabase_connection.dart';
 import '../../casiers/presentation/admin/admin_interface.dart';
 import '../../delivery_drivers/presentation/driver_onboarding_page.dart';
@@ -212,6 +213,16 @@ class _AuthScreenState extends State<AuthScreen> {
         );
         return;
       }
+      final user = response.user;
+      if (user == null) {
+        _showMessage('Supabase did not return the new user.');
+        return;
+      }
+      await SupabaseDataStore.upsertUserProfile(
+        user: user,
+        name: name,
+        email: email,
+      );
       await _updateRememberedSession(email, _rememberMe);
       if (mounted) {
         _openHome(name, _selectedRole, email: email);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../data/locker_repository.dart';
 import '../../../laundry/presentation/laundry_page.dart';
 import '../../../laundry_companies/presentation/societes_lavage_page.dart';
 import '../../../orders/presentation/orders_admin_module.dart';
@@ -23,7 +24,26 @@ class _AdminInterfaceState extends State<AdminInterface> {
   String _query = '';
   String _filter = 'Tous';
   final Set<String> _handledAnomalies = {};
-  late final List<LockerRecord> _lockers = List<LockerRecord>.of(demoLockers);
+  List<LockerRecord> _lockers = [];
+  bool _loadingLockers = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLockers();
+  }
+
+  Future<void> _loadLockers() async {
+    try {
+      final lockers = await LockerRepository.list();
+      if (!mounted) return;
+      setState(() => _lockers = lockers);
+    } catch (_) {
+      if (mounted) _showMessage('Impossible de charger les casiers Supabase.');
+    } finally {
+      if (mounted) setState(() => _loadingLockers = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -260,6 +280,9 @@ class _AdminInterfaceState extends State<AdminInterface> {
   }
 
   Widget _lockersPage() {
+    if (_loadingLockers) {
+      return const Center(child: CircularProgressIndicator());
+    }
     final lockers = _lockers.where((locker) {
       final matchesQuery =
           locker.id.toLowerCase().contains(_query.toLowerCase()) ||
@@ -780,8 +803,14 @@ class _AdminInterfaceState extends State<AdminInterface> {
       ),
     );
     if (confirmed == true && mounted) {
-      setState(() => _lockers.remove(locker));
-      _showMessage('Casier ${locker.id} supprimé.');
+      try {
+        await LockerRepository.delete(locker.id);
+        if (!mounted) return;
+        setState(() => _lockers.remove(locker));
+        _showMessage('Casier ${locker.id} supprimé.');
+      } catch (_) {
+        if (mounted) _showMessage('Suppression Supabase impossible.');
+      }
     }
   }
 
@@ -836,7 +865,15 @@ class _AdminInterfaceState extends State<AdminInterface> {
               : locker.status;
       }
     });
-    _showMessage(locker == null ? 'Casier créé.' : 'Casier mis à jour.');
+    final savedLocker = locker ?? _lockers.first;
+    try {
+      await LockerRepository.save(savedLocker);
+      if (mounted) {
+        _showMessage(locker == null ? 'Casier créé.' : 'Casier mis à jour.');
+      }
+    } catch (_) {
+      if (mounted) _showMessage('Enregistrement Supabase impossible.');
+    }
   }
 
   void _openDetails(LockerRecord locker) {

@@ -1,4 +1,4 @@
-/// Représente une résidence enregistrée dans la table SQLite `residences`.
+/// Représente une résidence enregistrée dans Supabase.
 class Residence {
   const Residence({
     required this.id,
@@ -29,7 +29,7 @@ class Residence {
   };
 
   factory Residence.fromMap(Map<String, Object?> map) => Residence(
-    id: map['id']! as String,
+    id: map['id'].toString(),
     name: map['name']! as String,
     address: map['address']! as String,
     city: map['city']! as String,
